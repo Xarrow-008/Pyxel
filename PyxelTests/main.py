@@ -106,17 +106,6 @@ class App:
                     AIR_LIST.append([x,y,world_item]) #Mettre dans la list qui se dessine apres le joueur(par dessus)
                 else:
                     world_item_draw(pyxel, x, y, world_item) #Sinon dessiner car derriere joueur
-        
-        if self.slashing:
-            self.draw_transp(  #dessiner slash
-                self.slash_x,
-                self.slash_y,
-                self.player.IMG,
-                self.slash_facing * TILE_SIZE,
-                8 * TILE_SIZE,
-                self.player.WIDTH,
-                self.player.HEIGHT,
-                11)
 
         
         self.draw_transp(  #dessiner joueur
@@ -131,6 +120,17 @@ class App:
 
         for i in AIR_LIST: #liste de blocs au dessus du joueur
             world_item_draw(pyxel, i[0], i[1], i[2])
+        
+        if self.slashing:
+            self.draw_transp(  #dessiner slash
+                self.slash_x,
+                self.slash_y,
+                self.player.IMG,
+                self.slash_facing * TILE_SIZE,
+                8 * TILE_SIZE,
+                self.player.WIDTH,
+                self.player.HEIGHT,
+                11)
     
     def on_tick(self, tickrate = 0.5):
         if self.frame % (30 * tickrate) == 0:
