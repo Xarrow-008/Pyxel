@@ -13,9 +13,11 @@ class App:
     walking = False
     slash_frame = -60
     slashing = False
+    hitting = False
     slash_placement = [1,0] #L'emplacement x+ y+ par rapport au joueur de où va etre placé le slash
     slash_direction = [0,8] #Determine la direction du slash depuis les sprites de mygame                --à regarder-- pyxel edit mygame
     slash_moment = 0 #determine l'étape a laquelle le slash est depuis les sprites de mygame (en gros ca fait un tableau entre la direction et l'etape dedans)
+
 
     def __init__(self):
         os.system("cls")
@@ -38,7 +40,7 @@ class App:
 
         self.frame+=1
 
-        if self.movement_keys_pressed():
+        if self.movement_keys_pressed() and not self.hitting:
             self.walking = True
             if self.on_tick(self.tickrate):
                 self.walking_switch = not self.walking_switch
@@ -53,27 +55,27 @@ class App:
             facing[1] = 4
 
 
-        if pyxel.btn(pyxel.KEY_Q) and self.player.x > 0:
+        if pyxel.btn(pyxel.KEY_Q) and not self.hitting and self.player.x > 0: #si tu appuies sur la touche de direction, que tu n'est pas en train de slash et que tu ne vas pas sortir de lecran
             self.player.move_left()
             facing[0] = 1
-        if pyxel.btn(pyxel.KEY_D) and self.player.x + TILE_SIZE < TILE_SIZE*World.WIDTH:
+        if pyxel.btn(pyxel.KEY_D) and not self.hitting and self.player.x + TILE_SIZE < TILE_SIZE*World.WIDTH:
             self.player.move_right()
             facing[0] = 0
-        if pyxel.btn(pyxel.KEY_Z) and self.player.y > 0:
+        if pyxel.btn(pyxel.KEY_Z) and not self.hitting and self.player.y > 0:
             self.player.move_up()
             facing[0] = 2
-        if pyxel.btn(pyxel.KEY_S) and self.player.y + TILE_SIZE < TILE_SIZE*World.HEIGHT:
+        if pyxel.btn(pyxel.KEY_S) and not self.hitting and self.player.y + TILE_SIZE < TILE_SIZE*World.HEIGHT:
             self.player.move_down()
             facing[0] = 3
 
         
-        if pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_D):
+        if pyxel.btn(pyxel.KEY_Z) and not self.hitting and pyxel.btn(pyxel.KEY_D):
             facing[0] = 4
-        if pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_Q):
+        if pyxel.btn(pyxel.KEY_Z) and not self.hitting and pyxel.btn(pyxel.KEY_Q):
             facing[0] = 5
-        if pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_D):
+        if pyxel.btn(pyxel.KEY_S) and not self.hitting and pyxel.btn(pyxel.KEY_D):
             facing[0] = 6
-        if pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_Q):
+        if pyxel.btn(pyxel.KEY_S) and not self.hitting and pyxel.btn(pyxel.KEY_Q):
             facing[0] = 7
 
         
@@ -85,17 +87,21 @@ class App:
             self.slash_x = self.player.x + self.slash_placement[0] * TILE_SIZE
             self.slash_y = self.player.y + self.slash_placement[1] * TILE_SIZE
 
-        if self.frame - self.slash_frame < 1: #Si le temps passé depuis le slash est plus petit que 2 frames
-            self.slash_moment = 0
-        elif self.frame - self.slash_frame < 8:
-            self.slash_moment =  1
-        elif self.frame - self.slash_frame < 9:
-            self.slash_moment = 2
-        elif self.frame - self.slash_frame < 10:
-            self.slash_moment = 3
-        if self.frame - self.slash_frame >= 10:
-            self.slash_moment = 0
-            self.slashing = False
+        if self.slashing:
+            self.hitting = True
+            if self.frame - self.slash_frame < 1: #Si le temps passé depuis le slash est plus petit que 2 frames
+                self.slash_moment = 0
+            elif self.frame - self.slash_frame < 8:
+                self.slash_moment =  1
+            elif self.frame - self.slash_frame < 9:
+                self.slash_moment = 2
+                self.hitting = False
+            elif self.frame - self.slash_frame < 10:
+                self.slash_moment = 3
+            if self.frame - self.slash_frame >= 10:
+                self.slash_moment = 0 #             Par la suite, slash_moment sera ajouté à slash_direction pour passer les frames dans le tableau
+                self.slashing = False
+                self.hitting = False #au cas ou on a rate la frame ou le hitting etait censé passer (lag/bug)
 
         
 
