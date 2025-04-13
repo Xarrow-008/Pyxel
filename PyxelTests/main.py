@@ -13,12 +13,14 @@ class App:
     walking = False
     slash_frame = -60
     slashing = False
-    slash_direction = [1,0]
+    slash_placement = [1,0] #L'emplacement x+ y+ par rapport au joueur de où va etre placé le slash
+    slash_direction = [0,8] #Determine la direction du slash depuis les sprites de mygame                --à regarder-- pyxel edit mygame
+    slash_moment = 0 #determine l'étape a laquelle le slash est depuis les sprites de mygame (en gros ca fait un tableau entre la direction et l'etape dedans)
 
     def __init__(self):
         os.system("cls")
         pyxel.init(128,128,title="Hello World")
-        pyxel.load("mygame.pyxres")
+        pyxel.load("../mygame.pyxres")
 
         self.world = World(pyxel.tilemap(0))
 
@@ -78,13 +80,21 @@ class App:
         if pyxel.btn(pyxel.KEY_SPACE) and not self.slashing:
             self.slash_frame = self.frame
             self.slashing = True
-            self.slash_direction = self.facing_to_direction(facing)
-            self.slash_facing = facing[0]
-            self.slash_x = self.player.x + self.slash_direction[0] * TILE_SIZE
-            self.slash_y = self.player.y + self.slash_direction[1] * TILE_SIZE
+            self.slash_placement = self.facing_to_direction(facing)
+            self.slash_direction[0] = facing[0]
+            self.slash_x = self.player.x + self.slash_placement[0] * TILE_SIZE
+            self.slash_y = self.player.y + self.slash_placement[1] * TILE_SIZE
 
-
-        if self.slash_frame + 10 < self.frame:
+        if self.frame - self.slash_frame < 1: #Si le temps passé depuis le slash est plus petit que 2 frames
+            self.slash_moment = 0
+        elif self.frame - self.slash_frame < 8:
+            self.slash_moment =  1
+        elif self.frame - self.slash_frame < 9:
+            self.slash_moment = 2
+        elif self.frame - self.slash_frame < 10:
+            self.slash_moment = 3
+        if self.frame - self.slash_frame >= 10:
+            self.slash_moment = 0
             self.slashing = False
 
         
@@ -126,8 +136,8 @@ class App:
                 self.slash_x,
                 self.slash_y,
                 self.player.IMG,
-                self.slash_facing * TILE_SIZE,
-                8 * TILE_SIZE,
+                self.slash_direction[0] * TILE_SIZE,
+                (self.slash_direction[1] + self.slash_moment) * TILE_SIZE,
                 self.player.WIDTH,
                 self.player.HEIGHT,
                 11)
