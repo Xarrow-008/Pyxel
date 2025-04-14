@@ -12,6 +12,7 @@ class App:
     tickrate = 0.1
     walking_switch=False
     walking = False
+    SLASH = {"x+":1,"y+":0,"state":False,"stopPlayer":False,"directionX":0,"directionY":8,"moment":0}
     slash_frame = -60
     slashing = False
     hitting = False
@@ -122,6 +123,10 @@ class App:
                 self.hitting = False #au cas ou on a rate la frame ou le hitting etait censé passer (lag/bug)
                 if self.objects.lamp_hit:
                     self.objects.lamp_moment = 6
+
+        easy_frames_event([True,[]],self.slash_frame)
+
+
         if self.frame - self.slash_frame >= 13 and self.objects.lamp_hit:
             self.objects.lamp_moment = 7
         if self.frame - self.slash_frame >= 15 and self.objects.lamp_hit:
@@ -216,7 +221,7 @@ class App:
         if facing[0] == 7:
             return [-1,1]
     
-    def draw_transp(self,x, y, img, u, v, w, h,gscreen): #do every pixel if gscreen, replace by bg color
+    def draw_transp(self,x, y, img, u, v, w, h,gscreen): #do every pixel, if gscreen, replace by bg color
         bg_pixels = []
         for bg_y in range(TILE_SIZE):
             bg_pixels.append([])
@@ -238,6 +243,15 @@ class App:
     def reset(self):
         self.objects.lamp_broken = False
         self.objects.lamp_moment = 0
+    
+    def easy_frames_event(self,tab,event_start): #tab sous la forme de [[condition1 and/or condition2,[action1(=list,value),action2...],à tel frames],...] et ca ecrit les if a ta place
+        for event in tab:
+            if event[0] and self.frame - event_start == event[2]:
+                for action in event[1]: #event[1] = toutes les actions
+                    action[0][action[1]] = action[2] # :Dans la liste des valeurs à changer, index du num a sa droite, :Mettre la valeur a la fin 
+
+
+
 
 
 
