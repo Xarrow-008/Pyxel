@@ -13,6 +13,7 @@ class WorldItem:
     PATH =  (3,0)
     BRICKS = (2,1)
     LIGHT = (3,1)
+    LAMP = (0,12)
 
 
     LAVA_AIR = (1,6)
@@ -25,8 +26,9 @@ class WorldItem:
     BRICKS_AIR = (2,7)
     LIGHT_AIR = (3,7)
 
-    BLOCKS_LIST = [LAVA,GRASS,TREE,LEAVES,WATER,PATH,BRICKS,LIGHT,
+    BLOCKS_LIST = [LAVA,GRASS,TREE,LEAVES,WATER,PATH,BRICKS,LIGHT,LAMP,
                    LAVA_AIR,GRASS_AIR,TREE_AIR,LEAVES_AIR,WATER_AIR,PATH_AIR,BRICKS_AIR,LIGHT_AIR]
+    OBJECTS_LIST = []
 
 class World:
     
@@ -45,6 +47,8 @@ class World:
                 for i in range(len(WorldItem.BLOCKS_LIST)):
                     if self.tilemap.pget(x,y) == WorldItem.BLOCKS_LIST[i]: #en gros si le bloc c de l'herbe tu mets de l'herbe ect (traduire du "pyxel edit" à une liste de blocs avec coordonees bien sucrées au sucre)
                         self.world_map[y].append(WorldItem.BLOCKS_LIST[i])
+                        if WorldItem.BLOCKS_LIST[i] == WorldItem.LAMP:
+                            OBJECTS_LIST.append([WorldItem.LAMP, x * TILE_SIZE, y * TILE_SIZE])
                     elif self.tilemap.pget(x,y) == WorldItem.PLAYER or self.tilemap.pget(x,y) == WorldItem.PLAYER_AIR:
                         self.player_grid_x = x #si c un joueur tu bouges sa pos la bas et tu mets de l'herbe
                         self.player_grid_y = y
@@ -61,7 +65,7 @@ def world_item_draw(pyxel, x, y, world_item): #apres juste dessiner chaque bloc,
         TILE_SIZE
     )
 
-def sprites_dont_collide(x1,y1,x2,y2): #jadore c hyper simple et compréhenisble c 2 blocs superposent pas? ok bien le sang
+def sprites_collide(x1,y1,x2,y2): #jadore c hyper simple et compréhenisble c 2 blocs superposent pas? ok bien le sang
 
     if x1 + TILE_SIZE <= x2 or x2 + TILE_SIZE <= x1:
         return False

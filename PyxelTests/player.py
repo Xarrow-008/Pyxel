@@ -1,6 +1,6 @@
 import os
 import pyxel
-from world import WorldItem, TILE_SIZE, sprites_dont_collide
+from world import WorldItem, TILE_SIZE, sprites_collide
 
 class Player:
     IMG = 0
@@ -30,10 +30,10 @@ class Player:
 
         if (
         (next_tile_up[1] >= 6 #si le block est de l'air
-        or not sprites_dont_collide(new_x, self.y, new_tile_x * TILE_SIZE, tile_y * TILE_SIZE) #ou si il fait une collision avec le prochain bloc(not + dont a cause du tuto du bled)
+        or not sprites_collide(new_x, self.y, new_tile_x * TILE_SIZE, tile_y * TILE_SIZE) #ou si il fait une collision avec le prochain bloc(not + dont a cause du tuto du bled)
         ) and ( #et la meme pour le 2e bloc à tester les collisions car si le joueur est pas sexactement centré il tape 2 blocks
         next_tile_bottom[1] >= 6
-        or not sprites_dont_collide(new_x, self.y, new_tile_x * TILE_SIZE, (tile_y + 1) * TILE_SIZE))):
+        or not sprites_collide(new_x, self.y, new_tile_x * TILE_SIZE, (tile_y + 1) * TILE_SIZE))):
             self.x = new_x #en gros cette position est safe, cest bon tu peux y aller + c la meme pour les autres directions
 
     def move_right(self):
@@ -52,10 +52,10 @@ class Player:
 
         if (
         (next_tile_up[1] >= 6
-        or not sprites_dont_collide(new_x, self.y, new_tile_x * TILE_SIZE, tile_y * TILE_SIZE)
+        or not sprites_collide(new_x, self.y, new_tile_x * TILE_SIZE, tile_y * TILE_SIZE)
         ) and (
         next_tile_bottom[1] >= 6
-        or not sprites_dont_collide(new_x, self.y, new_tile_x * TILE_SIZE, (tile_y + 1) * TILE_SIZE))):
+        or not sprites_collide(new_x, self.y, new_tile_x * TILE_SIZE, (tile_y + 1) * TILE_SIZE))):
             self.x = new_x
 
     def move_up(self):
@@ -74,10 +74,10 @@ class Player:
 
         if (
         (next_tile_up[1] >= 6
-        or not sprites_dont_collide(self.x, new_y, tile_x * TILE_SIZE, new_tile_y * TILE_SIZE)
+        or not sprites_collide(self.x, new_y, tile_x * TILE_SIZE, new_tile_y * TILE_SIZE)
         ) and (
         next_tile_bottom[1] >= 6
-        or not sprites_dont_collide(self.x, new_y, (tile_x + 1) * TILE_SIZE, new_tile_y * TILE_SIZE))):
+        or not sprites_collide(self.x, new_y, (tile_x + 1) * TILE_SIZE, new_tile_y * TILE_SIZE))):
             self.y = new_y
 
     def move_down(self):
@@ -96,10 +96,10 @@ class Player:
 
         if (
         (next_tile_up[1] >= 6
-        or not sprites_dont_collide(self.x, new_y, tile_x * TILE_SIZE, new_tile_y * TILE_SIZE)
+        or not sprites_collide(self.x, new_y, tile_x * TILE_SIZE, new_tile_y * TILE_SIZE)
         ) and (
         next_tile_bottom[1] >= 6
-        or not sprites_dont_collide(self.x, new_y, (tile_x + 1) * TILE_SIZE, new_tile_y * TILE_SIZE))):
+        or not sprites_collide(self.x, new_y, (tile_x + 1) * TILE_SIZE, new_tile_y * TILE_SIZE))):
             self.y = new_y
     
     '''

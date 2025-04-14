@@ -1,7 +1,8 @@
 import os # BEFORE ASYNC TESTS --AFTER-- ASYNC IS SHIT WITH THIS COUNT W 30frames/s
 
 import pyxel
-from player import Player, sprites_dont_collide
+from objects import Objects
+from player import Player, sprites_collide
 from world import World, WorldItem, world_item_draw, TILE_SIZE
 
 class App:
@@ -27,6 +28,8 @@ class App:
         self.world = World(pyxel.tilemap(0))
 
         self.player = Player(self.world)
+
+        self.objects = Objects()
 
         pyxel.run(self.update, self.draw) #ok mb ca carry tout banger ca prend que update et draw
     
@@ -78,6 +81,7 @@ class App:
         if pyxel.btn(pyxel.KEY_S) and not self.hitting and pyxel.btn(pyxel.KEY_Q):
             facing[0] = 7
 
+
         
         if pyxel.btn(pyxel.KEY_SPACE) and not self.slashing:
             self.slash_frame = self.frame
@@ -87,21 +91,44 @@ class App:
             self.slash_x = self.player.x + self.slash_placement[0] * TILE_SIZE
             self.slash_y = self.player.y + self.slash_placement[1] * TILE_SIZE
 
+        if pyxel.btn(pyxel.KEY_R):
+            self.reset()
+
         if self.slashing:
             self.hitting = True
+            if sprites_collide(self.objects.lamp_x, self.objects.lamp_y, self.slash_x, self.slash_y) and not self.objects.lamp_broken:
+                self.objects.lamp_hit = True
+                self.objects.lamp_moment = 1
             if self.frame - self.slash_frame < 1: #Si le temps passé depuis le slash est plus petit que 2 frames
                 self.slash_moment = 0
+                if self.objects.lamp_hit:
+                    self.objects.lamp_moment = 2
             elif self.frame - self.slash_frame < 8:
                 self.slash_moment =  1
+                if self.objects.lamp_hit:
+                    self.objects.lamp_moment = 3
             elif self.frame - self.slash_frame < 9:
                 self.slash_moment = 2
                 self.hitting = False
+                if self.objects.lamp_hit:
+                    self.objects.lamp_moment = 4
             elif self.frame - self.slash_frame < 10:
                 self.slash_moment = 3
+                if self.objects.lamp_hit:
+                    self.objects.lamp_moment = 5
             if self.frame - self.slash_frame >= 10:
                 self.slash_moment = 0 #             Par la suite, slash_moment sera ajouté à slash_direction pour passer les frames dans le tableau
                 self.slashing = False
                 self.hitting = False #au cas ou on a rate la frame ou le hitting etait censé passer (lag/bug)
+                if self.objects.lamp_hit:
+                    self.objects.lamp_moment = 6
+        if self.frame - self.slash_frame >= 13 and self.objects.lamp_hit:
+            self.objects.lamp_moment = 7
+        if self.frame - self.slash_frame >= 15 and self.objects.lamp_hit:
+            self.objects.lamp_broken = True
+            self.objects.lamp_hit = False
+            
+            
 
         
 
@@ -133,7 +160,18 @@ class App:
             self.player.WIDTH,
             self.player.HEIGHT,
             0)
+        
+        self.draw_transp(
+            self.objects.lamp_x,
+            self.objects.lamp_y,
+            self.player.IMG,
+            self.objects.lamp_moment * TILE_SIZE,
+            WorldItem.LAMP[1] * TILE_SIZE,
+            self.player.WIDTH,
+            self.player.HEIGHT,
+            15)
 
+        
         for i in AIR_LIST: #liste de blocs au dessus du joueur
             world_item_draw(pyxel, i[0], i[1], i[2])
         
@@ -196,6 +234,10 @@ class App:
             for bg_x in range(TILE_SIZE):
                 if pyxel.pget(x + bg_x, y + bg_y) == gscreen:
                     pyxel.pset(x + bg_x, y + bg_y, bg_pixels[bg_y][bg_x])
+    
+    def reset(self):
+        self.objects.lamp_broken = False
+        self.objects.lamp_moment = 0
 
 
 
