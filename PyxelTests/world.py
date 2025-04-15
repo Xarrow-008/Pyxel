@@ -48,7 +48,7 @@ class World:
                     if self.tilemap.pget(x,y) == WorldItem.BLOCKS_LIST[i]: #en gros si le bloc c de l'herbe tu mets de l'herbe ect (traduire du "pyxel edit" à une liste de blocs avec coordonees bien sucrées au sucre)
                         self.world_map[y].append(WorldItem.BLOCKS_LIST[i])
                         if WorldItem.BLOCKS_LIST[i] == WorldItem.LAMP:
-                            OBJECTS_LIST.append([WorldItem.LAMP, x * TILE_SIZE, y * TILE_SIZE])
+                            OBJECTS_LIST.append({"x":x * TILE_SIZE,"y":y * TILE_SIZE,"hit":False,"broken":False,"moment":0})
                     elif self.tilemap.pget(x,y) == WorldItem.PLAYER or self.tilemap.pget(x,y) == WorldItem.PLAYER_AIR:
                         self.player_grid_x = x #si c un joueur tu bouges sa pos la bas et tu mets de l'herbe
                         self.player_grid_y = y
