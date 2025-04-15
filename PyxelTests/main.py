@@ -151,6 +151,18 @@ class App:
                     AIR_LIST.append([x,y,world_item]) #Mettre dans la list qui se dessine apres le joueur(par dessus)
                 else:
                     world_item_draw(pyxel, x, y, world_item) #Sinon dessiner car derriere joueur
+        
+
+        for obj in self.objects.OBJs:
+            self.draw_transp(
+                obj['x'],
+                obj['y'],
+                self.player.IMG,
+                obj['moment'] * TILE_SIZE,
+                obj['v'] * TILE_SIZE,
+                self.player.WIDTH,
+                self.player.HEIGHT,
+                15)
 
         
         self.draw_transp(  #dessiner joueur
@@ -162,19 +174,6 @@ class App:
             self.player.WIDTH,
             self.player.HEIGHT,
             0)
-        
-        for obj in self.objects.OBJs:
-            #if obj['hit']:
-                #print(obj['moment'])
-            self.draw_transp(
-                obj['x'],
-                obj['y'],
-                self.player.IMG,
-                obj['moment'] * TILE_SIZE,
-                obj['v'] * TILE_SIZE,
-                self.player.WIDTH,
-                self.player.HEIGHT,
-                15)
 
         
         for i in AIR_LIST: #liste de blocs au dessus du joueur
@@ -250,8 +249,6 @@ class App:
             if event[0] and self.frame - event_start == event[2]:
                 for action in event[1]: #event[1] = toutes les actions
                     action[0][action[1]] = action[2] # :Dans la liste des valeurs à changer, index du num a sa droite, :Mettre la valeur a la fin 
-                    #print(action[0][action[1]])
-
 
 
 
