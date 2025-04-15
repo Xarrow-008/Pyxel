@@ -24,7 +24,7 @@ class Player:
 
 
         next_tile_up = self.world.world_map[tile_y][new_tile_x] #nouvelle tile sur laquelle on va check la collision
-        next_tile_bottom = (1,6) #explicé au prochain comm et au "and"
+        next_tile_bottom = (1,6) #explicé au prochain comm et au 'and'
         if self.y / TILE_SIZE != tile_y: #fix pour le bord de la map ou tile_y + 1 sortait de la map
             next_tile_bottom = self.world.world_map[tile_y + 1][new_tile_x] #dcp ca le fait pas si on est centré tout pile vu que on doit faire collision avec 1 seul block
 

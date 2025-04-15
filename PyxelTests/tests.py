@@ -18,7 +18,7 @@ tab= [c1 and c3,[c3,False],[c4,True]]
 def test_boolean_in_tab(tab):
     global c3
     if tab[0]:
-        print("YASSSSS ANNNDDD")
+        print('YASSSSS ANNNDDD')
         tab[1][0] = tab[1][1]
     print(c3)
     print(tab)

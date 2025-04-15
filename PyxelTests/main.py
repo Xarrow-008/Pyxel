@@ -55,88 +55,80 @@ class App:
         if not self.walking:
             facing[1] = 4
 
+        if not self.SLASH['playerStop']:
+            if pyxel.btn(pyxel.KEY_Q) and self.player.x > 0: #si tu appuies sur la touche de direction, que tu n'est pas en train de slash et que tu ne vas pas sortir de lecran
+                self.player.move_left()
+                facing[0] = 1
+            if pyxel.btn(pyxel.KEY_D) and self.player.x + TILE_SIZE < TILE_SIZE*World.WIDTH:
+                self.player.move_right()
+                facing[0] = 0
+            if pyxel.btn(pyxel.KEY_Z) and self.player.y > 0:
+                self.player.move_up()
+                facing[0] = 2
+            if pyxel.btn(pyxel.KEY_S) and self.player.y + TILE_SIZE < TILE_SIZE*World.HEIGHT:
+                self.player.move_down()
+                facing[0] = 3
 
-        if pyxel.btn(pyxel.KEY_Q) and not self.SLASH['playerStop'] and self.player.x > 0: #si tu appuies sur la touche de direction, que tu n'est pas en train de slash et que tu ne vas pas sortir de lecran
-            self.player.move_left()
-            facing[0] = 1
-        if pyxel.btn(pyxel.KEY_D) and not self.SLASH['playerStop'] and self.player.x + TILE_SIZE < TILE_SIZE*World.WIDTH:
-            self.player.move_right()
-            facing[0] = 0
-        if pyxel.btn(pyxel.KEY_Z) and not self.SLASH['playerStop'] and self.player.y > 0:
-            self.player.move_up()
-            facing[0] = 2
-        if pyxel.btn(pyxel.KEY_S) and not self.SLASH['playerStop'] and self.player.y + TILE_SIZE < TILE_SIZE*World.HEIGHT:
-            self.player.move_down()
-            facing[0] = 3
+            
+            if pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_D):
+                facing[0] = 4
+            if pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_Q):
+                facing[0] = 5
+            if pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_D):
+                facing[0] = 6
+            if pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_Q):
+                facing[0] = 7
 
         
-        if pyxel.btn(pyxel.KEY_Z) and not self.SLASH['playerStop'] and pyxel.btn(pyxel.KEY_D):
-            facing[0] = 4
-        if pyxel.btn(pyxel.KEY_Z) and not self.SLASH['playerStop'] and pyxel.btn(pyxel.KEY_Q):
-            facing[0] = 5
-        if pyxel.btn(pyxel.KEY_S) and not self.SLASH['playerStop'] and pyxel.btn(pyxel.KEY_D):
-            facing[0] = 6
-        if pyxel.btn(pyxel.KEY_S) and not self.SLASH['playerStop'] and pyxel.btn(pyxel.KEY_Q):
-            facing[0] = 7
+        if pyxel.btn(pyxel.KEY_SPACE):
+            if not self.SLASH['ing']:
+                self.SLASH['frameHit'] = self.frame
+                self.SLASH['ing'] = True
+                self.SLASH['placement+'] = self.facing_to_direction(facing)
+                self.SLASH['directionX'] = facing[0]
+                self.SLASH['x'] = self.player.x + self.SLASH['placement+'][0] * TILE_SIZE
+                self.SLASH['y'] = self.player.y + self.SLASH['placement+'][1] * TILE_SIZE
+                self.SLASH['playerStop'] = True
+            
+            
+            for obj in self.objects.OBJs:
+                if sprites_collide(obj['x'], obj['y'], self.SLASH['x'], self.SLASH['y']) and not obj['dead']:
+                    obj['frameHit'] = self.frame
+                    obj['hit'] += 1
+                    if obj['hp'] - obj['hit'] <= 0:
+                        obj['dead'] = True
+                    if obj['dead']:
+                        obj['deathAnim'] = True
 
 
-        
-        if pyxel.btn(pyxel.KEY_SPACE) and not self.SLASH['ing']:
-            self.SLASH['frameHit'] = self.frame
-            self.SLASH['ing'] = True
-            self.SLASH['placement+'] = self.facing_to_direction(facing)
-            self.SLASH['directionX'] = facing[0]
-            self.SLASH['x'] = self.player.x + self.SLASH['placement+'][0] * TILE_SIZE
-            self.SLASH['y'] = self.player.y + self.SLASH['placement+'][1] * TILE_SIZE
 
         if pyxel.btn(pyxel.KEY_R):
             self.reset()
 
+
+
         if self.SLASH['ing']:
-            self.SLASH['playerStop'] = True
-            for obj in self.objects.OBJs:
-                if sprites_collide(obj['x'], obj['y'], self.SLASH['x'], self.SLASH['y']) and not obj['broken']:
-                    obj['hit'] = True
-                    obj['moment'] = 1
-                    obj['broken'] = True
-
-                self.easy_frames_event([
-                [True,[[self.SLASH,'moment',0]],0],
-                [True,[[self.SLASH,'moment',1]],3],
-                [True,[[self.SLASH,'moment',2]],10],
-                [True,[[self.SLASH,'moment',3]],12]
-                ],self.SLASH['frameHit'])
-
-                if obj['hit']:
-                    self.easy_frames_event([
-                [True,[[obj,'moment',0]],0],
-                [True,[[obj,'moment',1]],1],
-                [True,[[obj,'moment',2]],8],
-                [True,[[obj,'moment',3]],9]
-                ],self.SLASH['frameHit'])
-
-            if self.frame - self.SLASH['frameHit'] >=6:
-                self.SLASH['playerStop'] = False
-            
-            for obj in self.objects.OBJs:
-                if self.frame - self.SLASH['frameHit'] >=9 and obj['hit']:
-                    obj['hit'] = False
-                
-                    
-                if self.frame - self.SLASH['frameHit'] >= 15:
-                    self.SLASH['moment'] = 0 #             Par la suite, slash_moment sera ajouté à slash_direction pour passer les frames dans le tableau
-                    self.SLASH['ing'] = False
-                    if obj['hit']:
-                        obj['moment'] = 7
-
-
+            self.easy_frames_event([
+            [True,[[self.SLASH,'moment',0]],0],
+            [True,[[self.SLASH,'moment',1]],3], #at frame 3 of slash, change SLASH['moment'] to 1
+            [True,[[self.SLASH,'playerStop',False]],6],
+            [True,[[self.SLASH,'moment',2]],10],
+            [True,[[self.SLASH,'moment',3]],12],
+            [True,[[self.SLASH,'moment',0],[self.SLASH,'ing',False]],15]
+            ],self.SLASH['frameHit'])
         
         for obj in self.objects.OBJs:
-            if self.frame - self.SLASH['frameHit'] >= 13 and obj['hit']:
-                obj['moment'] = 7
-            if self.frame - self.SLASH['frameHit'] >= 15 and obj['hit']:
-                obj['broken'] = True
-                obj['hit'] = False
+            if obj['deathAnim']:
+                self.easy_frames_event([
+            [True,[[obj,'moment',0]],0],
+            [True,[[obj,'moment',1]],1],
+            [True,[[obj,'moment',2]],6],
+            [True,[[obj,'moment',3]],7],
+            [True,[[obj,'moment',4]],8],
+            [True,[[obj,'moment',5]],9],
+            [True,[[obj,'moment',6]],10],
+            [True,[[obj,'moment',7],[obj,'deathAnim',False],[obj,'dead',True]],11]
+            ],obj['frameHit'])
             
             
 
@@ -172,12 +164,14 @@ class App:
             0)
         
         for obj in self.objects.OBJs:
+            #if obj['hit']:
+                #print(obj['moment'])
             self.draw_transp(
                 obj['x'],
                 obj['y'],
                 self.player.IMG,
                 obj['moment'] * TILE_SIZE,
-                obj["v"] * TILE_SIZE,
+                obj['v'] * TILE_SIZE,
                 self.player.WIDTH,
                 self.player.HEIGHT,
                 15)
@@ -248,7 +242,7 @@ class App:
     
     def reset(self):
         for obj in self.objects.OBJs:
-            obj['broken'] = False
+            obj['dead'] = False
             obj['moment'] = 0
     
     def easy_frames_event(self,tab,event_start): #tab sous la forme de [[condition1 and/or condition2,[action1(=list,value),action2...],à tel frames],...] et ca ecrit les if a ta place
@@ -256,6 +250,7 @@ class App:
             if event[0] and self.frame - event_start == event[2]:
                 for action in event[1]: #event[1] = toutes les actions
                     action[0][action[1]] = action[2] # :Dans la liste des valeurs à changer, index du num a sa droite, :Mettre la valeur a la fin 
+                    #print(action[0][action[1]])
 
 
 
