@@ -94,46 +94,49 @@ class App:
 
         if self.SLASH['ing']:
             self.SLASH['playerStop'] = True
-            if sprites_collide(self.objects.LAMP['x'], self.objects.LAMP['y'], self.SLASH['x'], self.SLASH['y']) and not self.objects.LAMP['broken']:
-                self.objects.LAMP['hit'] = True
-                self.objects.LAMP['moment'] = 1
-                self.objects.LAMP['broken'] = True
+            for obj in self.objects.OBJs:
+                if sprites_collide(obj['x'], obj['y'], self.SLASH['x'], self.SLASH['y']) and not obj['broken']:
+                    obj['hit'] = True
+                    obj['moment'] = 1
+                    obj['broken'] = True
 
-            self.easy_frames_event([
-            [True,[[self.SLASH,'moment',0]],0],
-            [True,[[self.SLASH,'moment',1]],3],
-            [True,[[self.SLASH,'moment',2]],10],
-            [True,[[self.SLASH,'moment',3]],12]
-            ],self.SLASH['frameHit'])
-
-            if self.objects.LAMP['hit']:
                 self.easy_frames_event([
-            [True,[[self.objects.LAMP,'moment',0]],0],
-            [True,[[self.objects.LAMP,'moment',1]],1],
-            [True,[[self.objects.LAMP,'moment',2]],8],
-            [True,[[self.objects.LAMP,'moment',3]],9]
-            ],self.SLASH['frameHit'])
+                [True,[[self.SLASH,'moment',0]],0],
+                [True,[[self.SLASH,'moment',1]],3],
+                [True,[[self.SLASH,'moment',2]],10],
+                [True,[[self.SLASH,'moment',3]],12]
+                ],self.SLASH['frameHit'])
+
+                if obj['hit']:
+                    self.easy_frames_event([
+                [True,[[obj,'moment',0]],0],
+                [True,[[obj,'moment',1]],1],
+                [True,[[obj,'moment',2]],8],
+                [True,[[obj,'moment',3]],9]
+                ],self.SLASH['frameHit'])
 
             if self.frame - self.SLASH['frameHit'] >=6:
                 self.SLASH['playerStop'] = False
-
-            if self.frame - self.SLASH['frameHit'] >=9 and self.objects.LAMP['hit']:
-                self.SLASH['hit'] = False
             
+            for obj in self.objects.OBJs:
+                if self.frame - self.SLASH['frameHit'] >=9 and obj['hit']:
+                    obj['hit'] = False
                 
-            if self.frame - self.SLASH['frameHit'] >= 15:
-                self.SLASH['moment'] = 0 #             Par la suite, slash_moment sera ajouté à slash_direction pour passer les frames dans le tableau
-                self.SLASH['ing'] = False
-                if self.objects.LAMP['hit']:
-                    self.objects.LAMP['moment'] = 6
+                    
+                if self.frame - self.SLASH['frameHit'] >= 15:
+                    self.SLASH['moment'] = 0 #             Par la suite, slash_moment sera ajouté à slash_direction pour passer les frames dans le tableau
+                    self.SLASH['ing'] = False
+                    if obj['hit']:
+                        obj['moment'] = 7
 
 
-
-        if self.frame - self.SLASH['frameHit'] >= 13 and self.objects.LAMP['hit']:
-            self.objects.LAMP['moment'] = 7
-        if self.frame - self.SLASH['frameHit'] >= 15 and self.objects.LAMP['hit']:
-            self.objects.LAMP['broken'] = True
-            self.objects.LAMP['hit'] = False
+        
+        for obj in self.objects.OBJs:
+            if self.frame - self.SLASH['frameHit'] >= 13 and obj['hit']:
+                obj['moment'] = 7
+            if self.frame - self.SLASH['frameHit'] >= 15 and obj['hit']:
+                obj['broken'] = True
+                obj['hit'] = False
             
             
 
@@ -168,15 +171,16 @@ class App:
             self.player.HEIGHT,
             0)
         
-        self.draw_transp(
-            self.objects.LAMP['x'],
-            self.objects.LAMP['y'],
-            self.player.IMG,
-            self.objects.LAMP['moment'] * TILE_SIZE,
-            WorldItem.LAMP[1] * TILE_SIZE,
-            self.player.WIDTH,
-            self.player.HEIGHT,
-            15)
+        for obj in self.objects.OBJs:
+            self.draw_transp(
+                obj['x'],
+                obj['y'],
+                self.player.IMG,
+                obj['moment'] * TILE_SIZE,
+                obj["v"] * TILE_SIZE,
+                self.player.WIDTH,
+                self.player.HEIGHT,
+                15)
 
         
         for i in AIR_LIST: #liste de blocs au dessus du joueur
@@ -243,8 +247,9 @@ class App:
                     pyxel.pset(x + bg_x, y + bg_y, bg_pixels[bg_y][bg_x])
     
     def reset(self):
-        self.objects.LAMP['broken'] = False
-        self.objects.LAMP['moment'] = 0
+        for obj in self.objects.OBJs:
+            obj['broken'] = False
+            obj['moment'] = 0
     
     def easy_frames_event(self,tab,event_start): #tab sous la forme de [[condition1 and/or condition2,[action1(=list,value),action2...],à tel frames],...] et ca ecrit les if a ta place
         for event in tab:

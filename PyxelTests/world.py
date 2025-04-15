@@ -26,7 +26,7 @@ class WorldItem:
     BRICKS_AIR = (2,7)
     LIGHT_AIR = (3,7)
 
-    BLOCKS_LIST = [LAVA,GRASS,TREE,LEAVES,WATER,PATH,BRICKS,LIGHT,LAMP,
+    BLOCKS_LIST = [LAVA,GRASS,TREE,LEAVES,WATER,PATH,BRICKS,LIGHT,
                    LAVA_AIR,GRASS_AIR,TREE_AIR,LEAVES_AIR,WATER_AIR,PATH_AIR,BRICKS_AIR,LIGHT_AIR]
     OBJECTS_LIST = []
 
@@ -47,12 +47,16 @@ class World:
                 for i in range(len(WorldItem.BLOCKS_LIST)):
                     if self.tilemap.pget(x,y) == WorldItem.BLOCKS_LIST[i]: #en gros si le bloc c de l'herbe tu mets de l'herbe ect (traduire du "pyxel edit" à une liste de blocs avec coordonees bien sucrées au sucre)
                         self.world_map[y].append(WorldItem.BLOCKS_LIST[i])
-                        if WorldItem.BLOCKS_LIST[i] == WorldItem.LAMP:
-                            OBJECTS_LIST.append({"x":x * TILE_SIZE,"y":y * TILE_SIZE,"hit":False,"broken":False,"moment":0})
-                    elif self.tilemap.pget(x,y) == WorldItem.PLAYER or self.tilemap.pget(x,y) == WorldItem.PLAYER_AIR:
-                        self.player_grid_x = x #si c un joueur tu bouges sa pos la bas et tu mets de l'herbe
-                        self.player_grid_y = y
-                        self.world_map[y].append(WorldItem.GRASS_AIR)
+
+                    
+                if self.tilemap.pget(x,y) == WorldItem.LAMP:
+                    print("lamp")
+                    WorldItem.OBJECTS_LIST.append({"x":x * TILE_SIZE,"y":y * TILE_SIZE,"hit":False,"broken":False,"u":0,"v":WorldItem.LAMP[1],"moment":0})
+                    self.world_map[y].append(WorldItem.GRASS_AIR)
+                if self.tilemap.pget(x,y) == WorldItem.PLAYER or self.tilemap.pget(x,y) == WorldItem.PLAYER_AIR:
+                    self.player_grid_x = x #si c un joueur tu bouges sa pos la bas et tu mets de l'herbe
+                    self.player_grid_y = y
+                    self.world_map[y].append(WorldItem.GRASS_AIR)
 
 def world_item_draw(pyxel, x, y, world_item): #apres juste dessiner chaque bloc, appelé dans le main
     pyxel.blt(
