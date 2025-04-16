@@ -1,6 +1,6 @@
 import os # BEFORE ASYNC TESTS --AFTER-- ASYNC IS SHIT WITH THIS COUNT W 30frames/s
 
-import pyxel
+import pyxel #ça marche alélouia
 from objects import Objects
 from player import Player, sprites_collide
 from world import World, WorldItem, world_item_draw, TILE_SIZE
