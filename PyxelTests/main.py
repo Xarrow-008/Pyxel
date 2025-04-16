@@ -59,7 +59,7 @@ class App:
             if pyxel.btn(pyxel.KEY_Q) and self.player.x > 0: #si tu appuies sur la touche de direction, que tu n'est pas en train de slash et que tu ne vas pas sortir de lecran
                 self.player.move_left()
                 facing[0] = 1
-            if pyxel.btn(pyxel.KEY_D) and self.player.x + TILE_SIZE < TILE_SIZE*World.WIDTH:
+            if pyxel.btn(pyxel.KEY_D) and self.player.x + TILE_SIZE < TILE_SIZE * World.WIDTH:
                 self.player.move_right()
                 facing[0] = 0
             if pyxel.btn(pyxel.KEY_Z) and self.player.y > 0:
@@ -249,7 +249,6 @@ class App:
             if event[0] and self.frame - event_start == event[2]:
                 for action in event[1]: #event[1] = toutes les actions
                     action[0][action[1]] = action[2] # :Dans la liste des valeurs à changer, index du num a sa droite, :Mettre la valeur a la fin 
-
 
 
 
