@@ -152,7 +152,7 @@ class App:
                 else:
                     world_item_draw(pyxel, x, y, world_item) #Sinon dessiner car derriere joueur
         
-
+    
         for obj in self.objects.OBJs:
             self.draw_transp(
                 obj['x'],

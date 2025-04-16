@@ -14,6 +14,7 @@ class WorldItem:
     BRICKS = (2,1)
     LIGHT = (3,1)
     LAMP = (0,12)
+    FROG = (0,13)
 
 
     LAVA_AIR = (1,6)
