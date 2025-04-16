@@ -48,7 +48,7 @@ class World:
                 for i in range(len(WorldItem.BLOCKS_LIST)):
                     if self.tilemap.pget(x,y) == WorldItem.BLOCKS_LIST[i]: #en gros si le bloc c de l'herbe tu mets de l'herbe ect (traduire du 'pyxel edit' à une liste de blocs avec coordonees bien sucrées au sucre)
                         self.world_map[y].append(WorldItem.BLOCKS_LIST[i])
-
+                    
                     
                 if self.tilemap.pget(x,y) == WorldItem.LAMP:
                     WorldItem.OBJECTS_LIST.append({'x':x * TILE_SIZE,'y':y * TILE_SIZE,'hit':0,'hitAnim':False,'hp':1,'dead':False,'deathAnim':0,'u':0,'v':WorldItem.LAMP[1],'moment':0,'frameHit':-60})

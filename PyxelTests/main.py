@@ -92,13 +92,16 @@ class App:
             
             
             for obj in self.objects.OBJs:
-                if sprites_collide(obj['x'], obj['y'], self.SLASH['x'], self.SLASH['y']) and not obj['dead']:
+                if sprites_collide(obj['x'], obj['y'], self.SLASH['x'], self.SLASH['y']) and not obj['dead'] and not self.frame - obj['frameHit'] < 15:
                     obj['frameHit'] = self.frame
                     obj['hit'] += 1
                     if obj['hp'] - obj['hit'] <= 0:
                         obj['dead'] = True
-                    if obj['dead']:
                         obj['deathAnim'] = True
+                    else:
+                        obj['hitAnim'] = True
+                        obj['v'] += 1
+                    print(obj['hp'] - obj['hit'])
 
 
 
@@ -118,7 +121,7 @@ class App:
             ],self.SLASH['frameHit'])
         
         for obj in self.objects.OBJs:
-            if obj['deathAnim']:
+            if obj['deathAnim'] or obj['hitAnim']:
                 self.easy_frames_event([
             [True,[[obj,'moment',0]],0],
             [True,[[obj,'moment',1]],1],
@@ -127,8 +130,11 @@ class App:
             [True,[[obj,'moment',4]],8],
             [True,[[obj,'moment',5]],9],
             [True,[[obj,'moment',6]],10],
-            [True,[[obj,'moment',7],[obj,'deathAnim',False],[obj,'dead',True]],11]
+            [obj['hitAnim'],[[obj,'v',obj['v']-1],[obj,'moment',0]],11],
+            [obj['deathAnim'],[[obj,'moment',7]],11],
+            [True,[[obj,'deathAnim',False],[obj,'hitAnim',False]],11]
             ],obj['frameHit'])
+
             
             
 
@@ -220,7 +226,7 @@ class App:
         if facing[0] == 7:
             return [-1,1]
     
-    def draw_transp(self,x, y, img, u, v, w, h,gscreen): #do every pixel, if gscreen, replace by bg color
+    def draw_transp(self, x, y, img, u, v, w, h, gscreen): #do every pixel, if gscreen, replace by bg color
         bg_pixels = []
         for bg_y in range(TILE_SIZE):
             bg_pixels.append([])
@@ -238,11 +244,13 @@ class App:
             for bg_x in range(TILE_SIZE):
                 if pyxel.pget(x + bg_x, y + bg_y) == gscreen:
                     pyxel.pset(x + bg_x, y + bg_y, bg_pixels[bg_y][bg_x])
-    
+
     def reset(self):
         for obj in self.objects.OBJs:
             obj['dead'] = False
             obj['moment'] = 0
+            obj['hit'] = 0
+
     
     def easy_frames_event(self,tab,event_start): #tab sous la forme de [[condition1 and/or condition2,[action1(=list,value),action2...],à tel frames],...] et ca ecrit les if a ta place
         for event in tab:
