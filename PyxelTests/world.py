@@ -36,7 +36,8 @@ class World:
     # each world is 16*16
     HEIGHT = 16
     WIDTH = 16
-
+    cameraPos = [0,0]
+    
     def __init__(self, tilemap):
         self.tilemap = tilemap
         self.world_map = []

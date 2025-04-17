@@ -20,7 +20,7 @@ class App:
 
     def __init__(self):
         os.system('cls')
-        pyxel.init(128,128,title='Hello World')
+        pyxel.init(128,128,title='AmogusKiller')
         pyxel.load('../mygame.pyxres')
 
         self.world = World(pyxel.tilemap(0))
@@ -59,9 +59,11 @@ class App:
             if pyxel.btn(pyxel.KEY_Q) and self.player.x > 0: #si tu appuies sur la touche de direction, que tu n'est pas en train de slash et que tu ne vas pas sortir de lecran
                 self.player.move_left()
                 facing[0] = 1
+                self.world.cameraPos[0] += 1
             if pyxel.btn(pyxel.KEY_D) and self.player.x + TILE_SIZE < TILE_SIZE * World.WIDTH:
                 self.player.move_right()
                 facing[0] = 0
+                self.world.cameraPos[0] -= 1
             if pyxel.btn(pyxel.KEY_Z) and self.player.y > 0:
                 self.player.move_up()
                 facing[0] = 2
@@ -101,7 +103,6 @@ class App:
                     else:
                         obj['hitAnim'] = True
                         obj['v'] += 1
-                    print(obj['hp'] - obj['hit'])
 
 
 
@@ -109,7 +110,7 @@ class App:
             self.reset()
 
 
-
+        
         if self.SLASH['ing']:
             self.easy_frames_event([
             [True,[[self.SLASH,'moment',0]],0],
@@ -134,8 +135,6 @@ class App:
             [obj['deathAnim'],[[obj,'moment',7]],11],
             [True,[[obj,'deathAnim',False],[obj,'hitAnim',False]],11]
             ],obj['frameHit'])
-
-            
             
 
         
@@ -148,6 +147,8 @@ class App:
 
     def draw(self):
         pyxel.cls(0)
+        #print(self.world.cameraPos[0])
+        #pyxel.camera(self.world.cameraPos[0],self.world.cameraPos[1])
 
         AIR_LIST = [] #--ATTENTION-- On ne voit pas la différence entre blocs air et non air que jai mis dans l'editeur
         for y in range(self.world.HEIGHT):

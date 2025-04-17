@@ -1,5 +1,5 @@
 import pyxel
-from world import WorldItem, TILE_SIZE, sprites_collide
+from world import WorldItem, World, TILE_SIZE, sprites_collide
 
 class Objects:
 
