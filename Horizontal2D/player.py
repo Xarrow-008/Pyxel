@@ -12,20 +12,20 @@ class Player:
         self.y = self.world.player_init_pos_y*TILE_SIZE
         self.physics.speed = 1
         self.physics.jumpStrength = 2
+        self.landing_frame = 0
         self.image = [0,8]
 
     def update(self):
-        print(self.image)
         self.x = int(self.x)
         self.y = int(self.y)
 
         if pyxel.btn(pyxel.KEY_Q):
             self.x = self.physics.move_horizontal(self.x, self.y, -1)
-            self.image = self.animation.getImageInAnimation(3,8,2)
+            self.image = self.animation.getImageInAnimation(3,8,2,False)
 
         if pyxel.btn(pyxel.KEY_D):
             self.x = self.physics.move_horizontal(self.x, self.y, 1)
-            self.image = self.animation.getImageInAnimation(3,8,3)
+            self.image = self.animation.getImageInAnimation(3,8,3,False)
 
         if not self.physics.isGrounded(self.x, self.y):
             self.physics.applyGravity()
@@ -35,17 +35,23 @@ class Player:
             self.y = (self.y//TILE_SIZE)*TILE_SIZE
             if pyxel.btnp(pyxel.KEY_SPACE):
                 self.physics.jump()
+            if self.physics.landed==1:
+                self.landing_frame = self.physics.frame
         self.y = self.physics.move_vertical(self.x, self.y)
 
-        if not(pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
-            self.image = self.animation.getImageInAnimation(3,8,1)
+        if not(pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)) and self.physics.vertical_momentum==0:
+            self.image = self.animation.getImageInAnimation(3,8,1,False)
         
         if self.physics.vertical_momentum < 0:
-            self.image = self.animation.getImageInAnimation(3,8,4)
+            self.image = self.animation.getImageInAnimation(3,8,4,False)
         if self.physics.vertical_momentum > 0:
-            self.image = self.animation.getImageInAnimation(3,8,5)
+            self.image = self.animation.getImageInAnimation(3,8,5,False)
+
+        if self.landing_frame == self.physics.frame-6:
+            self.animation.state = 2
 
         self.animation.frame += 1
+        self.physics.frame += 1
         
 
 

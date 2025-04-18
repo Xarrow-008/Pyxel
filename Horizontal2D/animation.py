@@ -7,8 +7,9 @@ class Animation:
         self.tickrate = 1
         self.current_key = "N/A"
 
-    def getImageInAnimation(self,length, w, key):
-        self.resetFrames(key)
+    def getImageInAnimation(self,length, w, key, resetFrame=True):
+        if resetFrame:
+            self.resetFrames(key)
         u = self.state*w
         if self.tick():
             self.state+=1
