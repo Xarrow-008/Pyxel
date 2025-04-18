@@ -18,12 +18,15 @@ class Player:
         print(self.image)
         self.x = int(self.x)
         self.y = int(self.y)
+
         if pyxel.btn(pyxel.KEY_Q):
             self.x = self.physics.move_horizontal(self.x, self.y, -1)
             self.image = self.animation.getImageInAnimation(3,8,2)
+
         if pyxel.btn(pyxel.KEY_D):
             self.x = self.physics.move_horizontal(self.x, self.y, 1)
             self.image = self.animation.getImageInAnimation(3,8,3)
+
         if not self.physics.isGrounded(self.x, self.y):
             self.physics.applyGravity()
             if not pyxel.btn(pyxel.KEY_SPACE) and self.physics.vertical_momentum<0:
