@@ -62,14 +62,14 @@ class Player:
             self.y = new_y
 
     def camera_movement(self,cameraPos):
-        if self.x + cameraPos >= CAMERA_WIDTH * 5 / 6 and cameraPos + CAMERA_WIDTH < World.WIDTH:
-            cameraPos[0] += self.x - CAMERA_WIDTH * 5 / 6
-        if self.x + cameraPos <= CAMERA_WIDTH * 5 / 6:
-            cameraPos[0] += self.SPEED
-        if self.x + cameraPos >= CAMERA_WIDTH * 5 / 6:
-            cameraPos[0] += self.SPEED
-        if self.x + cameraPos >= CAMERA_WIDTH * 5 / 6:
-            cameraPos[0] += self.SPEED
+        if self.x + cameraPos[0] >= CAMERA_WIDTH * 5 / 6 and cameraPos[0] + CAMERA_WIDTH < World.WIDTH:
+            cameraPos[0] = self.x - CAMERA_WIDTH * 5 / 6
+        if self.x + cameraPos[0] <= CAMERA_WIDTH / 6 and cameraPos[0] >= 0:
+            cameraPos[0] = self.x - CAMERA_WIDTH / 6
+        if self.y + cameraPos[1] >= CAMERA_HEIGHT * 5 / 6 and cameraPos[1] + CAMERA_HEIGHT < World.HEIGHT:
+            cameraPos[1] = self.y - CAMERA_HEIGHT * 5 / 6
+        if self.y + cameraPos[1] <= CAMERA_HEIGHT / 6 and cameraPos[1] >= 0:
+            cameraPos[1] = self.y - CAMERA_HEIGHT / 6
 
     
     '''
