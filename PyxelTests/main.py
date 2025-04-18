@@ -238,7 +238,7 @@ class App:
         for event in tab:
             if event[0] and self.frame - event_start == event[2]:
                 for action in event[1]: #event[1] = toutes les actions
-                    action[0][action[1]] = action[2] # :Dans la liste des valeurs à changer, index du num a sa droite, :Mettre la valeur a la fin 
+                    action[0][action[1]] = action[2] # :Dans la liste des valeurs à changer, à l'index du num a sa droite, :Mettre la valeur a la fin 
 
 
 
