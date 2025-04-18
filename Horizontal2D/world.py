@@ -2,9 +2,9 @@ SPRITEBANK = 0
 TILE_SIZE = 8
 
 class WorldItem:
-    PLAYER = (0,0)
+    PLAYER = (0,1)
     BLOCK = (1,0)
-    BACKGROUND = (0,1)
+    BACKGROUND = (0,0)
 
     TILES = [BLOCK, BACKGROUND]
 

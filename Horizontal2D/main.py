@@ -20,6 +20,8 @@ class App:
         if pyxel.btnp(pyxel.KEY_ESCAPE):
             pyxel.quit()
 
+            
+
     def draw(self):
         pyxel.cls(0)
 
@@ -29,12 +31,13 @@ class App:
                 draw_tile(pyxel, x, y, tile)
 
         pyxel.blt(self.player.x,
-                  self.player.y,
-                  SPRITEBANK,
-                  WorldItem.PLAYER[0]*TILE_SIZE,
-                  WorldItem.PLAYER[1]*TILE_SIZE,
-                  TILE_SIZE,
-                  TILE_SIZE)
+                self.player.y,
+                SPRITEBANK,
+                self.player.image[0],
+                self.player.image[1],
+                TILE_SIZE,
+                TILE_SIZE,
+                colkey = 11)
 
 App()
 
