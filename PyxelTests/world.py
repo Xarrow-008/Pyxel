@@ -2,6 +2,9 @@ TILE_SIZE = 8 #MMMMMMMMMM c utilisé partout à faire super gaffe c 8 normalemen
 
 SPRITE_BANK = 0
 
+CAMERA_HEIGHT = 128
+CAMERA_WIDTH = 128
+
 class WorldItem:
 
     LAVA = (1,0) #On ne voit pas la difference entre air et non air, jai juste mis depuis l'editeur
@@ -33,9 +36,8 @@ class WorldItem:
 
 class World:
     
-    # each world is 16*16
-    HEIGHT = 16
-    WIDTH = 16
+    HEIGHT = 32
+    WIDTH = 32
     cameraPos = [0,0]
     
     def __init__(self, tilemap):

@@ -2,8 +2,8 @@ import os # BEFORE ASYNC TESTS --AFTER-- ASYNC IS SHIT WITH THIS COUNT W 30frame
 
 import pyxel #ça marche alélouia
 from objects import Objects
-from player import Player, sprites_collide
-from world import World, WorldItem, world_item_draw, TILE_SIZE
+from player import *
+from world import *
 
 class App:
     direction = [0,0]
@@ -20,7 +20,7 @@ class App:
 
     def __init__(self):
         os.system('cls')
-        pyxel.init(128,128,title='AmogusKiller')
+        pyxel.init(CAMERA_WIDTH,CAMERA_HEIGHT,title='AmogusKiller')
         pyxel.load('../mygame.pyxres')
 
         self.world = World(pyxel.tilemap(0))
@@ -32,11 +32,7 @@ class App:
         pyxel.run(self.update, self.draw) #ok mb ca carry tout banger ca prend que update et draw
     
     def update(self):
-
-        left = (-1,0)
-        right = (1,0)
-        up = (0,-1)
-        down = (0,1)
+        
         facing = self.direction
 
         self.frame+=1
@@ -56,31 +52,10 @@ class App:
             facing[1] = 4
 
         if not self.SLASH['playerStop']:
-            self.player.update()
-            if pyxel.btn(pyxel.KEY_Q) and self.player.x > 0: #si tu appuies sur la touche de direction, que tu n'est pas en train de slash et que tu ne vas pas sortir de lecran
-                self.player.move_left()
-                facing[0] = 1
-                self.world.cameraPos[0] += 1
-            if pyxel.btn(pyxel.KEY_D) and self.player.x + TILE_SIZE < TILE_SIZE * World.WIDTH:
-                self.player.move_right()
-                facing[0] = 0
-                self.world.cameraPos[0] -= 1
-            if pyxel.btn(pyxel.KEY_Z) and self.player.y > 0:
-                self.player.move_up()
-                facing[0] = 2
-            if pyxel.btn(pyxel.KEY_S) and self.player.y + TILE_SIZE < TILE_SIZE*World.HEIGHT:
-                self.player.move_down()
-                facing[0] = 3
 
-            
-            if pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_D):
-                facing[0] = 4
-            if pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_Q):
-                facing[0] = 5
-            if pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_D):
-                facing[0] = 6
-            if pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_Q):
-                facing[0] = 7
+            self.player.update(facing)
+
+            facing = self.player.facing
 
         
         if pyxel.btn(pyxel.KEY_SPACE):
