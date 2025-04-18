@@ -112,7 +112,7 @@ class App:
             [True,[[obj,'deathAnim',False],[obj,'hitAnim',False]],11]
             ],obj['frameHit'])
             
-
+        self.player.camera_movement(self.world.cameraPos)
         
 
 
