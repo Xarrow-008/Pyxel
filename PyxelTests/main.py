@@ -148,7 +148,7 @@ class App:
     def draw(self):
         pyxel.cls(0)
         #print(self.world.cameraPos[0])
-        #pyxel.camera(self.world.cameraPos[0],self.world.cameraPos[1])
+        pyxel.camera(self.world.cameraPos[0],self.world.cameraPos[1])
 
         AIR_LIST = [] #--ATTENTION-- On ne voit pas la différence entre blocs air et non air que jai mis dans l'editeur
         for y in range(self.world.HEIGHT):
@@ -161,7 +161,7 @@ class App:
         
     
         for obj in self.objects.OBJs:
-            self.draw_transp(
+            pyxel.blt(
                 obj['x'],
                 obj['y'],
                 self.player.IMG,
@@ -169,10 +169,10 @@ class App:
                 obj['v'] * TILE_SIZE,
                 self.player.WIDTH,
                 self.player.HEIGHT,
-                15)
+                colkey=15)
 
         
-        self.draw_transp(  #dessiner joueur
+        pyxel.blt(  #dessiner joueur
             self.player.x,
             self.player.y,
             self.player.IMG,
@@ -180,14 +180,14 @@ class App:
             self.direction[1] * TILE_SIZE,
             self.player.WIDTH,
             self.player.HEIGHT,
-            0)
+            colkey=0)
 
         
         for i in AIR_LIST: #liste de blocs au dessus du joueur
             world_item_draw(pyxel, i[0], i[1], i[2])
         
         if self.SLASH['ing']:
-            self.draw_transp(  #dessiner slash
+            pyxel.blt(  #dessiner slash
                 self.SLASH['x'],
                 self.SLASH['y'],
                 self.player.IMG,
@@ -195,7 +195,7 @@ class App:
                 (self.SLASH['directionY'] + self.SLASH['moment']) * TILE_SIZE,
                 self.player.WIDTH,
                 self.player.HEIGHT,
-                11)
+                colkey=11)
     
     def on_tick(self, tickrate = 0.5):
         if self.frame % (30 * tickrate) == 0:
@@ -226,25 +226,6 @@ class App:
             return [1,1]
         if facing[0] == 7:
             return [-1,1]
-    
-    def draw_transp(self, x, y, img, u, v, w, h, gscreen): #do every pixel, if gscreen, replace by bg color
-        bg_pixels = []
-        for bg_y in range(TILE_SIZE):
-            bg_pixels.append([])
-            for bg_x in range(TILE_SIZE):
-                bg_pixels[bg_y].append(pyxel.pget(x + bg_x, y + bg_y))
-        pyxel.blt(
-            x,
-            y,
-            img,
-            u,
-            v,
-            w,
-            h,)
-        for bg_y in range(TILE_SIZE):
-            for bg_x in range(TILE_SIZE):
-                if pyxel.pget(x + bg_x, y + bg_y) == gscreen:
-                    pyxel.pset(x + bg_x, y + bg_y, bg_pixels[bg_y][bg_x])
 
     def reset(self):
         for obj in self.objects.OBJs:
