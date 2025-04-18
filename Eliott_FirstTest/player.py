@@ -16,6 +16,8 @@ class Player:
         self.world = world
         
     def update(self):
+        self.tile_y = int(self.y/TILE_SIZE)
+        self.tile_x = int(self.x/TILE_SIZE)
         if pyxel.btn(pyxel.KEY_Q):
             self.move([-1,0])
         if pyxel.btn(pyxel.KEY_D):
@@ -24,8 +26,6 @@ class Player:
             self.move([0,-1])
         if pyxel.btn(pyxel.KEY_S):
             self.move([0,1])
-        self.tile_y = int(self.y/TILE_SIZE)
-        self.tile_x = int(self.x/TILE_SIZE)
 
     def move(self, direction):
         new_x = self.x + self.VELOCITY*direction[0]

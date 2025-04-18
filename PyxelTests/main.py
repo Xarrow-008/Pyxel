@@ -56,6 +56,7 @@ class App:
             facing[1] = 4
 
         if not self.SLASH['playerStop']:
+            self.player.update()
             if pyxel.btn(pyxel.KEY_Q) and self.player.x > 0: #si tu appuies sur la touche de direction, que tu n'est pas en train de slash et que tu ne vas pas sortir de lecran
                 self.player.move_left()
                 facing[0] = 1
