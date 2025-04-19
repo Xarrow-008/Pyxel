@@ -151,7 +151,7 @@ class App:
         for y in range(self.world.HEIGHT):
             for x in range(self.world.WIDTH):
                 world_item = self.world.world_map[y][x]
-                if world_item[1] >= 6 and world_item != (1,7): #Si c'est un bloc transparent
+                if world_item[1] >= 6 and world_item != (1,7) and world_item != (4,6): #Si c'est un bloc transparent
                     AIR_LIST.append([x,y,world_item]) #Mettre dans la list qui se dessine apres le joueur(par dessus)
                 else:
                     world_item_draw(pyxel, x, y, world_item) #Sinon dessiner car derriere joueur
