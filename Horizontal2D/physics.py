@@ -13,7 +13,7 @@ class Physics:
         self.TERMINAL_VELOCITY = 15
         self.vertical_momentum = 0
         self.frame = 0
-        self.landed = 2
+
 
 
     def move_horizontal(self, x, y, direction):
@@ -35,13 +35,8 @@ class Physics:
         tile_under2 = self.world.world_map[tile_y_under][tile_x+1]
         if (y+TILE_SIZE>=tile_y_under*TILE_SIZE and y+TILE_SIZE<(tile_y_under+1)*TILE_SIZE) and (tile_under1 == WorldItem.BLOCK or tile_under2 == WorldItem.BLOCK) and not (tile_under1 == WorldItem.BACKGROUND and x+TILE_SIZE==(tile_x+1)*TILE_SIZE):
             self.vertical_momentum = 0
-            if self.landed == 0:
-                self.landed = 1
-            elif self.landed == 1:
-                self.landed = 2
             return True
         else:
-            self.landed = 0
             return False
         
     def applyGravity(self):

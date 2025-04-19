@@ -12,8 +12,16 @@ class Player:
         self.y = self.world.player_init_pos_y*TILE_SIZE
         self.physics.speed = 1
         self.physics.jumpStrength = 2
-        self.landing_frame = 0
         self.image = [0,8]
+
+        self.animation.saveAnimation(3,8,1,"idle")
+        self.animation.saveAnimation(3,8,2,"left")
+        self.animation.saveAnimation(3,8,3,"right")
+        self.animation.saveAnimation(3,8,4,"up")
+        self.animation.saveAnimation(3,8,5,"down")
+
+        self.animation.createAnimationGroup(["idle", "left", "right", "up", "down"])
+        
 
     def update(self):
         self.x = int(self.x)
@@ -21,11 +29,11 @@ class Player:
 
         if pyxel.btn(pyxel.KEY_Q):
             self.x = self.physics.move_horizontal(self.x, self.y, -1)
-            self.image = self.animation.getImageInAnimation(3,8,2,False)
+            self.image = self.animation.loadAnimation("left")
 
         if pyxel.btn(pyxel.KEY_D):
             self.x = self.physics.move_horizontal(self.x, self.y, 1)
-            self.image = self.animation.getImageInAnimation(3,8,3,False)
+            self.image = self.animation.loadAnimation("right")
 
         if not self.physics.isGrounded(self.x, self.y):
             self.physics.applyGravity()
@@ -33,25 +41,20 @@ class Player:
                 self.physics.vertical_momentum /= 2
         else:
             self.y = (self.y//TILE_SIZE)*TILE_SIZE
+            if not(pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
+                self.image = self.animation.loadAnimation("idle")
             if pyxel.btnp(pyxel.KEY_SPACE):
                 self.physics.jump()
-            if self.physics.landed==1:
-                self.landing_frame = self.physics.frame
         self.y = self.physics.move_vertical(self.x, self.y)
 
-        if not(pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)) and self.physics.vertical_momentum==0:
-            self.image = self.animation.getImageInAnimation(3,8,1,False)
+        
         
         if self.physics.vertical_momentum < 0:
-            self.image = self.animation.getImageInAnimation(3,8,4,False)
+            self.image = self.animation.loadAnimation("up")
         if self.physics.vertical_momentum > 0:
-            self.image = self.animation.getImageInAnimation(3,8,5,False)
-
-        if self.landing_frame == self.physics.frame-6:
-            self.animation.state = 2
+            self.image = self.animation.loadAnimation("down")
 
         self.animation.frame += 1
-        self.physics.frame += 1
         
 
 
