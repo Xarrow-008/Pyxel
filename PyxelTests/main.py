@@ -112,8 +112,10 @@ class App:
             [True,[[obj,'deathAnim',False],[obj,'hitAnim',False]],11]
             ],obj['frameHit'])
             
-        self.player.camera_movement(self.world.cameraPos)
+        self.player.camera_movement(self.world.cameraPos, 1/8)
         
+        if self.objects.OBJs[3]['deathAnim']:
+            self.world.place_blocks(18,11,3,3,WorldItem.GRASS_AIR)
 
 
         if pyxel.btnp(pyxel.KEY_ESCAPE):
@@ -208,6 +210,7 @@ class App:
             obj['dead'] = False
             obj['moment'] = 0
             obj['hit'] = 0
+            obj['frameHit'] = 0
 
     
     def easy_frames_event(self,tab,event_start): #tab sous la forme de [[condition1 and/or condition2,[action1(=list,value),action2...],à tel frames],...] et ca ecrit les if a ta place

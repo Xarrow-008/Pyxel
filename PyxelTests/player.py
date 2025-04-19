@@ -61,16 +61,25 @@ class Player:
             self.x = new_x
             self.y = new_y
 
-    def camera_movement(self,cameraPos):
-        if self.x + cameraPos[0] >= CAMERA_WIDTH * 5 / 6 and cameraPos[0] + CAMERA_WIDTH < World.WIDTH:
-            cameraPos[0] = self.x - CAMERA_WIDTH * 5 / 6
-        if self.x + cameraPos[0] <= CAMERA_WIDTH / 6 and cameraPos[0] >= 0:
-            cameraPos[0] = self.x - CAMERA_WIDTH / 6
-        if self.y + cameraPos[1] >= CAMERA_HEIGHT * 5 / 6 and cameraPos[1] + CAMERA_HEIGHT < World.HEIGHT:
-            cameraPos[1] = self.y - CAMERA_HEIGHT * 5 / 6
-        if self.y + cameraPos[1] <= CAMERA_HEIGHT / 6 and cameraPos[1] >= 0:
-            cameraPos[1] = self.y - CAMERA_HEIGHT / 6
+    def camera_movement(self,cameraPos, margin):
+        #print(self.x,self.y)
+        #print(cameraPos[1],CAMERA_HEIGHT,World.HEIGHT,cameraPos[1] + CAMERA_HEIGHT < World.HEIGHT)
+        if self.x + TILE_SIZE >= cameraPos[0] + CAMERA_WIDTH * (1-margin) and cameraPos[0] + CAMERA_WIDTH < World.WIDTH * TILE_SIZE:
+            cameraPos[0] = self.x + TILE_SIZE - CAMERA_WIDTH * (1-margin)
+        
+        if self.x <= cameraPos[0] + CAMERA_WIDTH * margin and cameraPos[0] > 0:
+            cameraPos[0] = self.x - CAMERA_WIDTH * margin
+        
+        if self.y + TILE_SIZE >= cameraPos[1] + CAMERA_HEIGHT * (1-margin) and cameraPos[1] + CAMERA_HEIGHT < World.HEIGHT * TILE_SIZE:
+            cameraPos[1] = self.y + TILE_SIZE - CAMERA_HEIGHT * (1-margin)
+        
+        if self.y <= cameraPos[1] + CAMERA_HEIGHT * margin and cameraPos[1] > 0:
+            cameraPos[1] = self.y - CAMERA_HEIGHT * margin
 
+        cameraPos[0],cameraPos[1] = round(cameraPos[0]), round(cameraPos[1])
+
+    def reset_camera(self,margin):
+        camera(self.x-margin,self.y-margin)
     
     '''
     def speed_up(self,amount=0.1,limit_up=3): #ca a juste amene des bugs smeh jmen fous tfacon

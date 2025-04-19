@@ -61,6 +61,12 @@ class World:
                     self.player_grid_y = y
                     self.world_map[y].append(WorldItem.GRASS_AIR)
 
+
+    def place_blocks(self,x,y,w,h,block):
+        for i in range(w):
+            for o in range(h):
+                self.world_map[y+i][x+o] = block
+
 def world_item_draw(pyxel, x, y, world_item): #apres juste dessiner chaque bloc, appelé dans le main
     pyxel.blt(
         x * TILE_SIZE,
