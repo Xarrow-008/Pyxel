@@ -78,7 +78,6 @@ class App:
                         obj['deathAnim'] = True
                     else:
                         obj['hitAnim'] = True
-                        obj['v'] += 1
 
 
 
@@ -99,21 +98,43 @@ class App:
         
         for obj in self.objects.OBJs:
             if obj['deathAnim'] or obj['hitAnim']:
-                self.easy_frames_event([
-            [True,[[obj,'moment',0]],0],
-            [True,[[obj,'moment',1]],1],
-            [True,[[obj,'moment',2]],6],
-            [True,[[obj,'moment',3]],7],
-            [True,[[obj,'moment',4]],8],
-            [True,[[obj,'moment',5]],9],
-            [True,[[obj,'moment',6]],10],
-            [obj['hitAnim'],[[obj,'v',obj['v']-1],[obj,'moment',0]],11],
-            [obj['deathAnim'],[[obj,'moment',7]],11],
-            [True,[[obj,'deathAnim',False],[obj,'hitAnim',False]],11]
-            ],obj['frameHit'])
-            
-        self.player.camera_movement(self.world.cameraPos)
+                if obj['name'] == 'lamp':
+                    self.easy_frames_event([
+                [obj['hitAnim'],[[obj,'v',obj['v']+1]],0],
+                [True,[[obj,'moment',0]],0],
+                [True,[[obj,'moment',1]],1],
+                [True,[[obj,'moment',2]],6],
+                [True,[[obj,'moment',3]],7],
+                [True,[[obj,'moment',4]],8],
+                [True,[[obj,'moment',5]],9],
+                [True,[[obj,'moment',6]],10],
+                [obj['hitAnim'],[[obj,'v',obj['v']-1],[obj,'moment',0]],11],
+                [obj['deathAnim'],[[obj,'moment',7]],11],
+                [True,[[obj,'deathAnim',False],[obj,'hitAnim',False]],11]
+                ],obj['frameHit'])
+
+                if obj['name'] == 'ghost':
+                    self.easy_frames_event([
+                [True,[[obj,'x',obj['x']-1],[obj,'v',15],[obj,'moment',0]],0],
+                [True,[[obj,'x',obj['x']-1]],2],
+                [True,[[obj,'x',obj['x']-1]],4],
+                [True,[[obj,'x',obj['x']-1]],7],
+                [obj['deathAnim'],[[obj,'moment',1]],10],
+                [obj['deathAnim'],[[obj,'moment',2]],14],
+                [obj['deathAnim'],[[obj,'moment',3]],18],
+                [obj['deathAnim'],[[obj,'deathAnim',False],[obj,'dead',True]],19],
+                [obj['hitAnim'],[[obj,'x',obj['x']+1],[obj,'hitAnim',False],[obj,'v',14]],8],
+                ],obj['frameHit'])
+
+                    if obj['dead'] and not obj['deathAnim']:
+                        self.objects.OBJs.remove(obj)
+
         
+        self.player.camera_movement(self.world.cameraPos, 1/8)
+        
+
+        if self.objects.OBJs[0]['deathAnim']:
+            self.world.place_blocks(18,11,3,3,WorldItem.GRASS_AIR)
 
 
         if pyxel.btnp(pyxel.KEY_ESCAPE):
@@ -208,6 +229,7 @@ class App:
             obj['dead'] = False
             obj['moment'] = 0
             obj['hit'] = 0
+            obj['frameHit'] = 0
 
     
     def easy_frames_event(self,tab,event_start): #tab sous la forme de [[condition1 and/or condition2,[action1(=list,value),action2...],à tel frames],...] et ca ecrit les if a ta place
