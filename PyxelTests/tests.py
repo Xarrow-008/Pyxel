@@ -25,7 +25,7 @@ def test_boolean_in_tab(tab):
 
 test_boolean_in_tab(tab)
 print(c3)
-'''
+
 
 
 
@@ -47,4 +47,16 @@ def easy_frames_event(tab,timeEvent):
 easy_frames_event(tableau,20)
 
 print(SLASH)
+'''
 
+book1 = {'x':0}
+book2 = {'x':1}
+book3 = {'x':2}
+
+shelf = [book1,book2,book3]
+
+for book in shelf:
+    if book['x'] == 0:
+        shelf.remove(book)
+
+print(shelf)

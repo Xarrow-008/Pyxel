@@ -17,7 +17,7 @@ class WorldItem:
     BRICKS = (2,1)
     LIGHT = (3,1)
     LAMP = (0,12)
-    FROG = (0,13)
+    GHOST = (0,14)
 
 
     LAVA_AIR = (1,6)
@@ -32,7 +32,12 @@ class WorldItem:
 
     BLOCKS_LIST = [LAVA,GRASS,TREE,LEAVES,WATER,PATH,BRICKS,LIGHT,
                    LAVA_AIR,GRASS_AIR,TREE_AIR,LEAVES_AIR,WATER_AIR,PATH_AIR,BRICKS_AIR,LIGHT_AIR]
-    OBJECTS_LIST = []
+
+    OBJECTS_LIST = [LAMP,GHOST]
+
+    OBJECT_NAMES = ['lamp','ghost']
+
+    OBJECTS_PRESENT = []
 
 class World:
     
@@ -48,14 +53,15 @@ class World:
         for y in range(self.HEIGHT):
             self.world_map.append([])
             for x in range(self.WIDTH):
-                for i in range(len(WorldItem.BLOCKS_LIST)):
-                    if self.tilemap.pget(x,y) == WorldItem.BLOCKS_LIST[i]: #en gros si le bloc c de l'herbe tu mets de l'herbe ect (traduire du 'pyxel edit' à une liste de blocs avec coordonees bien sucrées au sucre)
-                        self.world_map[y].append(WorldItem.BLOCKS_LIST[i])
-                    
-                    
-                if self.tilemap.pget(x,y) == WorldItem.LAMP:
-                    WorldItem.OBJECTS_LIST.append({'x':x * TILE_SIZE,'y':y * TILE_SIZE,'hit':0,'hitAnim':False,'hp':1,'dead':False,'deathAnim':0,'u':0,'v':WorldItem.LAMP[1],'moment':0,'frameHit':-60})
-                    self.world_map[y].append(WorldItem.GRASS_AIR)
+                for block in WorldItem.BLOCKS_LIST:
+                    if self.tilemap.pget(x,y) == block: #en gros si le bloc c de l'herbe tu mets de l'herbe ect (traduire du 'pyxel edit' à une liste de blocs avec coordonees bien sucrées au sucre)
+                        self.world_map[y].append(block)
+                
+                for obj in WorldItem.OBJECTS_LIST:
+                    if self.tilemap.pget(x,y) == obj:
+                        WorldItem.OBJECTS_PRESENT.append({'x':x * TILE_SIZE,'y':y * TILE_SIZE,'name':WorldItem.OBJECT_NAMES[WorldItem.OBJECTS_LIST.index(obj)],'hit':0,'hitAnim':False,'hp':2,'dead':False,'deathAnim':0,'u':obj[0],'v':obj[1],'moment':0,'frameHit':-60})
+                        self.world_map[y].append(WorldItem.GRASS_AIR)
+                
                 if self.tilemap.pget(x,y) == WorldItem.PLAYER or self.tilemap.pget(x,y) == WorldItem.PLAYER_AIR:
                     self.player_grid_x = x #si c un joueur tu bouges sa pos la bas et tu mets de l'herbe
                     self.player_grid_y = y
