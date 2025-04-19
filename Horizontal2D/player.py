@@ -10,7 +10,7 @@ class Player:
         self.animation = Animation()
         self.x = self.world.player_init_pos_x*TILE_SIZE
         self.y = self.world.player_init_pos_y*TILE_SIZE
-        self.physics.speed = 1
+        self.physics.velocity[0] = 1
         self.physics.jumpStrength = 2
         self.image = [0,8]
 
@@ -35,12 +35,12 @@ class Player:
             self.x = self.physics.move_horizontal(self.x, self.y, 1)
             self.image = self.animation.loadAnimation("right")
 
-        if not self.physics.isGrounded(self.x, self.y):
+        if not self.physics.isGrounded(self.x, self.y)[0]:
             self.physics.applyGravity()
-            if not pyxel.btn(pyxel.KEY_SPACE) and self.physics.vertical_momentum<0:
-                self.physics.vertical_momentum /= 2
+            if not pyxel.btn(pyxel.KEY_SPACE) and self.physics.velocity[1]<0:
+                self.physics.velocity[1] /= 2
         else:
-            self.y = (self.y//TILE_SIZE)*TILE_SIZE
+            self.y = self.physics.isGrounded(self.x, self.y)[1]
             if not(pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
                 self.image = self.animation.loadAnimation("idle")
             if pyxel.btnp(pyxel.KEY_SPACE):
@@ -49,12 +49,13 @@ class Player:
 
         
         
-        if self.physics.vertical_momentum < 0:
+        if self.physics.velocity[1] < 0:
             self.image = self.animation.loadAnimation("up")
-        if self.physics.vertical_momentum > 0:
+        if self.physics.velocity[1] > 0:
             self.image = self.animation.loadAnimation("down")
 
         self.animation.frame += 1
+
         
 
 

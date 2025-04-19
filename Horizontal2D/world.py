@@ -1,5 +1,7 @@
 SPRITEBANK = 0
 TILE_SIZE = 8
+WIDTH = 256
+HEIGHT = 256
 
 class WorldItem:
     PLAYER = (0,1)
@@ -9,17 +11,15 @@ class WorldItem:
     TILES = [BLOCK, BACKGROUND]
 
 class World:
-    WIDTH = 16
-    HEIGHT = 16
 
     def __init__(self, tilemap):
         self.tilemap = tilemap
         self.world_map = []
         self.player_init_pos_x = 0
         self.player_init_pos_y = 0
-        for y in range(self.HEIGHT):
+        for y in range(HEIGHT):
             self.world_map.append([])
-            for x in range(self.WIDTH):
+            for x in range(WIDTH):
                 for tile in WorldItem.TILES:
                     if self.tilemap.pget(x,y) == tile:
                         self.world_map[y].append(tile)

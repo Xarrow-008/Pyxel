@@ -8,6 +8,7 @@ class Animation:
         self.ticksSinceLastStage = 0
         self.savedAnimations = {}
         self.animationGroups = []
+        self.currentAnimation = "N/A"
         self.currentAnimationGroup = "N/A"
         
 
@@ -45,6 +46,7 @@ class Animation:
         self.animationGroups.append(tab)
 
     def loadAnimation(self, name):
+        self.currentAnimation = name
         animation = self.savedAnimations[name]
         length = animation["length"]
         w = animation["w"]

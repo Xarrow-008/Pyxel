@@ -2,20 +2,22 @@ import pyxel
 from player import*
 from world import*
 from physics import*
+from camera import*
 
 class App:
     def __init__(self):
-        pyxel.init(128, 128, title="Horizontal 2D")
+        pyxel.init(CAMERA_WIDTH, CAMERA_HEIGHT, title="Horizontal 2D")
         pyxel.load("../horizontal2D.pyxres")
 
         self.world = World(pyxel.tilemaps[0])
         self.player = Player(self.world)
-        
+        self.camera = Camera(self.player)
 
         pyxel.run(self.update, self.draw)
 
     def update(self):
         self.player.update()
+        self.camera.update()
 
         if pyxel.btnp(pyxel.KEY_ESCAPE):
             pyxel.quit()
@@ -25,8 +27,8 @@ class App:
     def draw(self):
         pyxel.cls(0)
 
-        for y in range(self.world.HEIGHT):
-            for x in range(self.world.WIDTH):
+        for y in range(HEIGHT):
+            for x in range(WIDTH):
                 tile = self.world.world_map[y][x]
                 draw_tile(pyxel, x, y, tile)
 
