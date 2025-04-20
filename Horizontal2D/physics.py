@@ -45,8 +45,12 @@ class Physics:
         tile_x = int(x//TILE_SIZE)
         tile_y = int(y//TILE_SIZE)
 
-        player_tile = self.world.world_map[tile_y][tile_x]
-        if player_tile == WorldItem.BLOCK:
+        self_tile1 = self.world.world_map[tile_y][tile_x]
+        if x != tile_x*TILE_SIZE:
+            self_tile2 = self.world.world_map[tile_y][tile_x+1]
+        else:
+            self_tile2 = "N/A"
+        if self_tile1 == WorldItem.BLOCK or self_tile2 == WorldItem.BLOCK:
             return (True, (tile_y-1)*TILE_SIZE)
 
         tile_y_under = tile_y+1
