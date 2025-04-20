@@ -32,9 +32,6 @@ class App:
             self.entityHandler = EntityHandler()
             self.world = World(pyxel.tilemaps[0])
             self.player = Player(self.world, self.entityHandler)
-            
-
-            
 
     def draw(self):
         pyxel.cls(0)

@@ -30,7 +30,7 @@ class Physics:
         
         for entity in self.entityHandler.loadedEntities:
             if entity.tangible == True and collision(new_x, y, entity.x, entity.y):
-                return x
+                return entity.x - (TILE_SIZE*direction)
 
         
         next_tile_1 = self.world.world_map[tile_y][new_tile_x]
@@ -41,7 +41,7 @@ class Physics:
             return tile_x*TILE_SIZE
         return x
 
-    def isGrounded(self, x, y):
+    def isGrounded(self, x, y, id):
         tile_x = int(x//TILE_SIZE)
         tile_y = int(y//TILE_SIZE)
         tile_y_under = tile_y+1
@@ -52,7 +52,7 @@ class Physics:
         collision_with_entity = False
         y_min = HEIGHT*TILE_SIZE
         for entity in self.entityHandler.loadedEntities:
-            if (entity.tangible == True and ((x <= entity.x and x+TILE_SIZE > entity.x) or (entity.x <= x and  entity.x+TILE_SIZE > x)) and (y+TILE_SIZE>=entity.y and y+TILE_SIZE<entity.y+TILE_SIZE)):
+            if (entity.tangible == True and ((x <= entity.x and x+TILE_SIZE > entity.x) or (entity.x <= x and  entity.x+TILE_SIZE > x)) and (y+TILE_SIZE>=entity.y and y+TILE_SIZE<=entity.y+TILE_SIZE)) and entity!=id:
                 self.velocity[1] = 0
                 collision_with_entity = True
                 new_y = entity.y-TILE_SIZE
@@ -92,6 +92,18 @@ class Physics:
             return new_y
         
         else:
+
+            collision_with_entity = False
+            y_min = HEIGHT*TILE_SIZE
+            for entity in self.entityHandler.loadedEntities:
+                if (entity.tangible == True and ((x <= entity.x and x+TILE_SIZE > entity.x) or (entity.x <= x and  entity.x+TILE_SIZE > x)) and (y>entity.y and y<=entity.y+TILE_SIZE)) and entity!=id:
+                    collision_with_entity = True
+                    new_y = entity.y+TILE_SIZE
+                    if new_y < y_min:
+                        y_min = new_y
+            if collision_with_entity:
+                return y_min
+
             tile_x = int(x//TILE_SIZE)
             tile_y = int(y//TILE_SIZE)
             new_tile_y = tile_y-1

@@ -26,10 +26,10 @@ class Entity:
 
     def update(self):
         if self.gravity == True:
-            if not self.physics.isGrounded(self.x, self.y)[0]:
+            if not self.physics.isGrounded(self.x, self.y, self)[0]:
                 self.physics.applyGravity()
             else:
-                self.y = self.physics.isGrounded(self.x, self.y)[1]
+                self.y = self.physics.isGrounded(self.x, self.y, self)[1]
 
         self.y = self.physics.move_vertical(self.x, self.y)
 

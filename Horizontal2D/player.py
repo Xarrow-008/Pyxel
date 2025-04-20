@@ -44,12 +44,12 @@ class Player:
             self.x = self.physics.move_horizontal(self.x, self.y, 1)
             self.image = self.animation.loadAnimation("right")
 
-        if not self.physics.isGrounded(self.x, self.y)[0]:
+        if not self.physics.isGrounded(self.x, self.y, "player")[0]:
             self.physics.applyGravity()
             if not pyxel.btn(pyxel.KEY_SPACE) and self.physics.velocity[1]<0:
                 self.physics.velocity[1] /= 2
         else:
-            self.y = self.physics.isGrounded(self.x, self.y)[1]
+            self.y = self.physics.isGrounded(self.x, self.y, "player")[1]
             if not(pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
                 self.image = self.animation.loadAnimation("idle")
             if pyxel.btnp(pyxel.KEY_SPACE):
