@@ -44,6 +44,11 @@ class Physics:
     def isGrounded(self, x, y, id):
         tile_x = int(x//TILE_SIZE)
         tile_y = int(y//TILE_SIZE)
+
+        player_tile = self.world.world_map[tile_y][tile_x]
+        if player_tile == WorldItem.BLOCK:
+            return (True, (tile_y-1)*TILE_SIZE)
+
         tile_y_under = tile_y+1
         tile_under1 = self.world.world_map[tile_y_under][tile_x]
         if tile_x != WIDTH-1:
