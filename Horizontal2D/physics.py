@@ -4,7 +4,7 @@ from world import*
 
 class Physics:
 
-    def __init__(self, world):
+    def __init__(self, world, entityHandler):
         self.world = world
         self.jumpStrength = 1
         self.GRAVITY_ACCELERATION = 10
@@ -13,6 +13,7 @@ class Physics:
         self.vertical_momentum = 0
         self.velocity = [1,0]
         self.frame = 0
+        self.entityHandler = entityHandler
 
 
 
@@ -26,6 +27,11 @@ class Physics:
             return (WIDTH-1)*TILE_SIZE
         if new_x < 0:
             return 0
+        
+        for entity in self.entityHandler.loadedEntities:
+            if entity.tangible == True and collision(new_x, y, entity.x, entity.y):
+                return x
+
         
         next_tile_1 = self.world.world_map[tile_y][new_tile_x]
         next_tile_2 = self.world.world_map[tile_y+1][new_tile_x]
@@ -42,6 +48,19 @@ class Physics:
         tile_under1 = self.world.world_map[tile_y_under][tile_x]
         if tile_x != WIDTH-1:
             tile_under2 = self.world.world_map[tile_y_under][tile_x+1]
+
+        collision_with_entity = False
+        y_min = HEIGHT*TILE_SIZE
+        for entity in self.entityHandler.loadedEntities:
+            if (entity.tangible == True and ((x <= entity.x and x+TILE_SIZE > entity.x) or (entity.x <= x and  entity.x+TILE_SIZE > x)) and (y+TILE_SIZE>=entity.y and y+TILE_SIZE<entity.y+TILE_SIZE)):
+                self.velocity[1] = 0
+                collision_with_entity = True
+                new_y = entity.y-TILE_SIZE
+                if new_y < y_min:
+                    y_min = new_y
+        if collision_with_entity:
+            return (True, y_min)
+
         if (y+TILE_SIZE>=tile_y_under*TILE_SIZE and y+TILE_SIZE<(tile_y_under+1)*TILE_SIZE) and (tile_under1 == WorldItem.BLOCK or tile_under2 == WorldItem.BLOCK) and not (tile_under1 == WorldItem.BACKGROUND and x+TILE_SIZE==(tile_x+1)*TILE_SIZE):
             self.velocity[1] = 0
             return (True, (y//TILE_SIZE)*TILE_SIZE)
@@ -65,7 +84,7 @@ class Physics:
         new_y = y+self.velocity[1]
 
         if new_y+TILE_SIZE >= HEIGHT*TILE_SIZE:
-            return (HEIGHT-1)*TILE_SIZE
+            return (HEIGHT-2)*TILE_SIZE
         if new_y < 0:
             return 0
 
@@ -77,7 +96,8 @@ class Physics:
             tile_y = int(y//TILE_SIZE)
             new_tile_y = tile_y-1
             next_tile_1 = self.world.world_map[new_tile_y][tile_x]
-            next_tile_2 = self.world.world_map[new_tile_y][tile_x+1]
+            if tile_x != WIDTH-1:
+                next_tile_2 = self.world.world_map[new_tile_y][tile_x+1]
             if (next_tile_1 != WorldItem.BLOCK or not collision(x, new_y, tile_x*TILE_SIZE, new_tile_y*TILE_SIZE)) and (next_tile_2 != WorldItem.BLOCK or not collision(x, new_y, (tile_x+1)*TILE_SIZE, new_tile_y*TILE_SIZE)):
                 return new_y
         return y

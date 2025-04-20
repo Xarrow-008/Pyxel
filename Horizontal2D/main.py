@@ -3,24 +3,36 @@ from player import*
 from world import*
 from physics import*
 from camera import*
+from entities import*
 
 class App:
     def __init__(self):
         pyxel.init(CAMERA_WIDTH, CAMERA_HEIGHT, title="Horizontal 2D")
         pyxel.load("../horizontal2D.pyxres")
 
+        self.entityHandler = EntityHandler()
         self.world = World(pyxel.tilemaps[0])
-        self.player = Player(self.world)
-        self.camera = Camera(self.player)
+        self.player = Player(self.world, self.entityHandler)
+        
+
+        pyxel.mouse(True)
 
         pyxel.run(self.update, self.draw)
 
     def update(self):
         self.player.update()
-        self.camera.update()
+
+        if len(self.entityHandler.loadedEntities) > 0:
+            for entity in self.entityHandler.loadedEntities:
+                entity.update()
 
         if pyxel.btnp(pyxel.KEY_ESCAPE):
             pyxel.quit()
+        if pyxel.btnp(pyxel.KEY_R):
+            self.entityHandler = EntityHandler()
+            self.world = World(pyxel.tilemaps[0])
+            self.player = Player(self.world, self.entityHandler)
+            
 
             
 
@@ -32,14 +44,11 @@ class App:
                 tile = self.world.world_map[y][x]
                 draw_tile(pyxel, x, y, tile)
 
-        pyxel.blt(self.player.x,
-                self.player.y,
-                SPRITEBANK,
-                self.player.image[0],
-                self.player.image[1],
-                TILE_SIZE,
-                TILE_SIZE,
-                colkey = 11)
+        if len(self.entityHandler.loadedEntities) > 0:
+            for entity in self.entityHandler.loadedEntities:
+                entity.draw()
+
+        self.player.draw()
 
 App()
 
