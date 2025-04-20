@@ -6,6 +6,9 @@ class EntityHandler :
     def __init__(self):
         self.loadedEntities = []
 
+    def remove(self, entity):
+        self.loadedEntities.remove(entity)
+
 class EntityTemplate:
     BALL_YELLOW = {"image" : [0,6*TILE_SIZE], "width" : TILE_SIZE, "height" : TILE_SIZE, "gravity":True, "tangible":False}
     BALL_RED = {"image" : [0,7*TILE_SIZE], "width" : TILE_SIZE, "height" : TILE_SIZE, "gravity":True, "tangible":True}

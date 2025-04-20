@@ -52,7 +52,7 @@ class Physics:
         collision_with_entity = False
         y_min = HEIGHT*TILE_SIZE
         for entity in self.entityHandler.loadedEntities:
-            if (entity.tangible == True and ((x <= entity.x and x+TILE_SIZE > entity.x) or (entity.x <= x and  entity.x+TILE_SIZE > x)) and (y+TILE_SIZE>=entity.y and y+TILE_SIZE<=entity.y+TILE_SIZE)) and entity!=id:
+            if entity.tangible == True and (((x <= entity.x and x+TILE_SIZE > entity.x) or (entity.x <= x and  entity.x+TILE_SIZE > x)) and (y+TILE_SIZE>=entity.y and y+TILE_SIZE<=entity.y+TILE_SIZE)) and entity!=id:
                 self.velocity[1] = 0
                 collision_with_entity = True
                 new_y = entity.y-TILE_SIZE
