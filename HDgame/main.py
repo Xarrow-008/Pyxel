@@ -11,21 +11,19 @@ class Game:
         pyxel.init(CAM_W,CAM_H,title='HDgame')
         pyxel.load('../HDgame.pyxres')
 
+        self.world = World(pyxel.tilemaps[0])
+
         pyxel.run(self.update,self.draw)
     
     def update(self):
         pass
 
     def draw(self):
-        pyxel.blt(
-            0,
-            0,
-            0,
-            0,
-            0,
-            SIZE,
-            SIZE
-        )
+        for y in range(HEIGHT):
+            for x in range(WIDTH):
+                current_block = self.world.grid_list[y][x]
+                world_item_draw(pyxel, x, y, current_block)
+        
         pyxel.blt(
             0,
             0,
