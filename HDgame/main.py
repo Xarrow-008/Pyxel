@@ -25,13 +25,13 @@ class Game:
                 world_item_draw(pyxel, x, y, current_block)
         
         pyxel.blt(
+            2 * T_SIZE,
+            2 * T_SIZE,
             0,
-            0,
-            0,
-            0 * SIZE,
-            2 * SIZE,
-            SIZE,
-            SIZE,
+            0 * T_SIZE,
+            2 * T_SIZE,
+            T_SIZE,
+            T_SIZE,
             colkey= 2
         )
 Game()
