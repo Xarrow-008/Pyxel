@@ -2,6 +2,7 @@ import pyxel
 import os
 from world import *
 from camera import *
+from player import *
 
 class Game:
 
@@ -13,10 +14,16 @@ class Game:
 
         self.world = World(pyxel.tilemaps[0])
 
+        self.player = Player(self.world)
+
+        self.camera = Camera(self.player)
+
         pyxel.run(self.update,self.draw)
     
     def update(self):
-        pass
+
+        self.player.update()
+        self.camera.update(1/8)
 
     def draw(self):
         for y in range(HEIGHT):
@@ -25,9 +32,9 @@ class Game:
                 world_item_draw(pyxel, x, y, current_block)
         
         pyxel.blt(
-            2 * T_SIZE,
-            2 * T_SIZE,
-            0,
+            self.player.x,
+            self.player.y,
+            self.world.world_type,
             0 * T_SIZE,
             2 * T_SIZE,
             T_SIZE,
