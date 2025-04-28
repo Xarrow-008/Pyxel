@@ -18,16 +18,18 @@ class Player:
         self.world = world
 
     def update(self):
-        
-        self.tile_y = int(self.y/T_SIZE)
-        self.tile_x = int(self.x/T_SIZE)
+
         if pyxel.btn(pyxel.KEY_Q):
+            self.pos_to_tile()
             self.move(LEFT)
         if pyxel.btn(pyxel.KEY_D):
+            self.pos_to_tile()
             self.move(RIGHT)
         if pyxel.btn(pyxel.KEY_Z):
+            self.pos_to_tile()
             self.move(UP)
         if pyxel.btn(pyxel.KEY_S):
+            self.pos_to_tile()
             self.move(DOWN)
 
     def moveF(self,direction):
@@ -51,5 +53,12 @@ class Player:
             self.x = new_x
             self.y = new_y
 
+    
+    def pos_to_tile(self):
+            
+            self.tile_y = int(self.y/T_SIZE)
+            self.tile_x = int(self.x/T_SIZE)
+
 def collision(x1,y1,x2,y2):
         return x1+T_SIZE>x2 and x2+T_SIZE>x1 and y1+T_SIZE>y2 and y2+T_SIZE>y1
+
