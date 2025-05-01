@@ -27,9 +27,9 @@ class World:
         self.player_init_pos_y = 0
         self.grid_list = []
 
-        for y in range(HEIGHT):
+        for y in range(HEIGHT+1):
             self.grid_list.append([])
-            for x in range(WIDTH):
+            for x in range(WIDTH+1):
                 block_placed = False
                 tm_block = self.tilemap.pget(x*2,y*2)
                 tm_block = (tm_block[0]//2,tm_block[1]//2)

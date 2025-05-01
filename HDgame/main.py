@@ -26,6 +26,7 @@ class Game:
         self.camera.update(1/8)
 
     def draw(self):
+        pyxel.camera(self.camera.x,self.camera.y)
         for y in range(HEIGHT):
             for x in range(WIDTH):
                 current_block = self.world.grid_list[y][x]

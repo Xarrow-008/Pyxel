@@ -1,5 +1,5 @@
 import pyxel
-from world import T_SIZE, IMG_SIZE, RATIO, WorldItems
+from world import T_SIZE, IMG_SIZE, RATIO, WorldItems, WIDTH, HEIGHT
 
 LEFT = (-1,0)
 RIGHT = (1,0)
@@ -10,7 +10,7 @@ class Player:
 
     U = 0
     V = 2
-    SPEED = 1
+    SPEED = 2
 
     def __init__(self,world):
         self.x = world.player_init_pos_x
@@ -19,16 +19,16 @@ class Player:
 
     def update(self):
 
-        if pyxel.btn(pyxel.KEY_Q):
+        if pyxel.btn(pyxel.KEY_Q) and self.x > 0:
             self.pos_to_tile()
             self.move(LEFT)
-        if pyxel.btn(pyxel.KEY_D):
+        if pyxel.btn(pyxel.KEY_D) and self.x + T_SIZE < T_SIZE * HEIGHT:
             self.pos_to_tile()
             self.move(RIGHT)
-        if pyxel.btn(pyxel.KEY_Z):
+        if pyxel.btn(pyxel.KEY_Z) and self.y > 0:
             self.pos_to_tile()
             self.move(UP)
-        if pyxel.btn(pyxel.KEY_S):
+        if pyxel.btn(pyxel.KEY_S) and self.y + T_SIZE < T_SIZE * WIDTH:
             self.pos_to_tile()
             self.move(DOWN)
 
