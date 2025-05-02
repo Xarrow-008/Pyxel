@@ -174,7 +174,6 @@ class Physics:
             next_tile_x_1 = self.world.world_map[tile_y][new_tile_x]
             if y != tile_y*TILE_SIZE:
                 next_tile_x_2 = self.world.world_map[tile_y+1][new_tile_x]
-                print(next_tile_x_2)
             else:
                 next_tile_x_2 = WorldItem.BACKGROUND
             if (next_tile_x_1 != WorldItem.BLOCK or not collision(new_x, y, new_tile_x*TILE_SIZE, tile_y*TILE_SIZE)) and (next_tile_x_2 != WorldItem.BLOCK or not collision(new_x, y, new_tile_x*TILE_SIZE, (tile_y+1)*TILE_SIZE)):
@@ -201,68 +200,6 @@ class Physics:
                 else:
                     y = (new_tile_y+1)*TILE_SIZE
 
-       
-
-        """next_tile_1 = self.world.world_map[new_tile_y][new_tile_x]
-        next_tile_2 = self.world.world_map[new_tile_y+abs(pyxel.sgn(vector[0]))][new_tile_x+abs(pyxel.sgn(vector[1]))]
-
-        if (next_tile_1 != WorldItem.BLOCK or not collision(new_x, new_y, new_tile_x*TILE_SIZE, new_tile_y*TILE_SIZE)) and (next_tile_2 != WorldItem.BLOCK or not collision(new_x, new_y, (new_tile_x+abs(pyxel.sgn(vector[1])))*TILE_SIZE, (new_tile_y+abs(pyxel.sgn(vector[0])))*TILE_SIZE)):
-            return new_x, new_y
-        else:
-            if pyxel.sgn(vector[0]) != 0:
-                x = round(x)
-            if pyxel.sgn(vector[1]) != 0:
-                y = round(y)
-                print(y)
-
-        x,y = self.resolveClipping(x,y,vector)"""
-
-
-        return x,y
-    
-    def resolveClipping(self, x, y, vector):
-        tile_x = int(x//TILE_SIZE)
-        tile_y = int(y//TILE_SIZE)
-
-        #Checks after rounding if the player is inside a block and resolves the issue
-
-        if x != tile_x*TILE_SIZE and pyxel.sgn(vector[0]) != 0:
-            if pyxel.sgn(vector[0]) == 1:
-                tile_x_1 = self.world.world_map[tile_y][tile_x+1]
-                if y != tile_y*TILE_SIZE:
-                    tile_x_2 = self.world.world_map[tile_y+1][tile_x+1]
-                else:
-                    tile_x_2 = WorldItem.BACKGROUND
-            else:
-                tile_x_1 = self.world.world_map[tile_y][tile_x]
-                if y != tile_y*TILE_SIZE:
-                    tile_x_2 = self.world.world_map[tile_y+1][tile_x]
-                else:
-                    tile_x_2 = WorldItem.BACKGROUND
-            if (tile_x_1==WorldItem.BLOCK or tile_x_2==WorldItem.BLOCK) and(x+TILE_SIZE>(tile_x+1)*TILE_SIZE) and ((tile_x+1)*TILE_SIZE+TILE_SIZE>x):
-                if pyxel.sgn(vector[0]) == 1:
-                    x = tile_x*TILE_SIZE
-                else:
-                    x = (tile_x+1)*TILE_SIZE
-
-        if y != tile_y*TILE_SIZE and pyxel.sgn(vector[1]) != 0:
-            if pyxel.sgn(vector[1]) == 1:
-                tile_y_1 = self.world.world_map[tile_y+1][tile_x]
-                if x != tile_x*TILE_SIZE:
-                    tile_y_2 = self.world.world_map[tile_y+1][tile_x+1]
-                else:
-                    tile_y_2 = WorldItem.BACKGROUND
-            else:
-                tile_y_1 = self.world.world_map[tile_y][tile_x]
-                if x != tile_x*TILE_SIZE:
-                    tile_y_2 = self.world.world_map[tile_y][tile_x+1]
-                else:
-                    tile_y_2 = WorldItem.BACKGROUND
-            if (tile_y_1==WorldItem.BLOCK or tile_y_2==WorldItem.BLOCK) and(y+TILE_SIZE>(tile_y+1)*TILE_SIZE) and ((tile_y+1)*TILE_SIZE+TILE_SIZE>y):
-                if pyxel.sgn(vector[0]) == 1:
-                    y = tile_y*TILE_SIZE
-                else:
-                    y = (tile_y+1)*TILE_SIZE  
         return x,y
     
 def collision(x1,y1,x2,y2):
