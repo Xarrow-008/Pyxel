@@ -125,12 +125,10 @@ class Player:
 class Physics:
     def __init__(self, world):
         self.momentum = 0
-        self.speed = 8
+        self.speed = 0.25
         self.world = world
 
     def move(self, x, y, vector):
-        x = int(x)
-        y = int(y)
 
         tile_x = int(x//TILE_SIZE)
         tile_y = int(y//TILE_SIZE)
@@ -146,6 +144,8 @@ class Physics:
 
         if (next_tile_1 != WorldItem.BLOCK or not collision(new_x, new_y, new_tile_x*TILE_SIZE, new_tile_y*TILE_SIZE)) and (next_tile_2 != WorldItem.BLOCK or not collision(new_x, new_y, (new_tile_x+abs(pyxel.sgn(vector[1])))*TILE_SIZE, (new_tile_y+abs(pyxel.sgn(vector[0])))*TILE_SIZE)):
             return new_x, new_y
+        else:
+            print("collide")
         
         return x,y
     
