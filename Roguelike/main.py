@@ -38,6 +38,17 @@ class App:
                 tile = self.world.world_map[y][x]
                 draw_tile(pyxel, x, y, tile)
 
+        pyxel.blt(
+            self.player.x,
+            self.player.y,
+            SPRITEBANK,
+            WorldItem.PLAYER[0]*TILE_SIZE,
+            WorldItem.PLAYER[1]*TILE_SIZE,
+            TILE_SIZE,
+            TILE_SIZE,
+            colkey=11
+            )
+
 class WorldItem:
     PLAYER = (0,1)
     BLOCK = (1,0)
@@ -79,28 +90,44 @@ class Player:
         self.x = 0
         self.y = 0
         self.world = world
-        self.physics = Physics
+        self.physics = Physics(world)
 
     def update(self):
-        print("update")
+        if pyxel.btn(pyxel.KEY_Z):
+            self.x, self.y = self.physics.move(self.x, self.y, [0,-1])
+        if pyxel.btn(pyxel.KEY_S):
+            self.x, self.y = self.physics.move(self.x, self.y, [0,1])
+        if pyxel.btn(pyxel.KEY_Q):
+            self.x, self.y = self.physics.move(self.x, self.y, [-1,0])
+        if pyxel.btn(pyxel.KEY_D):
+            self.x, self.y = self.physics.move(self.x, self.y, [1,0])
+
+        if pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S) or pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) and self.physics.momentum<=self.physics.max_speed:
+            self.physics.momentum = 1
+        else:
+            self.physics.momentum /= 2
 
 class Physics:
-    def __init__(self):
-        self.speed = 0
+    def __init__(self, world):
+        self.momentum = 0
+        self.max_speed = 1
+        self.world = world
 
-    def move(self, movements):
-        new_x = self.x + self.speed*movements[0]
-        new_y = self.y + self.speed*movements[1]
+    def move(self, x, y, movements):
+        tile_x = int(x//TILE_SIZE)
+        tile_y = int(y//TILE_SIZE)
+
+        new_x = x + self.momentum*movements[0]
+        new_y = y + self.momentum*movements[1]
         
-        new_tile_x = self.tile_x + pyxel.sgn(movements[0])
-        new_tile_y = self.tile_y + pyxel.sgn(movements[1])
+        new_tile_x = tile_x + pyxel.sgn(movements[0])
+        new_tile_y = tile_y + pyxel.sgn(movements[1])
 
         next_tile_1 = self.world.world_map[new_tile_y][new_tile_x]
         next_tile_2 = self.world.world_map[new_tile_y+abs(pyxel.sgn(movements[0]))][new_tile_x+abs(pyxel.sgn(movements[1]))]
 
-        if (next_tile_1 != WorldItem.WALL or not collision(new_x, new_y, new_tile_x*TILE_SIZE, new_tile_y*TILE_SIZE)) and (next_tile_2 != WorldItem.WALL or not collision(new_x, new_y, (new_tile_x+abs(direction[1]))*TILE_SIZE, (new_tile_y+abs(direction[0]))*TILE_SIZE)):
-            self.x = new_x
-            self.y = new_y
+        if (next_tile_1 != WorldItem.BLOCK or not self.collision(new_x, new_y, new_tile_x*TILE_SIZE, new_tile_y*TILE_SIZE)) and (next_tile_2 != WorldItem.BLOCK or not self.collision(new_x, new_y, (new_tile_x+abs(pyxel.sgn(movements[1])))*TILE_SIZE, (new_tile_y+abs(pyxel.sgn(movements[0])))*TILE_SIZE)):
+            return new_x, new_y
     
     def collision(x1,y1,x2,y2):
         return x1+TILE_SIZE>x2 and x2+TILE_SIZE>x1 and y1+TILE_SIZE>y2 and y2+TILE_SIZE>y1
