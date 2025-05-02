@@ -12,7 +12,7 @@ class Player:
     IMG = 0
     WIDTH = 8
     HEIGHT = 8
-    DX = 1
+    DX = 1.8
 
     def __init__(self, world):
         self.x = world.player_grid_x * TILE_SIZE

@@ -20,7 +20,7 @@ class App:
 
     def __init__(self):
         os.system('cls')
-        pyxel.init(CAMERA_WIDTH,CAMERA_HEIGHT,title='AmogusKiller')
+        pyxel.init(CAMERA_WIDTH,CAMERA_HEIGHT,title='AmogusKiller', fps=80)
         pyxel.load('../mygame.pyxres')
 
         self.world = World(pyxel.tilemap(0))
