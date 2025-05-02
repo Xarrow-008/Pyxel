@@ -10,7 +10,7 @@ CAMERA_HEIGHT = 128
 
 class App:
     def __init__(self):
-        pyxel.init(CAMERA_WIDTH, CAMERA_HEIGHT, title="Roguelike")
+        pyxel.init(CAMERA_WIDTH, CAMERA_HEIGHT, title="Roguelike", fps=120)
         pyxel.load("../roguelike.pyxres")
         
         self.world = World(pyxel.tilemaps[0])
@@ -92,6 +92,8 @@ class Player:
         self.world = world
         self.physics = Physics(world)
         self.camera = Camera(self)
+        self.mousePositionInWorld_x = self.camera.x + pyxel.mouse_x
+        self.mousePositionInWorld_y = self.camera.y + pyxel.mouse_y
 
     def update(self):
 
@@ -106,37 +108,50 @@ class Player:
         if pyxel.btn(pyxel.KEY_D):
             self.x, self.y = self.physics.move(self.x, self.y, [1,0])
 
-        
-
-        if pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S) or pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) and self.physics.momentum<=self.physics.max_speed:
-            self.physics.momentum = 1
+        if pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S) or pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) and self.physics.momentum<=self.physics.speed:
+            self.physics.momentum = self.physics.speed
         else:
             self.physics.momentum /= 2
+
+        if self.x < 0:
+            self.x = 0
+        if self.y < 0:
+            self.y = 0
+        if self.x > WIDTH*TILE_SIZE:
+            self.x = (WIDTH-1)*TILE_SIZE
+        if self.y > HEIGHT*TILE_SIZE:
+            self.y = (HEIGHT-1)*TILE_SIZE
 
 class Physics:
     def __init__(self, world):
         self.momentum = 0
-        self.max_speed = 1
+        self.speed = 8
         self.world = world
 
-    def move(self, x, y, movements):
+    def move(self, x, y, vector):
+        x = int(x)
+        y = int(y)
+
         tile_x = int(x//TILE_SIZE)
         tile_y = int(y//TILE_SIZE)
 
-        new_x = x + self.momentum*movements[0]
-        new_y = y + self.momentum*movements[1]
+        new_x = x + self.momentum*vector[0]
+        new_y = y + self.momentum*vector[1]
         
-        new_tile_x = tile_x + pyxel.sgn(movements[0])
-        new_tile_y = tile_y + pyxel.sgn(movements[1])
+        new_tile_x = tile_x + pyxel.sgn(vector[0])
+        new_tile_y = tile_y + pyxel.sgn(vector[1])
 
         next_tile_1 = self.world.world_map[new_tile_y][new_tile_x]
-        next_tile_2 = self.world.world_map[new_tile_y+abs(pyxel.sgn(movements[0]))][new_tile_x+abs(pyxel.sgn(movements[1]))]
+        next_tile_2 = self.world.world_map[new_tile_y+abs(pyxel.sgn(vector[0]))][new_tile_x+abs(pyxel.sgn(vector[1]))]
 
-        if (next_tile_1 != WorldItem.BLOCK or not self.collision(new_x, new_y, new_tile_x*TILE_SIZE, new_tile_y*TILE_SIZE)) and (next_tile_2 != WorldItem.BLOCK or not self.collision(new_x, new_y, (new_tile_x+abs(pyxel.sgn(movements[1])))*TILE_SIZE, (new_tile_y+abs(pyxel.sgn(movements[0])))*TILE_SIZE)):
+        if (next_tile_1 != WorldItem.BLOCK or not collision(new_x, new_y, new_tile_x*TILE_SIZE, new_tile_y*TILE_SIZE)) and (next_tile_2 != WorldItem.BLOCK or not collision(new_x, new_y, (new_tile_x+abs(pyxel.sgn(vector[1])))*TILE_SIZE, (new_tile_y+abs(pyxel.sgn(vector[0])))*TILE_SIZE)):
             return new_x, new_y
+        
+        return x,y
     
-    def collision(x1,y1,x2,y2):
-        return x1+TILE_SIZE>x2 and x2+TILE_SIZE>x1 and y1+TILE_SIZE>y2 and y2+TILE_SIZE>y1
+def collision(x1,y1,x2,y2):
+        return x1+TILE_SIZE>x2 and x2+TILE_SIZE>x1 and y1+TILE_SIZE>y2 and y2+TILE_SIZE>y1    
+
     
 class Camera:
     def __init__(self, player):
