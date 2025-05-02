@@ -145,7 +145,7 @@ class Camera:
         self.max_x = WIDTH*TILE_SIZE-CAMERA_WIDTH
         self.max_y = HEIGHT*TILE_SIZE-CAMERA_HEIGHT
         self.player = player
-        self.LENIENCE_x = 2*TILE_SIZE
+        self.LENIENCE_x = 4*TILE_SIZE
         self.LENIENCE_y = 4*TILE_SIZE
 
     def update(self):
