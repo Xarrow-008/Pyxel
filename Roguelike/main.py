@@ -145,7 +145,8 @@ class Physics:
         if (next_tile_1 != WorldItem.BLOCK or not collision(new_x, new_y, new_tile_x*TILE_SIZE, new_tile_y*TILE_SIZE)) and (next_tile_2 != WorldItem.BLOCK or not collision(new_x, new_y, (new_tile_x+abs(pyxel.sgn(vector[1])))*TILE_SIZE, (new_tile_y+abs(pyxel.sgn(vector[0])))*TILE_SIZE)):
             return new_x, new_y
         else:
-            print("collide")
+            x = round(x)
+            y = round(y)
         
         return x,y
     
