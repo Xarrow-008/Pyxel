@@ -91,8 +91,12 @@ class Player:
         self.y = 0
         self.world = world
         self.physics = Physics(world)
+        self.camera = Camera(self)
 
     def update(self):
+
+        self.camera.update()
+
         if pyxel.btn(pyxel.KEY_Z):
             self.x, self.y = self.physics.move(self.x, self.y, [0,-1])
         if pyxel.btn(pyxel.KEY_S):
@@ -101,6 +105,8 @@ class Player:
             self.x, self.y = self.physics.move(self.x, self.y, [-1,0])
         if pyxel.btn(pyxel.KEY_D):
             self.x, self.y = self.physics.move(self.x, self.y, [1,0])
+
+        
 
         if pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S) or pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) and self.physics.momentum<=self.physics.max_speed:
             self.physics.momentum = 1
@@ -131,6 +137,41 @@ class Physics:
     
     def collision(x1,y1,x2,y2):
         return x1+TILE_SIZE>x2 and x2+TILE_SIZE>x1 and y1+TILE_SIZE>y2 and y2+TILE_SIZE>y1
+    
+class Camera:
+    def __init__(self, player):
+        self.x = 0
+        self.y = 0
+        self.max_x = WIDTH*TILE_SIZE-CAMERA_WIDTH
+        self.max_y = HEIGHT*TILE_SIZE-CAMERA_HEIGHT
+        self.player = player
+        self.LENIENCE_x = 2*TILE_SIZE
+        self.LENIENCE_y = 4*TILE_SIZE
+
+    def update(self):
+
+        self.playerDistanceFromCenter_x = self.player.x - (self.x + CAMERA_WIDTH/2)
+        self.playerDistanceFromCenter_y = self.player.y - (self.y + CAMERA_WIDTH/2)
+
+        if self.playerDistanceFromCenter_x > self.LENIENCE_x:
+            self.x += self.playerDistanceFromCenter_x - self.LENIENCE_x
+        elif self.playerDistanceFromCenter_x < -self.LENIENCE_x:
+            self.x += self.playerDistanceFromCenter_x + self.LENIENCE_x
+        if self.playerDistanceFromCenter_y > self.LENIENCE_y:
+            self.y += self.playerDistanceFromCenter_y - self.LENIENCE_y
+        elif self.playerDistanceFromCenter_y < -self.LENIENCE_y:
+            self.y += self.playerDistanceFromCenter_y + self.LENIENCE_y
+
+        if self.x > self.max_x:
+            self.x = self.max_x
+        if self.x < 0:
+            self.x = 0
+        if self.y > self.max_y:
+            self.y = self.max_y
+        if self.y < 0:
+            self.y = 0
+        
+        pyxel.camera(self.x, self.y)
 
 
 App()
