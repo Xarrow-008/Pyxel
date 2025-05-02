@@ -1,15 +1,16 @@
-import pyxel
+import pyxel, os, random
 
 SPRITEBANK = 0
 TILE_SIZE = 8
 WIDTH = 256
 HEIGHT = 256
 
-CAMERA_WIDTH = 128
-CAMERA_HEIGHT = 128
+CAMERA_WIDTH = 256
+CAMERA_HEIGHT = 256
 
 class App:
     def __init__(self):
+        os.system('cls')
         pyxel.init(CAMERA_WIDTH, CAMERA_HEIGHT, title="Not a scrap")
         pyxel.load("../notAScrap.pyxres")
         
@@ -36,10 +37,10 @@ class App:
 
 class WorldItem:
     PLAYER = (0,4)
-    BLOCK = (0,2)
-    BACKGROUND = (0,0)
+    GROUND = (0,2)
+    WALL = (0,0)
 
-    TILES = [BLOCK, BACKGROUND]
+    TILES = [GROUND, WALL]
 
 class World:
 
@@ -48,23 +49,41 @@ class World:
         self.world_map = []
         self.player_init_pos_x = 0
         self.player_init_pos_y = 0
-
-
-
-
-
         for y in range(HEIGHT):
             self.world_map.append([])
             for x in range(WIDTH):
                 for tile in WorldItem.TILES:
                     if self.tilemap.pget(x,y) == tile:
                         self.world_map[y].append(tile)
-                if self.tilemap.pget(x,y) == WorldItem.PLAYER:
-                    self.player_init_pos_x = x
-                    self.player_init_pos_y = y
-                    self.world_map[y].append(WorldItem.BACKGROUND)
 
-    
+        last_down = False
+        X_tile = CAMERA_WIDTH//16 - 2
+        Y_tile = 0
+        square_append(self.world_map, X_tile, 0)
+        for i in range(25):
+            if last_down:
+                sq_pos = random.randint(0,2)
+                if sq_pos == 0 and X_tile>0:
+                    X_tile -= 4
+                    last_down = False
+                elif sq_pos == 1 and X_tile<CAMERA_WIDTH:
+                    X_tile += 4
+                    last_down = False
+                else:
+                    Y_tile += 4    
+            else:
+                Y_tile += 4
+                last_down = True
+            square_append(self.world_map, X_tile ,Y_tile)
+            
+
+
+def square_append(tab, x, y):
+    for in_y in range(3):
+        for in_x in range(3):
+            tab[y+in_y][x+in_x] = WorldItem.GROUND
+
+
 def draw_tile(pyxel, x, y, tile):
     pyxel.blt(x*TILE_SIZE,
                 y*TILE_SIZE,
