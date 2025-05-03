@@ -1,5 +1,6 @@
 import pyxel
 import math
+import random
 
 SPRITEBANK = 0
 TILE_SIZE = 8
@@ -142,8 +143,6 @@ class Player:
 
         if not self.isDashing:
             
-
-
             if pyxel.btn(pyxel.KEY_Z):
                 self.x, self.y = self.physics.move(self.x, self.y, [0,-1], TILE_SIZE, TILE_SIZE)
                 self.facing[1] = -1
@@ -190,7 +189,14 @@ class Player:
                 vertical = self.mousePositionInWorld_y-(self.y+self.height/2)
                 norm = math.sqrt(horizontal**2 + vertical**2)
                 cos = horizontal/norm
+                lowest_cos = cos*(1-self.gun["spread"])
+                highest_cos = cos*(1+self.gun["spread"])
+                cos = random.uniform(lowest_cos, highest_cos)
                 sin = vertical/norm
+                lowest_sin = sin*(1-self.gun["spread"])
+                highest_sin = sin*(1+self.gun["spread"])
+                sin = random.uniform(lowest_sin, highest_sin)
+
                 Bullet(self.x+self.width/2, self.y+self.height/2, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"] ,self.gun["piercing"], self.world, "player", (1*TILE_SIZE, 1*TILE_SIZE), 4, 4, self)
 
             if pyxel.btnp(pyxel.KEY_E):
@@ -317,8 +323,8 @@ class Camera:
         pyxel.camera(self.x, self.y)
 
 class Guns:
-    PISTOL = {"cooldown":40, "max_ammo":16, "ammo":16, "reload_time":240, "damage":5, "bullet_speed":1, "range":6*TILE_SIZE, "piercing":0}
-    RIFLE = {"cooldown":20, "max_ammo":30, "ammo":30, "reload_time":480, "damage":4, "bullet_speed":1.25, "range":8*TILE_SIZE, "piercing":1}
+    PISTOL = {"cooldown":40, "max_ammo":16, "ammo":16, "reload_time":240, "damage":5, "bullet_speed":1, "range":6*TILE_SIZE, "piercing":0, "spread":0.1}
+    RIFLE = {"cooldown":20, "max_ammo":30, "ammo":30, "reload_time":480, "damage":4, "bullet_speed":1.25, "range":8*TILE_SIZE, "piercing":1, "spread":0.3}
 
 
 class Bullet:
@@ -368,7 +374,7 @@ class Bullet:
             loadedEntities.remove(self)
 
 class EnemyTemplate:
-    DUMMY = {"health":50, "damage":10, "range":2.5*TILE_SIZE, "attack_cooldown":40, "attack_speed":0.75, "attack_freeze":60, "lunge_range":4*TILE_SIZE, "lunge_freeze":80, "lunge_cooldown":5*120, "lunge_speed":0.25, "lunge_length":90, "image":[0*TILE_SIZE, 2*TILE_SIZE], "speed":0.1, "width":TILE_SIZE, "height":TILE_SIZE}
+    DUMMY = {"health":50, "damage":10, "range":2.5*TILE_SIZE, "attack_cooldown":40, "attack_speed":1.25, "attack_freeze":60, "lunge_range":4*TILE_SIZE, "lunge_freeze":80, "lunge_cooldown":5*120, "lunge_speed":0.25, "lunge_length":90, "image":[0*TILE_SIZE, 2*TILE_SIZE], "speed":0.1, "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
     def __init__(self, x, y, template, world, player):
@@ -435,7 +441,6 @@ class Enemy:
             cos = horizontal/norm
             sin = vertical/norm
             if norm<=self.lunge_range and norm>self.range and self.lungeFrame>=self.lunge_cooldown and self.isLunging==0:
-                print("starting lunge")
                 self.isLunging = 1
                 self.lungeFrame = 0
                 self.physics.momentum = self.lunge_speed
