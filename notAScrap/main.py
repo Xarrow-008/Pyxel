@@ -56,33 +56,45 @@ class World:
                         self.world_map[y].append(tile)
 
         last_down = False
-        X_tile = CAMERA_WIDTH//16 - 2
-        Y_tile = 0
+        X_room = CAMERA_WIDTH//16 - 2
+        Y_room = 0
+        new_X_room = 0
+        new_Y_room = 0
+        new_W_room = 0
+        new_H_room = 0
         W_rect = 3
         H_rect = 3
-        rect_append(self.world_map, X_tile, 0, 3, 3)
-        for i in range(25):              #need fis prolly wipe need sleep now
+        path = 0
+        X_connect = 0
+        Y_connect = 0
+        connect_type = (9,2)
+        self.rooms = [{'path':[0],'name':0,'X':X_room,'Y':Y_room}]
+        rect_append(self.world_map, X_room, Y_room, 3, 3)
+        for i in range(25):
+            new_W_room = random.randint(3,9)
+            new_H_room = random.randint(3,9)
             if last_down:
                 sq_pos = random.randint(0,2)
-                if sq_pos == 0 and X_tile>0:
-                    self.world_map[Y_tile+H_rect//2+1][X_tile-H_rect//2+1] = (9,2)
-                    X_tile -= 4
-                    last_down = False
-                elif sq_pos == 1 and X_tile<CAMERA_WIDTH:
-                    self.world_map[Y_tile+H_rect//2+1][X_tile+W_rect] = (9,2)
-                    X_tile += 4
-                    last_down = False
-                else:
-                    self.world_map[Y_tile+H_rect][X_tile+W_rect//2+1] = (9,3) 
-                    Y_tile += 4 
-            else:
-                self.world_map[Y_tile+H_rect][X_tile+W_rect//2+1] = (9,3)
-                Y_tile += 4 
-                last_down = True
+                if sq_pos == 0 and X_room>0:
+                    X_connect,Y_connect = on_mid_side(X_room,Y_room,0,H_rect)
+                    connect_type = (9,2)
+                    new_X_room = X_room - 1 - new_W_room
+                    new_Y_room = Y_room
+                elif sq_pos == 1 and X_room<CAMERA_WIDTH-9:
+                    X_connect,Y_connect = on_mid_side(X_room,Y_room,W_rect,H_rect)
+                    connect_type = (9,2)
+                    new_X_room = X_room - 1 - new_W_room #no
+                    new_Y_room = Y_room
 
-            W_rect = random.randint(3,9)
-            H_rect = random.randint(3,9)
-            rect_append(self.world_map, X_tile ,Y_tile,W_rect,H_rect)
+                else:
+                    Y_connect,X_connect = on_mid_side(Y_room,X_room,H_rect,W_rect)
+                    connect_type = (9,3)
+                    
+            else:
+                Y_connect,X_connect = on_mid_side(Y_room,X_room,H_rect,W_rect)
+                connect_type = (9,3)
+            self.world_map[Y_connect][X_connect] = connect_type
+                    
             
 def rect_append(tab, x, y, w, h):
     for in_y in range(h):
@@ -99,5 +111,10 @@ def draw_tile(pyxel, x, y, tile):
                 TILE_SIZE,
                 TILE_SIZE
                 )
+def on_mid_side(posconst,poshlf,constant,halfed):
+    return posconst+constant,poshlf+hlf(halfed)
+
+def hlf(nb):
+    return nb//2+1
 
 App()
