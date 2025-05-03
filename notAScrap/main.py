@@ -58,42 +58,55 @@ class World:
         last_down = False
         X_room = CAMERA_WIDTH//16 - 2
         Y_room = 0
+        W_room = 3
+        H_room = 3
         new_X_room = 0
         new_Y_room = 0
         new_W_room = 0
         new_H_room = 0
-        W_rect = 3
-        H_rect = 3
         path = 0
         X_connect = 0
         Y_connect = 0
         connect_type = (9,2)
         self.rooms = [{'path':[0],'name':0,'X':X_room,'Y':Y_room}]
-        rect_append(self.world_map, X_room, Y_room, 3, 3)
+        rect_append(self.world_map, X_room, Y_room, W_room, H_room)
         for i in range(25):
             new_W_room = random.randint(3,9)
             new_H_room = random.randint(3,9)
             if last_down:
                 sq_pos = random.randint(0,2)
                 if sq_pos == 0 and X_room>0:
-                    X_connect,Y_connect = on_mid_side(X_room,Y_room,0,H_rect)
+                    print('l')
+                    X_connect,Y_connect = on_mid_side(X_room-1,Y_room,0,H_room)
                     connect_type = (9,2)
                     new_X_room = X_room - 1 - new_W_room
                     new_Y_room = Y_room
+                    last_down = False
                 elif sq_pos == 1 and X_room<CAMERA_WIDTH-9:
-                    X_connect,Y_connect = on_mid_side(X_room,Y_room,W_rect,H_rect)
+                    print('r')
+                    X_connect,Y_connect = on_mid_side(X_room,Y_room,W_room,H_room)
                     connect_type = (9,2)
-                    new_X_room = X_room - 1 - new_W_room #no
+                    new_X_room = X_room + W_room + 1
                     new_Y_room = Y_room
-
+                    last_down = False
                 else:
-                    Y_connect,X_connect = on_mid_side(Y_room,X_room,H_rect,W_rect)
+                    print('else')
+                    Y_connect,X_connect = on_mid_side(Y_room,X_room,H_room,W_room)
                     connect_type = (9,3)
-                    
+                    new_X_room = X_room
+                    new_Y_room = Y_room + H_room + 1
+                    last_down = True
+
             else:
-                Y_connect,X_connect = on_mid_side(Y_room,X_room,H_rect,W_rect)
+                Y_connect,X_connect = on_mid_side(Y_room,X_room,H_room,W_room)
                 connect_type = (9,3)
+                new_X_room = X_room
+                new_Y_room = Y_room + H_room + 1
+                last_down = True
+            
             self.world_map[Y_connect][X_connect] = connect_type
+            rect_append(self.world_map,new_X_room,new_Y_room,new_W_room,new_H_room)
+            X_room, Y_room, W_room, H_room = new_X_room, new_Y_room, new_W_room, new_H_room
                     
             
 def rect_append(tab, x, y, w, h):
@@ -112,9 +125,7 @@ def draw_tile(pyxel, x, y, tile):
                 TILE_SIZE
                 )
 def on_mid_side(posconst,poshlf,constant,halfed):
-    return posconst+constant,poshlf+hlf(halfed)
+    return posconst+constant,poshlf+halfed//2
 
-def hlf(nb):
-    return nb//2+1
 
 App()
