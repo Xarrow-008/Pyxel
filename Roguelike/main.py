@@ -116,6 +116,7 @@ class Player:
         self.physics = Physics(world)
         self.camera = Camera(self)
         self.facing = [1,0]
+        self.last_efacing = [1,0]
 
         self.isDashing = False
         self.dashLength = 20
@@ -130,6 +131,7 @@ class Player:
         self.health = 50
 
     def update(self):
+        print("b  ", self.last_efacing)
 
         if self.health <= 0:
             print("player dead")
@@ -157,6 +159,20 @@ class Player:
                 self.facing[1] = 0
             if not(pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
                 self.facing[0] = 0
+            print("c  ",self.last_efacing)
+            if self.facing != [0,0]:
+                print("moving")
+                print(self.facing)
+                print(self.last_efacing)
+                self.last_efacing = self.facing
+                print(self.facing)
+                print(self.last_efacing)
+            else:
+                print("immobile")
+                print(self.facing)
+                print(self.last_efacing)
+                self.facing = self.last_efacing
+            
 
             if pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S) or pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) and self.physics.momentum<=self.physics.speed:
                 self.physics.momentum = self.physics.speed
@@ -177,7 +193,7 @@ class Player:
                 vertical = self.mousePositionInWorld_y-(self.y+self.height/2)
                 norm = math.sqrt(horizontal**2 + vertical**2)
                 cos = horizontal/norm
-                sin = vertical/norm                
+                sin = vertical/norm
                 Bullet(self.x+self.width/2, self.y+self.height/2, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"] ,self.gun["piercing"], self.world, "player", (1*TILE_SIZE, 1*TILE_SIZE), 4, 4, self)
 
             if pyxel.btnp(pyxel.KEY_E):
@@ -209,6 +225,9 @@ class Player:
 
         if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT):
             Enemy(self.mousePositionInWorld_x, self.mousePositionInWorld_y, EnemyTemplate.DUMMY, self.world, self)
+
+        print("a  ", self.last_efacing)
+
 
 class Physics:
     def __init__(self, world):
@@ -331,17 +350,19 @@ class Bullet:
         self.x, self.y = self.physics.move(self.x, self.y, self.vector, self.width, self.height)
 
         self.range -= math.sqrt(self.vector[0]**2 + self.vector[1]**2)
-
+        hit_enemy_this_frame = False
         for entity in loadedEntities:
-            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]):
+            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and not hit_enemy_this_frame:
                 entity.health -= self.damage
                 if self.piercing == 0:
+                    hit_enemy_this_frame = True
                     loadedEntities.remove(self)
                 else:
                     self.piercing -= 1
-            if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]):
+            if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and not hit_enemy_this_frame:
                 self.player.health -= self.damage
                 if self.piercing == 0:
+                    hit_enemy_this_frame = True
                     loadedEntities.remove(self)
                 else:
                     self.piercing -= 1
