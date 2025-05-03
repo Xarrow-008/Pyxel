@@ -116,7 +116,7 @@ class Player:
         self.physics = Physics(world)
         self.camera = Camera(self)
         self.facing = [1,0]
-        self.last_efacing = [1,0]
+        self.azerty = [0,0]
 
         self.isDashing = False
         self.dashLength = 20
@@ -131,7 +131,6 @@ class Player:
         self.health = 50
 
     def update(self):
-        print("b  ", self.last_efacing)
 
         if self.health <= 0:
             print("player dead")
@@ -142,6 +141,8 @@ class Player:
         self.mousePositionInWorld_y = self.camera.y + pyxel.mouse_y
 
         if not self.isDashing:
+            
+
 
             if pyxel.btn(pyxel.KEY_Z):
                 self.x, self.y = self.physics.move(self.x, self.y, [0,-1], TILE_SIZE, TILE_SIZE)
@@ -155,23 +156,19 @@ class Player:
             if pyxel.btn(pyxel.KEY_D):
                 self.x, self.y = self.physics.move(self.x, self.y, [1,0], TILE_SIZE, TILE_SIZE)
                 self.facing[0] = 1
+            
             if not(pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S)):
                 self.facing[1] = 0
             if not(pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
                 self.facing[0] = 0
-            print("c  ",self.last_efacing)
+
+
             if self.facing != [0,0]:
-                print("moving")
-                print(self.facing)
-                print(self.last_efacing)
-                self.last_efacing = self.facing
-                print(self.facing)
-                print(self.last_efacing)
+                self.azerty[0] = self.facing[0]
+                self.azerty[1] = self.facing[1]
             else:
-                print("immobile")
-                print(self.facing)
-                print(self.last_efacing)
-                self.facing = self.last_efacing
+                self.facing[0] = self.azerty[0]
+                self.facing[1] = self.azerty[1]
             
 
             if pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S) or pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) and self.physics.momentum<=self.physics.speed:
@@ -226,7 +223,6 @@ class Player:
         if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT):
             Enemy(self.mousePositionInWorld_x, self.mousePositionInWorld_y, EnemyTemplate.DUMMY, self.world, self)
 
-        print("a  ", self.last_efacing)
 
 
 class Physics:
@@ -372,7 +368,7 @@ class Bullet:
             loadedEntities.remove(self)
 
 class EnemyTemplate:
-    DUMMY = {"health":50, "damage":10, "range":2.5*TILE_SIZE, "attack_cooldown":40, "attack_speed":0.75, "image":[0*TILE_SIZE, 2*TILE_SIZE], "speed":0.1, "width":TILE_SIZE, "height":TILE_SIZE}
+    DUMMY = {"health":50, "damage":10, "range":2.5*TILE_SIZE, "attack_cooldown":40, "attack_speed":0.75, "attack_freeze":60, "lunge_range":4*TILE_SIZE, "lunge_freeze":80, "lunge_cooldown":5*120, "lunge_speed":0.25, "lunge_length":90, "image":[0*TILE_SIZE, 2*TILE_SIZE], "speed":0.1, "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
     def __init__(self, x, y, template, world, player):
@@ -383,22 +379,31 @@ class Enemy:
         self.range = template["range"]
         self.attack_cooldown = template["attack_cooldown"]
         self.attackFrame = 0
-        self.attack_sequence = 0
+        self.isAttacking = False
         self.attack_speed = template["attack_speed"]
+        self.attack_freeze = template["attack_freeze"]
         self.image = template["image"]
         self.world = world
         self.physics = Physics(world)
-        self.physics.momentum = template["speed"]
+        self.speed = template["speed"]
+        self.physics.momentum = self.speed
         self.width = template["width"]
         self.height = template["height"]
         self.player = player
         self.type = "enemy"
+        self.lunge_range = template["lunge_range"]
+        self.lunge_cooldown = template["lunge_cooldown"]
+        self.lunge_speed = template["lunge_speed"]
+        self.lunge_length = template["lunge_length"]
+        self.lunge_freeze = template["lunge_freeze"]
+        self.lungeFrame = 0
+        self.isLunging = 0
         loadedEntities.append(self)
 
     def update(self):
         if self.health <= 0:
             loadedEntities.remove(self)
-        if self.attack_sequence == 0:
+        if not self.isAttacking and self.isLunging==0:
             horizontal = self.player.x - self.x
             vertical = self.player.y - self.y
             norm = math.sqrt(horizontal**2 + vertical**2)
@@ -406,20 +411,45 @@ class Enemy:
             sin = vertical/norm
             self.x, self.y = self.physics.move(self.x, self.y, [cos, sin], self.width, self.height)
 
-        horizontal = self.player.x+self.player.width/2 - (self.x+self.width/2)
-        vertical = self.player.y+self.player.height/2 - (self.y+self.height/2)
-        norm = math.sqrt(horizontal**2 + vertical**2)
-        cos = horizontal/norm
-        sin = vertical/norm
-        if norm<=self.range and self.attackFrame >= self.attack_cooldown and self.attack_sequence == 0:
-            self.attackFrame = 0
-            self.attack_sequence = 1
+        if self.isLunging==0:
+            horizontal = self.player.x+self.player.width/2 - (self.x+self.width/2)
+            vertical = self.player.y+self.player.height/2 - (self.y+self.height/2)
+            norm = math.sqrt(horizontal**2 + vertical**2)
+            cos = horizontal/norm
+            sin = vertical/norm
+            if norm<=self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
+                self.attackFrame = 0
+                self.isAttacking = True
         
-        if self.attack_sequence==1 and self.attackFrame >= 60:
-            self.attack_sequence = 0
-            self.attackFrame = 0
-            Bullet(self.x+self.width/2, self.y+self.height/2, [cos, sin], self.damage, self.attack_speed, self.range, 0, self.world, "enemy", (1*TILE_SIZE, 2*TILE_SIZE), 3, 3, self.player)
+            if self.isAttacking and self.attackFrame >= self.attack_freeze:
+                self.isAttacking = False
+                self.attackFrame = 0
+                Bullet(self.x+self.width/2, self.y+self.height/2, [cos, sin], self.damage, self.attack_speed, self.range, 0, self.world, "enemy", (1*TILE_SIZE, 2*TILE_SIZE), 3, 3, self.player)
 
-        self.attackFrame += 1
+            self.attackFrame += 1
+
+        if not self.isAttacking:
+            horizontal = self.player.x+self.player.width/2 - (self.x+self.width/2)
+            vertical = self.player.y+self.player.height/2 - (self.y+self.height/2)
+            norm = math.sqrt(horizontal**2 + vertical**2)
+            cos = horizontal/norm
+            sin = vertical/norm
+            if norm<=self.lunge_range and norm>self.range and self.lungeFrame>=self.lunge_cooldown and self.isLunging==0:
+                print("starting lunge")
+                self.isLunging = 1
+                self.lungeFrame = 0
+                self.physics.momentum = self.lunge_speed
+                self.lungeVector = [cos, sin]
+            if self.isLunging==1 and self.lungeFrame >= self.lunge_freeze:
+                self.isLunging = 2
+                self.lungeFrame = 0
+            if self.isLunging==2:
+                self.x, self.y = self.physics.move(self.x, self.y, self.lungeVector, self.width, self.height)
+                if self.lungeFrame >= self.lunge_length:
+                    self.isLunging = 0
+                    self.physics.momentum = self.speed
+                    self.lungeFrame = 0
+
+            self.lungeFrame += 1
 
 App()
