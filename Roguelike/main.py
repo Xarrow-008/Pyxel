@@ -110,6 +110,8 @@ class Player:
     def __init__(self, world):
         self.x = 0
         self.y = 0
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
         self.world = world
         self.physics = Physics(world)
         self.camera = Camera(self)
@@ -121,10 +123,17 @@ class Player:
         self.dashCooldown = 10
         self.dashStrength = self.physics.speed*2.5
 
-        self.gun = Guns.PISTOL
+        self.gun = Guns.RIFLE
         self.gunFrame = 0
 
+        self.max_health = 50
+        self.health = 50
+
     def update(self):
+
+        if self.health <= 0:
+            print("player dead")
+
         self.camera.update()
 
         self.mousePositionInWorld_x = self.camera.x + pyxel.mouse_x
@@ -161,17 +170,17 @@ class Player:
                 self.physics.momentum = self.dashStrength
                 self.dashFrame = 0
 
-            if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.gun["ammo"] > 0 and self.gunFrame >= self.gun["cooldown"]:
+            if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.gun["ammo"] > 0 and self.gunFrame >= self.gun["cooldown"]:
                 self.gunFrame = 0
                 self.gun["ammo"] -= 1
-                horizontal = self.mousePositionInWorld_x-self.x
-                vertical = self.mousePositionInWorld_y-self.y
+                horizontal = self.mousePositionInWorld_x-(self.x+self.width/2)
+                vertical = self.mousePositionInWorld_y-(self.y+self.height/2)
                 norm = math.sqrt(horizontal**2 + vertical**2)
                 cos = horizontal/norm
                 sin = vertical/norm                
-                Bullet(self.x+TILE_SIZE/2, self.y+TILE_SIZE/2, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"] ,self.gun["piercing"], self.world)
+                Bullet(self.x+self.width/2, self.y+self.height/2, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"] ,self.gun["piercing"], self.world, "player", (1*TILE_SIZE, 1*TILE_SIZE), 4, 4, self)
 
-            if pyxel.btnp(pyxel.KEY_R):
+            if pyxel.btnp(pyxel.KEY_E):
                 self.gun["ammo"] = 0
                 self.gunFrame = 0
 
@@ -197,6 +206,9 @@ class Player:
             self.x = (WIDTH-1)*TILE_SIZE
         if self.y > HEIGHT*TILE_SIZE:
             self.y = (HEIGHT-1)*TILE_SIZE
+
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT):
+            Enemy(self.mousePositionInWorld_x, self.mousePositionInWorld_y, EnemyTemplate.DUMMY, self.world, self)
 
 class Physics:
     def __init__(self, world):
@@ -291,20 +303,28 @@ class Camera:
 
 class Guns:
     PISTOL = {"cooldown":40, "max_ammo":16, "ammo":16, "reload_time":240, "damage":5, "bullet_speed":1, "range":6*TILE_SIZE, "piercing":0}
+    RIFLE = {"cooldown":20, "max_ammo":30, "ammo":30, "reload_time":480, "damage":4, "bullet_speed":1.25, "range":8*TILE_SIZE, "piercing":1}
+
 
 class Bullet:
-    def __init__(self, x, y, vector, damage, speed, range, piercing, world):
+    def __init__(self, x, y, vector, damage, speed, range, piercing, world, owner, image, width, height, player):
         self.x = x
         self.y = y
         self.vector = vector
         self.damage = damage
         self.range = range
         self.piercing = piercing
-        self.image = (1*TILE_SIZE, 1*TILE_SIZE)
-        self.width = 4
-        self.height = 4
+        self.width = width
+        self.height = height
         self.physics = Physics(world)
         self.physics.momentum = speed
+        self.owner = owner
+        self.player = player
+
+        self.image = image
+
+
+        self.type = "bullet"
         loadedEntities.append(self)
 
     def update(self):
@@ -312,8 +332,73 @@ class Bullet:
 
         self.range -= math.sqrt(self.vector[0]**2 + self.vector[1]**2)
 
+        for entity in loadedEntities:
+            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]):
+                entity.health -= self.damage
+                if self.piercing == 0:
+                    loadedEntities.remove(self)
+                else:
+                    self.piercing -= 1
+            if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]):
+                self.player.health -= self.damage
+                if self.piercing == 0:
+                    loadedEntities.remove(self)
+                else:
+                    self.piercing -= 1
+                
+
         if self.physics.collision_happened or self.range <= 0:
             loadedEntities.remove(self)
 
+class EnemyTemplate:
+    DUMMY = {"health":50, "damage":10, "range":2.5*TILE_SIZE, "attack_cooldown":40, "attack_speed":0.75, "image":[0*TILE_SIZE, 2*TILE_SIZE], "speed":0.1, "width":TILE_SIZE, "height":TILE_SIZE}
+
+class Enemy:
+    def __init__(self, x, y, template, world, player):
+        self.x = x
+        self.y = y
+        self.health = template["health"]
+        self.damage = template["damage"]
+        self.range = template["range"]
+        self.attack_cooldown = template["attack_cooldown"]
+        self.attackFrame = 0
+        self.attack_sequence = 0
+        self.attack_speed = template["attack_speed"]
+        self.image = template["image"]
+        self.world = world
+        self.physics = Physics(world)
+        self.physics.momentum = template["speed"]
+        self.width = template["width"]
+        self.height = template["height"]
+        self.player = player
+        self.type = "enemy"
+        loadedEntities.append(self)
+
+    def update(self):
+        if self.health <= 0:
+            loadedEntities.remove(self)
+        if self.attack_sequence == 0:
+            horizontal = self.player.x - self.x
+            vertical = self.player.y - self.y
+            norm = math.sqrt(horizontal**2 + vertical**2)
+            cos = horizontal/norm
+            sin = vertical/norm
+            self.x, self.y = self.physics.move(self.x, self.y, [cos, sin], self.width, self.height)
+
+        horizontal = self.player.x+self.player.width/2 - (self.x+self.width/2)
+        vertical = self.player.y+self.player.height/2 - (self.y+self.height/2)
+        norm = math.sqrt(horizontal**2 + vertical**2)
+        cos = horizontal/norm
+        sin = vertical/norm
+        if norm<=self.range and self.attackFrame >= self.attack_cooldown and self.attack_sequence == 0:
+            self.attackFrame = 0
+            self.attack_sequence = 1
+        
+        if self.attack_sequence==1 and self.attackFrame >= 60:
+            self.attack_sequence = 0
+            self.attackFrame = 0
+            Bullet(self.x+self.width/2, self.y+self.height/2, [cos, sin], self.damage, self.attack_speed, self.range, 0, self.world, "enemy", (1*TILE_SIZE, 2*TILE_SIZE), 3, 3, self.player)
+
+        self.attackFrame += 1
 
 App()
