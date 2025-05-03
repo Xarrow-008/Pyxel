@@ -60,3 +60,11 @@ for book in shelf:
         shelf.remove(book)
 
 print(shelf)
+
+
+rooms = []
+path = [1,2,5,6,8]
+
+rooms.append({"path":path, "name":path[-1]})
+
+print(rooms)
