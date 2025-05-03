@@ -1,4 +1,5 @@
 import pyxel
+import math
 
 SPRITEBANK = 0
 TILE_SIZE = 8
@@ -7,6 +8,8 @@ HEIGHT = 256
 
 CAMERA_WIDTH = 128
 CAMERA_HEIGHT = 128
+
+loadedEntities = []
 
 class App:
     def __init__(self):
@@ -21,14 +24,20 @@ class App:
         pyxel.run(self.update, self.draw)
 
     def update(self):
+        global loadedEntities
+
 
         self.player.update()
+
+        for entity in loadedEntities:
+            entity.update()
 
         if pyxel.btnp(pyxel.KEY_ESCAPE):
             pyxel.quit()
         if pyxel.btnp(pyxel.KEY_R):
             self.world = World(pyxel.tilemaps[0])
             self.player = Player(self.world)
+            loadedEntities = []
 
     def draw(self):
         pyxel.cls(0)
@@ -37,6 +46,18 @@ class App:
             for x in range(WIDTH):
                 tile = self.world.world_map[y][x]
                 draw_tile(pyxel, x, y, tile)
+
+        for entity in loadedEntities:
+            pyxel.blt(
+                entity.x,
+                entity.y,
+                SPRITEBANK,
+                entity.image[0],
+                entity.image[1],
+                entity.width,
+                entity.height,
+                colkey=11
+            )
 
         pyxel.blt(
             self.player.x,
@@ -92,8 +113,6 @@ class Player:
         self.world = world
         self.physics = Physics(world)
         self.camera = Camera(self)
-        self.mousePositionInWorld_x = self.camera.x + pyxel.mouse_x
-        self.mousePositionInWorld_y = self.camera.y + pyxel.mouse_y
         self.facing = [1,0]
 
         self.isDashing = False
@@ -102,23 +121,28 @@ class Player:
         self.dashCooldown = 10
         self.dashStrength = self.physics.speed*2.5
 
-    def update(self):
+        self.gun = Guns.PISTOL
+        self.gunFrame = 0
 
+    def update(self):
         self.camera.update()
+
+        self.mousePositionInWorld_x = self.camera.x + pyxel.mouse_x
+        self.mousePositionInWorld_y = self.camera.y + pyxel.mouse_y
 
         if not self.isDashing:
 
             if pyxel.btn(pyxel.KEY_Z):
-                self.x, self.y = self.physics.move(self.x, self.y, [0,-1])
+                self.x, self.y = self.physics.move(self.x, self.y, [0,-1], TILE_SIZE, TILE_SIZE)
                 self.facing[1] = -1
             if pyxel.btn(pyxel.KEY_S):
-                self.x, self.y = self.physics.move(self.x, self.y, [0,1])
+                self.x, self.y = self.physics.move(self.x, self.y, [0,1], TILE_SIZE, TILE_SIZE)
                 self.facing[1] = 1
             if pyxel.btn(pyxel.KEY_Q):
-                self.x, self.y = self.physics.move(self.x, self.y, [-1,0])
+                self.x, self.y = self.physics.move(self.x, self.y, [-1,0], TILE_SIZE, TILE_SIZE)
                 self.facing[0] = -1
             if pyxel.btn(pyxel.KEY_D):
-                self.x, self.y = self.physics.move(self.x, self.y, [1,0])
+                self.x, self.y = self.physics.move(self.x, self.y, [1,0], TILE_SIZE, TILE_SIZE)
                 self.facing[0] = 1
             if not(pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S)):
                 self.facing[1] = 0
@@ -136,8 +160,29 @@ class Player:
                 self.isDashing = True
                 self.physics.momentum = self.dashStrength
                 self.dashFrame = 0
+
+            if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and self.gun["ammo"] > 0 and self.gunFrame >= self.gun["cooldown"]:
+                self.gunFrame = 0
+                self.gun["ammo"] -= 1
+                horizontal = self.mousePositionInWorld_x-self.x
+                vertical = self.mousePositionInWorld_y-self.y
+                norm = math.sqrt(horizontal**2 + vertical**2)
+                cos = horizontal/norm
+                sin = vertical/norm                
+                Bullet(self.x+TILE_SIZE/2, self.y+TILE_SIZE/2, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"] ,self.gun["piercing"], self.world)
+
+            if pyxel.btnp(pyxel.KEY_R):
+                self.gun["ammo"] = 0
+                self.gunFrame = 0
+
+            if self.gun["ammo"]==0 and self.gunFrame >= self.gun["reload_time"]:
+                self.gun["ammo"] = self.gun["max_ammo"]
+
+
+            self.gunFrame += 1
+
         else:
-            self.x, self.y = self.physics.move(self.x, self.y, self.facing)
+            self.x, self.y = self.physics.move(self.x, self.y, self.facing, TILE_SIZE, TILE_SIZE)
             self.dashFrame += 1
             if self.dashFrame == self.dashLength:
                 self.isDashing = False
@@ -157,9 +202,10 @@ class Physics:
     def __init__(self, world):
         self.momentum = 0
         self.speed = 0.4
+        self.collision_happened = False
         self.world = world
 
-    def move(self, x, y, vector):
+    def move(self, x, y, vector, width, height):
 
         tile_x = int(x//TILE_SIZE)
         tile_y = int(y//TILE_SIZE)
@@ -176,9 +222,10 @@ class Physics:
                 next_tile_x_2 = self.world.world_map[tile_y+1][new_tile_x]
             else:
                 next_tile_x_2 = WorldItem.BACKGROUND
-            if (next_tile_x_1 != WorldItem.BLOCK or not collision(new_x, y, new_tile_x*TILE_SIZE, tile_y*TILE_SIZE)) and (next_tile_x_2 != WorldItem.BLOCK or not collision(new_x, y, new_tile_x*TILE_SIZE, (tile_y+1)*TILE_SIZE)):
+            if (next_tile_x_1 != WorldItem.BLOCK or not collision(new_x, y, new_tile_x*TILE_SIZE, tile_y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_tile_x_2 != WorldItem.BLOCK or not collision(new_x, y, new_tile_x*TILE_SIZE, (tile_y+1)*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
                 x = new_x
-            elif (next_tile_x_1 == WorldItem.BLOCK or next_tile_x_2 == WorldItem.BLOCK) and (new_x+TILE_SIZE>(new_tile_x)*TILE_SIZE and (new_tile_x)*TILE_SIZE+TILE_SIZE>new_x):
+            elif (next_tile_x_1 == WorldItem.BLOCK or next_tile_x_2 == WorldItem.BLOCK) and (new_x+width>(new_tile_x)*TILE_SIZE and (new_tile_x)*TILE_SIZE+TILE_SIZE>new_x):
+                self.collision_happened = True
                 if pyxel.sgn(vector[0])==1:
                     x = (new_tile_x-1)*TILE_SIZE
                 else:
@@ -192,9 +239,10 @@ class Physics:
                 next_tile_y_2 = self.world.world_map[new_tile_y][tile_x+1]
             else:
                 next_tile_y_2 = WorldItem.BACKGROUND
-            if (next_tile_y_1 != WorldItem.BLOCK or not collision(x, new_y, tile_x*TILE_SIZE, new_tile_y*TILE_SIZE)) and (next_tile_y_2 != WorldItem.BLOCK or not collision(x, new_y, (tile_x+1)*TILE_SIZE, new_tile_y*TILE_SIZE)):
+            if (next_tile_y_1 != WorldItem.BLOCK or not collision(x, new_y, tile_x*TILE_SIZE, new_tile_y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_tile_y_2 != WorldItem.BLOCK or not collision(x, new_y, (tile_x+1)*TILE_SIZE, new_tile_y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
                 y = new_y
-            elif (next_tile_y_1 == WorldItem.BLOCK or next_tile_y_2 == WorldItem.BLOCK) and (new_y+TILE_SIZE>(new_tile_y)*TILE_SIZE and (new_tile_y)*TILE_SIZE+TILE_SIZE>new_y):
+            elif (next_tile_y_1 == WorldItem.BLOCK or next_tile_y_2 == WorldItem.BLOCK) and (new_y+height>(new_tile_y)*TILE_SIZE and (new_tile_y)*TILE_SIZE+TILE_SIZE>new_y):
+                self.collision_happened = True
                 if pyxel.sgn(vector[1])==1:
                     y = (new_tile_y-1)*TILE_SIZE
                 else:
@@ -202,8 +250,8 @@ class Physics:
 
         return x,y
     
-def collision(x1,y1,x2,y2):
-        return x1+TILE_SIZE>x2 and x2+TILE_SIZE>x1 and y1+TILE_SIZE>y2 and y2+TILE_SIZE>y1    
+def collision(x1,y1,x2,y2,size1, size2):
+        return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1    
 
     
 class Camera:
@@ -240,6 +288,32 @@ class Camera:
             self.y = 0
         
         pyxel.camera(self.x, self.y)
+
+class Guns:
+    PISTOL = {"cooldown":40, "max_ammo":16, "ammo":16, "reload_time":240, "damage":5, "bullet_speed":1, "range":6*TILE_SIZE, "piercing":0}
+
+class Bullet:
+    def __init__(self, x, y, vector, damage, speed, range, piercing, world):
+        self.x = x
+        self.y = y
+        self.vector = vector
+        self.damage = damage
+        self.range = range
+        self.piercing = piercing
+        self.image = (1*TILE_SIZE, 1*TILE_SIZE)
+        self.width = 4
+        self.height = 4
+        self.physics = Physics(world)
+        self.physics.momentum = speed
+        loadedEntities.append(self)
+
+    def update(self):
+        self.x, self.y = self.physics.move(self.x, self.y, self.vector, self.width, self.height)
+
+        self.range -= math.sqrt(self.vector[0]**2 + self.vector[1]**2)
+
+        if self.physics.collision_happened or self.range <= 0:
+            loadedEntities.remove(self)
 
 
 App()
