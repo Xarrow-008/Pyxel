@@ -240,19 +240,26 @@ class Player:
                     horizontal = self.posXmouse - (self.x+self.width/2)
                     vertical = self.poxYmouse - (self.y+self.height/2)
                     norm = math.sqrt(horizontal**2+vertical**2)
+                    if norm != 0:
+                        cos = horizontal/norm
+                        lowest_cos = cos*(1-self.gun["spread"])
+                        highest_cos = cos*(1+self.gun["spread"])
+                        cos = random.uniform(lowest_cos, highest_cos)
 
-                    cos = horizontal/norm
-                    lowest_cos = cos*(1-self.gun["spread"])
-                    highest_cos = cos*(1+self.gun["spread"])
-                    cos = random.uniform(lowest_cos, highest_cos)
-
-                    sin = vertical/norm
-                    lowest_sin = sin*(1-self.gun["spread"])
-                    highest_sin = sin*(1+self.gun["spread"])
-                    sin = random.uniform(lowest_sin, highest_sin)
+                        sin = vertical/norm
+                        lowest_sin = sin*(1-self.gun["spread"])
+                        highest_sin = sin*(1+self.gun["spread"])
+                        sin = random.uniform(lowest_sin, highest_sin)
+                    else:
+                        cos = 0
+                        sin = 0
 
                     Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,4*TILE_SIZE), "player")
 
+            if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"]:
+                self.gun["ammo"] = 0
+                self.attackFrame = 0
+            
             if self.gun["ammo"]==0 and self.attackFrame>=self.gun["reload"]:
                 self.gun["ammo"]=self.gun["max_ammo"]
 
@@ -369,7 +376,7 @@ class Guns:
     RIFLE = {"damage":3, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle"}
     SMG = {"damage":2, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":1/6*120, "spread":0.4, "bullet_count":1, "name":"SMG"}
     SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":5, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper"}
-    SHOTGUN = {"damage":5, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":5, "name":"Shotgun"}
+    SHOTGUN = {"damage":6, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun"}
     GRENADE_LAUNCHER = {"damage":15, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":2.5*120, "cooldown":1.5*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher"}
     
 class Bullet:
@@ -465,16 +472,24 @@ class Enemy:
                 horizontal = self.player.x - self.x
                 vertical = self.player.y - self.y
                 norm = math.sqrt(horizontal**2+vertical**2)
-                cos = horizontal/norm
-                sin = vertical/norm
+                if norm != 0:
+                    cos = horizontal/norm
+                    sin = vertical/norm
+                else:
+                    cos = 0
+                    sin = 0
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
 
             if self.isLunging == 0:
                 horizontal = self.player.x - self.x
                 vertical = self.player.y - self.y
                 norm = math.sqrt(horizontal**2+vertical**2)
-                cos = horizontal/norm
-                sin = vertical/norm
+                if norm != 0:
+                    cos = horizontal/norm
+                    sin = vertical/norm
+                else:
+                    cos = 0
+                    sin = 0
                 if norm <= self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
                     self.attackFrame = 0
                     self.isAttacking = True
@@ -488,8 +503,12 @@ class Enemy:
                 horizontal = self.player.x - self.x
                 vertical = self.player.y - self.y
                 norm = math.sqrt(horizontal**2+vertical**2)
-                cos = horizontal/norm
-                sin = vertical/norm
+                if norm != 0:
+                    cos = horizontal/norm
+                    sin = vertical/norm
+                else:
+                    cos = 0
+                    sin = 0
                 if norm<=self.lunge_range and norm>self.range and self.lungeFrame >= self.lunge_cooldown and self.isLunging==0:
                     self.lungeFrame = 0
                     self.isLunging = 1
