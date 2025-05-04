@@ -34,6 +34,7 @@ class App:
 
         self.camera.update(self.player)
         pyxel.camera(self.camera.x,self.camera.y)
+    
     def draw(self):
         for y in range(HEIGHT):
             for x in range(WIDTH):
@@ -96,34 +97,34 @@ class World:
             self.new_room['path'] = listcopy(self.current_room['path'])
             self.new_room['path'].append(self.current_room['path'][-1]+1)
             self.new_room['name'] = self.new_room['path'][-1]
-            #self.new_room['width'] = random.randint(2,3)*2
-            #self.new_room['height'] = random.randint(2,3)*2
+            self.new_room['width'] = random.randint(2,3)*2
+            self.new_room['height'] = random.randint(2,3)*2
             if last_down:
                 sq_pos = random.randint(0,2)
                 if sq_pos == 0 and self.current_room['X']>8:
-                    self.new_room['X'] = self.current_room['X'] - self.new_room['width']-2
-                    self.new_room['Y'] = self.current_room['Y']
                     self.new_room['connect'][0] = self.current_room['X'] - 2
-                    self.new_room['connect'][1] = self.current_room['Y'] + 2
+                    self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']//2
+                    self.new_room['X'] = self.new_room['connect'][0] - self.new_room['width']
+                    self.new_room['Y'] = self.new_room['connect'][1] - random.randint(1,self.new_room['height']-2)
                     last_down = False
                 elif sq_pos == 1 and self.current_room['X']<WIDTH-8:
-                    self.new_room['X'] = self.current_room['X'] + self.new_room['width']+2
-                    self.new_room['Y'] = self.current_room['Y']
                     self.new_room['connect'][0] = self.current_room['X'] + self.current_room['width']
-                    self.new_room['connect'][1] = self.current_room['Y'] + 2
+                    self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']//2
+                    self.new_room['X'] = self.new_room['connect'][0] +2
+                    self.new_room['Y'] = self.new_room['connect'][1] - random.randint(1,self.new_room['height']-2)
                     last_down = False
                 else:
-                    self.new_room['X'] = self.current_room['X']
-                    self.new_room['Y'] = self.current_room['Y'] + self.new_room['height']+2
-                    self.new_room['connect'][0] = self.new_room['X'] + 1
-                    self.new_room['connect'][1] = self.new_room['Y'] - 1
+                    self.new_room['connect'][0] = self.current_room['X'] + 1
+                    self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']+1
+                    self.new_room['X'] = self.new_room['connect'][0] - random.randint(0,self.new_room['width']-2)
+                    self.new_room['Y'] = self.new_room['connect'][1] +1
 
 
             else:
-                self.new_room['X'] = self.current_room['X']
-                self.new_room['Y'] = self.current_room['Y'] + self.new_room['height']+2
-                self.new_room['connect'][0] = self.new_room['X'] + 1
-                self.new_room['connect'][1] = self.new_room['Y'] - 1
+                self.new_room['connect'][0] = self.current_room['X'] + 1
+                self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']+1
+                self.new_room['X'] = self.new_room['connect'][0] - random.randint(0,self.new_room['width']-2)
+                self.new_room['Y'] = self.new_room['connect'][1] +1
                 last_down = True
             
             rect_append(self.world_map,self.new_room['connect'][0],self.new_room['connect'][1]-1, 2, 2, WorldItem.CONNECT)
@@ -587,7 +588,7 @@ class Camera:
     def __init__(self):
         self.x = (WIDTH//2-6)*TILE_SIZE
         self.y = 0
-        self.margin = 1/5
+        self.margin = 1/4
     
     def update(self,player):
         if player.x  < self.x + CAM_WIDTH * self.margin and self.x >0:
