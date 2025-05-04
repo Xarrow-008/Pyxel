@@ -253,9 +253,9 @@ class Player:
                         cos = 0
                         sin = 0
 
-                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,4*TILE_SIZE), "player")
+                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player")
 
-            if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"]:
+            if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"] and self.gun["ammo"]!=0:
                 self.gun["ammo"] = 0
                 self.attackFrame = 0
             
@@ -371,13 +371,15 @@ class Physics:
         return x,y
 
 class Guns:
-    PISTOL = {"damage":4, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":1.5*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol"}
-    RIFLE = {"damage":3, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle"}
-    SMG = {"damage":2, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":1/6*120, "spread":0.4, "bullet_count":1, "name":"SMG"}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":5, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper"}
-    SHOTGUN = {"damage":6, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun"}
-    GRENADE_LAUNCHER = {"damage":15, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":2.5*120, "cooldown":1.5*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher"}
-    
+    PISTOL = {"damage":4, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":1.5*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(1,31)]}
+    RIFLE = {"damage":3, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(31,51)]}
+    SMG = {"damage":2, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":1/6*120, "spread":0.4, "bullet_count":1, "name":"SMG", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(71,83)]}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":5, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(83,95)]}
+    SHOTGUN = {"damage":6, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(51,71)]}
+    GRENADE_LAUNCHER = {"damage":15, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":2.5*120, "cooldown":1.5*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(95,101)]}
+    Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
+
+
 class Bullet:
     def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner):
         self.x = x
@@ -526,19 +528,48 @@ class Enemy:
 
         if self.health <= 0:
             self.player.justKilled = True
+
+            pickup = random.randint(1,100)
+            if pickup > 75:
+                gun_random = random.randint(1,100)
+                for gun in Guns.Gun_list:
+                    if gun_random in gun["rate"]:
+                        PickUp(self.x, self.y, "weapon", gun, self.player)
+
+            loadedEntities.remove(self)
+
+class PickUp:
+    def __init__(self, x, y, type, object, player):
+        self.x = x
+        self.y = y
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
+        self.image = object["image"]
+        self.type = type
+        self.object = object
+        self.player = player
+        loadedEntities.append(self)
+
+    def update(self):
+        if collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and pyxel.btnp(pyxel.KEY_E):
+            if self.type == "weapon":
+                print(self.object)
+                self.player.changeWeapon(self.object)
+            if self.type == "item":
+                self.player.getItem(self.object)
             loadedEntities.remove(self)
 
 class ItemList:
-    SPEED = {"name":"speed_passive", "description":"placeholder", "image":[128,128], "trigger":"passive", "rarity":"common"}
-    HEALTH = {"name":"health_passive", "description":"placeholder", "image":[128,128], "trigger":"passive", "rarity":"common"}
-    AMMO1 = {"name":"ammo_passive", "description":"placeholder", "image":[128,128], "trigger":"passive", "rarity":"common"}
-    HEAL = {"name":"heal_on_kill", "description":"placeholder", "image":[128,128], "trigger":"onKill", "rarity":"common"}
-    AMMO2 = {"name":"ammo_on_kill", "description":"placeholder", "image":[128,128], "trigger":"onKill", "rarity":"common"}
-    COOLDOWN = {"name":"cooldown_on_hit", "description":"placeholder", "image":[128,128], "trigger":"onHit", "rarity":"common"}
-    DAMAGE = {"name":"damage_on_roll", "description":"placeholder", "image":[128,128], "trigger":"onRoll", "rarity":"common"}
-    SPEED2 = {"name":"speed_on_roll", "description":"placeholder", "image":[128,128], "trigger":"onRoll", "rarity":"common"}
-    RANGE = {"name":"range_passive", "description":"placeholder", "image":[128,128], "trigger":"passive", "rarity":"common"}
-    BULLET_SPEED = {"name":"bullet_speed_on_kill", "description":"placeholder", "image":[128,128], "trigger":"onKill", "rarity":"common"}
+    SPEED = {"name":"speed_passive", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common"}
+    HEALTH = {"name":"health_passive", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common"}
+    AMMO1 = {"name":"ammo_passive", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common"}
+    HEAL = {"name":"heal_on_kill", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
+    AMMO2 = {"name":"ammo_on_kill", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
+    COOLDOWN = {"name":"cooldown_on_hit", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onHit", "rarity":"common"}
+    DAMAGE = {"name":"damage_on_roll", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common"}
+    SPEED2 = {"name":"speed_on_roll", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common"}
+    RANGE = {"name":"range_passive", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common"}
+    BULLET_SPEED = {"name":"bullet_speed_on_kill", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
     common_list = [SPEED, HEALTH, AMMO1, HEAL, AMMO2, COOLDOWN, DAMAGE, SPEED2, RANGE, BULLET_SPEED]
 
 def randomItem():
