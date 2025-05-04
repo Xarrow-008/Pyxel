@@ -1,7 +1,7 @@
 import pyxel, os, random, math
 
-WIDTH = 64
-HEIGHT = 64
+WIDTH = 128
+HEIGHT = 128
 TILE_SIZE = 8
 
 CAM_WIDTH = 16*8
@@ -68,8 +68,8 @@ class App:
 
 
 class WorldItem:
-    WALL = (0,1)
-    GROUND = (0,0)
+    WALL = (0,0)
+    GROUND = (0,1)
     CONNECT = (1,1)
 
     BLOCKS = [WALL,GROUND]
@@ -80,6 +80,7 @@ class World:
         self.world_map = []
         self.player_init_posX = WIDTH//2+2
         self.player_init_posY = 0
+        self.nb_rooms = 20
         for y in range(HEIGHT):
             self.world_map.append([])
             for x in range(WIDTH):
@@ -93,35 +94,35 @@ class World:
         self.rooms.append(dic_copy(self.current_room))
         last_down = False
         rect_append(self.world_map, self.current_room['X'], self.current_room['Y'], self.current_room['width'], self.current_room['height'], WorldItem.GROUND)
-        for j in range(8):
+        for j in range(self.nb_rooms):
             self.new_room['path'] = listcopy(self.current_room['path'])
             self.new_room['path'].append(self.current_room['path'][-1]+1)
             self.new_room['name'] = self.new_room['path'][-1]
-            self.new_room['width'] = random.randint(2,3)*2
-            self.new_room['height'] = random.randint(2,3)*2
+            self.new_room['width'] = random.randint(2,5)*2
+            self.new_room['height'] = random.randint(2,5)*2
             if last_down:
                 sq_pos = random.randint(0,2)
                 if sq_pos == 0 and self.current_room['X']>8:
                     self.new_room['connect'][0] = self.current_room['X'] - 2
-                    self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']//2
+                    self.new_room['connect'][1] = self.current_room['Y'] + random.randint(1,self.current_room['height']-2)
                     self.new_room['X'] = self.new_room['connect'][0] - self.new_room['width']
                     self.new_room['Y'] = self.new_room['connect'][1] - random.randint(1,self.new_room['height']-2)
                     last_down = False
                 elif sq_pos == 1 and self.current_room['X']<WIDTH-8:
                     self.new_room['connect'][0] = self.current_room['X'] + self.current_room['width']
-                    self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']//2
+                    self.new_room['connect'][1] = self.current_room['Y'] + random.randint(1,self.current_room['height']-2)
                     self.new_room['X'] = self.new_room['connect'][0] +2
                     self.new_room['Y'] = self.new_room['connect'][1] - random.randint(1,self.new_room['height']-2)
                     last_down = False
                 else:
-                    self.new_room['connect'][0] = self.current_room['X'] + 1
+                    self.new_room['connect'][0] = self.current_room['X'] + random.randint(1,self.current_room['width']-2)
                     self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']+1
                     self.new_room['X'] = self.new_room['connect'][0] - random.randint(0,self.new_room['width']-2)
                     self.new_room['Y'] = self.new_room['connect'][1] +1
 
 
             else:
-                self.new_room['connect'][0] = self.current_room['X'] + 1
+                self.new_room['connect'][0] = self.current_room['X'] + random.randint(1,self.current_room['width']-2)
                 self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']+1
                 self.new_room['X'] = self.new_room['connect'][0] - random.randint(0,self.new_room['width']-2)
                 self.new_room['Y'] = self.new_room['connect'][1] +1
