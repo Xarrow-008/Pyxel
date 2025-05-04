@@ -1,7 +1,7 @@
 import pyxel, os, random, math
 
-WIDTH = 128
-HEIGHT = 128
+WIDTH = 200
+HEIGHT = 200
 TILE_SIZE = 8
 
 CAM_WIDTH = 16*8
@@ -55,8 +55,8 @@ class App:
             self.player.x,
             self.player.y,
             0,
-            self.player.image[0],
-            self.player.image[1],
+            self.player.image[0]*TILE_SIZE,
+            self.player.image[1]*TILE_SIZE,
             self.player.width,
             self.player.height,
             colkey=11
@@ -133,6 +133,9 @@ class World:
             self.rooms.append(dic_copy(self.new_room))
             self.current_room = dic_copy(self.new_room)
 
+class Furniture:
+    def __init(self,world):
+        self.world = world
 
 def dic_copy(dico):
     dicoC = {}
@@ -174,7 +177,7 @@ class Player:
     def __init__(self, world, camera):
         self.x = world.player_init_posX*TILE_SIZE
         self.y = world.player_init_posY
-        self.image = [0*TILE_SIZE,2*TILE_SIZE]
+        self.image = (1,3)
         self.width = TILE_SIZE
         self.height = TILE_SIZE
         self.world = world
@@ -209,19 +212,33 @@ class Player:
             if pyxel.btn(pyxel.KEY_Q):
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-1,0])
                 self.facing[0] = -1
+                self.image = (1,2)
             if pyxel.btn(pyxel.KEY_D):
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [1,0])
                 self.facing[0] = 1
+                self.image = (0,2)
             if pyxel.btn(pyxel.KEY_Z):
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,-1])
                 self.facing[1] = -1
+                self.image = (0,3)
             if pyxel.btn(pyxel.KEY_S):
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,1])
                 self.facing[1] = 1
+                self.image = (1,3)
             if not (pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
                 self.facing[0] = 0
             if not (pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S)):
                 self.facing[1] = 0
+            
+            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_D)):
+                self.image = (2,2)
+            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_Q)):
+                self.image = (3,2)
+            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_D)):
+                self.image = (2,3)
+            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_Q)):
+                self.image = (3,3)
+            
             if self.facing == [0,0]:
                 self.facing[0] = self.last_facing[0]
                 self.facing[1] = self.last_facing[1]
