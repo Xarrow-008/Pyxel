@@ -17,6 +17,7 @@ class App:
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0])
         self.player = Player(self.world, self.camera)
+        self.itemList = ItemList(self.player)
 
         pyxel.mouse(True)
 
@@ -328,16 +329,12 @@ class Player:
 
     def getItem(self, item):
         self.ownedItems.append(item)
-        if item["name"] == "speed_passive":
-            self.speed += 0.15
-        if item["name"] == "health_passive":
-            self.max_health += 10
-            self.health += 10
-        if item["name"] == "range_passive":
-            self.gun["range"] *= 1.2
-        if item["name"] == "ammo_passive":
-            self.gun["max_ammo"] += 5
-            self.gun["ammo"] += 5
+        if item["trigger"] == "passive" and (item["effect"] == "stat_p" or item["effect"] == "stat_g"):
+            for change in item["function"]:
+                if change[1] == "additive":
+                    change[0] += change[2]
+                if change[1] == "mutliplicative":
+                    change[0] *= change[2]
 
     def changeWeapon(self, gun):
         self.gun = gun
@@ -457,6 +454,7 @@ class Bullet:
                         norm = math.sqrt(horizontal**2 + vertical**2)
                         if norm <= self.explode_radius:
                             entity.health -= self.damage
+                            entity.hitStun = True
             loadedEntities.remove(self)
 
 class EnemyTemplates:
@@ -602,17 +600,21 @@ class PickUp:
             loadedEntities.remove(self)
 
 class ItemList:
-    SPEED = {"name":"speed_passive", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common"}
-    HEALTH = {"name":"health_passive", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common"}
-    AMMO1 = {"name":"ammo_passive", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common"}
-    HEAL = {"name":"heal_on_kill", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-    AMMO2 = {"name":"ammo_on_kill", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-    COOLDOWN = {"name":"cooldown_on_hit", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onHit", "rarity":"common"}
-    DAMAGE = {"name":"damage_on_roll", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common"}
-    SPEED2 = {"name":"speed_on_roll", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common"}
-    RANGE = {"name":"range_passive", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common"}
-    BULLET_SPEED = {"name":"bullet_speed_on_kill", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-    common_list = [SPEED, HEALTH, AMMO1, HEAL, AMMO2, COOLDOWN, DAMAGE, SPEED2, RANGE, BULLET_SPEED]
+    def __init__(self, player):
+        self.player = player
+        self.SPEED_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[[self.player.speed, "additive", 0.15]]}
+        self.HEALTH_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[[self.player.max_health, "additive", 5], [self.player.health, "additive", 5]]}
+        self.RANGE_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["range"], "multiplicative", 1.2]]}
+        self.PIERCING_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["piercing"], "additive", 1]]}
+        self.SPREAD_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["spread"], "multiplicative", 0.8]]}
+        self.HEAL_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
+        self.AMMO_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
+        self.COOLDOWN_KILL = {}
+        self.DAMAGE_ROLL = {}
+        self.SPEED_ROLL = {}
+        self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.COOLDOWN_KILL, self.DAMAGE_ROLL, self.SPEED_ROLL]
+    
+        
 
 def randomItem():
     rarity = random.randint(1,20)
