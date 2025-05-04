@@ -31,6 +31,7 @@ class App:
     def update(self):
         self.player.update()
         for entity in loadedEntities:
+            entity.itemList = self.itemList
             entity.update()
 
         self.camera.update(self.player)
@@ -307,13 +308,6 @@ class Player:
         if self.y > HEIGHT*TILE_SIZE:
             self.y = (HEIGHT-1)*TILE_SIZE
 
-        if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT):
-            Enemy(self.posXmouse, self.poxYmouse, EnemyTemplates.BASE, self, self.world)
-
-        if pyxel.btnp(pyxel.KEY_P):
-            self.getItem(randomItem())
-            print(self.ownedItems)
-
         if self.justKilled:
             self.justKilled = False
             for item in self.ownedItems:
@@ -339,23 +333,20 @@ class Player:
     def changeWeapon(self, gun):
         self.gun = gun
         for key in self.gun.keys():
-            if key != "name" and key != "rate" and key != "image":
+            if key != "name" and key != "rate" and key != "image" and key !="bullet_count":
                 lowest_value = self.gun[key]*0.9
                 highest_value = self.gun[key]*1.1
                 self.gun[key] = random.uniform(lowest_value, highest_value)
         self.gun["piercing"] = math.ceil(self.gun["piercing"])
         self.gun["max_ammo"] = math.ceil(self.gun["max_ammo"])
         self.gun["ammo"] = self.gun["max_ammo"]
-        self.gun["bullet_count"] = math.ceil(self.gun["bullet_count"])
-
-
-
         for item in self.ownedItems:
-            if item["name"] == "range_passive":
-                self.gun["range"] *= 1.2
-            if item["name"] == "ammo.passive":
-                self.gun["max_ammo"] += 5
-                self.gun["ammo"] += 5
+            if item["trigger"] == "passive" and item["effect"]=="stat_g":
+                for change in item["function"]:
+                    if change[1] == "additive":
+                        change[0] += change[2]
+                    if change[1] == "mutliplicative":
+                        change[0] *= change[2]
 
 
 class Physics:
@@ -571,7 +562,18 @@ class Enemy:
             self.player.justKilled = True
 
             pickup = random.randint(1,100)
-            if pickup > 75:
+            if pickup <= 25:
+                item_rarity = random.randint(1,20)
+                if item_rarity == 20:
+                    print("gave legendary item")
+                elif item_rarity>14 and item_rarity<15:
+                    print("gave uncommon item")
+                else:
+                    item_random = random.randint(0, len(self.itemList.common_list)-1)
+                    item = self.itemList.common_list[item_random]
+                    PickUp(self.x, self.y, "item", item, self.player)
+
+            elif pickup > 75:
                 gun_random = random.randint(1,100)
                 for gun in Guns.Gun_list:
                     if gun_random in gun["rate"]:
