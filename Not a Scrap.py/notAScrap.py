@@ -194,7 +194,7 @@ class Player:
         self.health = 50
         self.max_health = 50
 
-        self.gun = Guns.SMG
+        self.gun = Guns.GRENADE_LAUNCHER
         self.attackFrame = 0
 
         self.ownedItems = []
@@ -258,7 +258,7 @@ class Player:
                     if self.gun != Guns.GRENADE_LAUNCHER:
                         Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_normal")
                     else:
-                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_explode")
+                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_explode", 1.5*TILE_SIZE)
 
             if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"] and self.gun["ammo"]!=0:
                 self.gun["ammo"] = 0
@@ -393,12 +393,12 @@ class Guns:
     SMG = {"damage":2, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(71,83)]}
     SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":5, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(83,95)]}
     SHOTGUN = {"damage":6, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(51,71)]}
-    GRENADE_LAUNCHER = {"damage":15, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":2.5*120, "cooldown":1.5*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(95,101)]}
+    GRENADE_LAUNCHER = {"damage":10, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(95,101)]}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
 
 class Bullet:
-    def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, type):
+    def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, type, explode_radius=0):
         self.x = x
         self.y = y
         self.width = width
@@ -413,6 +413,7 @@ class Bullet:
         self.physics.momentum = speed
         self.owner = owner
         self.type = type
+        self.explode_radius = explode_radius
         self.piercing = piercing
         loadedEntities.append(self)
 
@@ -431,6 +432,14 @@ class Bullet:
         self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
 
         if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
+            if self.type == "bullet_explode":
+                for entity in loadedEntities:
+                    if entity.type == "enemy":
+                        horizontal = entity.x+entity.width/2 - self.x+self.width/2
+                        vertical = entity.y+entity.height/2 - self.y+self.height/2
+                        norm = math.sqrt(horizontal**2 + vertical**2)
+                        if norm <= self.explode_radius:
+                            entity.health -= self.damage
             loadedEntities.remove(self)
 
 class EnemyTemplates:
