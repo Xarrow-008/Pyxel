@@ -14,7 +14,6 @@ class App:
         os.system('cls')
         pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=120)
         pyxel.load('../notAScrap.pyxres')
-
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0])
         self.player = Player(self.world, self.camera)
@@ -555,7 +554,7 @@ def randomItem():
 
 class Camera:
     def __init__(self):
-        self.x = WIDTH//2
+        self.x = (WIDTH//2-6)*TILE_SIZE
         self.y = 0
         self.margin = 1/5
     
