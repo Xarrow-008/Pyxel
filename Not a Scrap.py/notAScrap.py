@@ -17,13 +17,13 @@ class App:
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0])
         self.player = Player(self.world, self.camera)
-
+        
         pyxel.mouse(True)
 
         
         for i in range(1,len(self.world.rooms)):
             Enemy(self.world.rooms[i]['X']*TILE_SIZE,self.world.rooms[i]['Y']*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
-        
+
         pyxel.run(self.update,self.draw)
     
 
@@ -65,8 +65,20 @@ class App:
         pyxel.text(self.camera.x+1, self.camera.y+1, "Health:"+str(self.player.health)+"/"+str(self.player.max_health),8)
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
         pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["ammo"])+"/"+str(self.player.gun["max_ammo"]),7)
-
-
+    """
+    def enemies_spawn(self):
+        
+        nb_enemies = 0
+        for i in range(1,len(self.world.rooms)):
+            nb_enemies = random.randint(self.world.rooms['name']-6,self.world.rooms['name'])
+            if nb_enemies < 1:
+                nb_enemies = 1
+            for i in range(self.nb_enemies):
+                space_empty = False
+                for i in range(3):
+                    X_placement = random.randint(self.world.room)
+                Enemy(self.world.rooms[i]['X']*TILE_SIZE,self.world.rooms[i]['Y']*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
+"""
 class WorldItem:
     WALL = (0,0)
     GROUND = (0,1)
@@ -405,12 +417,12 @@ class Physics:
         return x,y
 
 class Guns:
-    PISTOL = {"damage":4, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":1.5*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(1,31)]}
-    RIFLE = {"damage":3, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(31,51)]}
-    SMG = {"damage":2, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(71,83)]}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":5, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(83,95)]}
-    SHOTGUN = {"damage":6, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(51,71)]}
-    GRENADE_LAUNCHER = {"damage":10, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[1*TILE_SIZE,6*TILE_SIZE], "rate":[x for x in range(95,101)]}
+    PISTOL = {"damage":4, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":1.5*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)]}
+    RIFLE = {"damage":3, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)]}
+    SMG = {"damage":2, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)]}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":5, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)]}
+    SHOTGUN = {"damage":6, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)]}
+    GRENADE_LAUNCHER = {"damage":10, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(95,101)]}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
 
