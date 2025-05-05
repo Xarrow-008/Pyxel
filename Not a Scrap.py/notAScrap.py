@@ -104,15 +104,14 @@ class World:
                         self.world_map[y].append(self.tilemap.pget(x,y))
         
         self.rooms = []
+        pathlist = [0]
         self.current_room = {'path':[0],'name':0,'X':WIDTH//2,'Y':0,'width':4,'height':4,'connect':[WIDTH//2+1,3]}
         self.new_room = {'path':[0],'name':0,'X':0,'Y':0,'width':4,'height':4,'connect':[WIDTH//2+1,3]}
         self.rooms.append(dic_copy(self.current_room))
         last_down = False
         rect_append(self.world_map, self.current_room['X'], self.current_room['Y'], self.current_room['width'], self.current_room['height'], WorldItem.GROUND)
         for j in range(self.nb_rooms):
-            self.new_room['path'] = listcopy(self.current_room['path'])
-            self.new_room['path'].append(self.current_room['path'][-1]+1)
-            self.new_room['name'] = self.new_room['path'][-1]
+            self.new_room['name'] = j+1
             self.new_room['width'] = random.randint(2,5)*2
             self.new_room['height'] = random.randint(2,5)*2
             if last_down:
@@ -159,7 +158,7 @@ def dic_copy(dico):
     return dicoC
 
 
-def listcopy(listP):
+def list_copy(listP):
     listC = []
     for i in range(len(listP)):
         listC.append(listP[i])
@@ -212,7 +211,7 @@ class Player:
         self.health = 50
         self.max_health = 50
 
-        self.gun = Guns.GRENADE_LAUNCHER
+        self.gun = Guns.SHOTGUN
         self.attackFrame = 0
 
         self.ownedItems = []
