@@ -7,24 +7,24 @@ TILE_SIZE = 8
 CAM_WIDTH = 16*8
 CAM_HEIGHT = 16*8
 
+FPS = 120
+
 loadedEntities = []
 
 class App:
     def __init__(self):
         os.system('cls')
-        pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=120)
+        pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=FPS)
         pyxel.load('../notAScrap.pyxres')
         self.camera = Camera()
-        self.world = World(pyxel.tilemaps[0])
+        self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,0))
         self.player = Player(self.world, self.camera)
         self.itemList = ItemList(self.player)
 
         
         pyxel.mouse(True)
 
-        
-        for i in range(1,len(self.world.rooms)):
-            Enemy(self.world.rooms[i]['X']*TILE_SIZE,self.world.rooms[i]['Y']*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
+        #self.enemies_spawn()
 
         pyxel.run(self.update,self.draw)
     
@@ -34,6 +34,7 @@ class App:
         for entity in loadedEntities:
             entity.itemList = self.itemList
             entity.update()
+            print(entity)
 
         self.camera.update(self.player)
         pyxel.camera(self.camera.x,self.camera.y)
@@ -68,20 +69,10 @@ class App:
         pyxel.text(self.camera.x+1, self.camera.y+1, "Health:"+str(self.player.health)+"/"+str(self.player.max_health),8)
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
         pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["ammo"])+"/"+str(self.player.gun["max_ammo"]),7)
-    """
-    def enemies_spawn(self):
-        
-        nb_enemies = 0
-        for i in range(1,len(self.world.rooms)):
-            nb_enemies = random.randint(self.world.rooms['name']-6,self.world.rooms['name'])
-            if nb_enemies < 1:
-                nb_enemies = 1
-            for i in range(self.nb_enemies):
-                space_empty = False
-                for i in range(3):
-                    X_placement = random.randint(self.world.room)
-                Enemy(self.world.rooms[i]['X']*TILE_SIZE,self.world.rooms[i]['Y']*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
-"""
+    
+def on_tick(tickrate=0.5):
+    return pyxel.frame_count % (FPS * tickrate) == 0
+
 class WorldItem:
     WALL = (0,0)
     GROUND = (0,1)
@@ -90,8 +81,9 @@ class WorldItem:
     BLOCKS = [WALL,GROUND]
 
 class World:
-    def __init__(self,tilemap):
+    def __init__(self,tilemap,roombuild):
         self.tilemap = tilemap
+        self.roombuild = roombuild
         self.world_map = []
         self.player_init_posX = WIDTH//2+2
         self.player_init_posY = 0
@@ -103,52 +95,86 @@ class World:
                     if block == self.tilemap.pget(x,y):
                         self.world_map[y].append(self.tilemap.pget(x,y))
         
+        self.roombuild.random_rooms_place(self.world_map,WIDTH//2,0,4,4,20)
+        self.world_map = self.roombuild.world_map
+
+class RoomBuild:
+    def __init__(self, name, startX, startY):
         self.rooms = []
-        pathlist = [0]
-        self.current_room = {'path':[0],'name':0,'X':WIDTH//2,'Y':0,'width':4,'height':4,'connect':[WIDTH//2+1,3]}
-        self.new_room = {'path':[0],'name':0,'X':0,'Y':0,'width':4,'height':4,'connect':[WIDTH//2+1,3]}
-        self.rooms.append(dic_copy(self.current_room))
+        self.world_map = []
+        self.name = name
+        self.x = startX
+        self.y = startY
+        self.w = 4
+        self.h = 4
+        self.connect = [0,0]
+        self.newX = startX
+        self.newY = startY
+        self.newW = 4
+        self.newH = 4
+        self.newConnect = [0,0]
+        self.max_size = 5
+        self.collide_tolerated = 3
+    def random_rooms_place(self, world_map, startX, startY, startW, startH, nb_rooms):
+        rect_place(world_map,startX,startY,startW,startH,WorldItem.GROUND)
         last_down = False
-        rect_append(self.world_map, self.current_room['X'], self.current_room['Y'], self.current_room['width'], self.current_room['height'], WorldItem.GROUND)
-        for j in range(self.nb_rooms):
-            self.new_room['name'] = j+1
-            self.new_room['width'] = random.randint(2,5)*2
-            self.new_room['height'] = random.randint(2,5)*2
+        for i in range(nb_rooms):
+            self.newW = random.randint(2,self.max_size)*2
+            self.newH = random.randint(2,self.max_size)*2
             if last_down:
                 sq_pos = random.randint(0,2)
-                if sq_pos == 0 and self.current_room['X']>8:
-                    self.new_room['connect'][0] = self.current_room['X'] - 2
-                    self.new_room['connect'][1] = self.current_room['Y'] + random.randint(1,self.current_room['height']-2)
-                    self.new_room['X'] = self.new_room['connect'][0] - self.new_room['width']
-                    self.new_room['Y'] = self.new_room['connect'][1] - random.randint(1,self.new_room['height']-2)
-                    last_down = False
-                elif sq_pos == 1 and self.current_room['X']<WIDTH-8:
-                    self.new_room['connect'][0] = self.current_room['X'] + self.current_room['width']
-                    self.new_room['connect'][1] = self.current_room['Y'] + random.randint(1,self.current_room['height']-2)
-                    self.new_room['X'] = self.new_room['connect'][0] +2
-                    self.new_room['Y'] = self.new_room['connect'][1] - random.randint(1,self.new_room['height']-2)
-                    last_down = False
-                else:
-                    self.new_room['connect'][0] = self.current_room['X'] + random.randint(1,self.current_room['width']-2)
-                    self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']+1
-                    self.new_room['X'] = self.new_room['connect'][0] - random.randint(0,self.new_room['width']-2)
-                    self.new_room['Y'] = self.new_room['connect'][1] +1
+                if sq_pos == 0 and self.x>self.max_size*2+1:
+                    self.room_place_left()
+                    last_down=False
 
+                elif sq_pos == 1 and self.x<WIDTH-self.max_size*2+1:
+                    self.room_place_right()
+                    last_down=False
+
+                else:
+                    self.room_place_down()
 
             else:
-                self.new_room['connect'][0] = self.current_room['X'] + random.randint(1,self.current_room['width']-2)
-                self.new_room['connect'][1] = self.current_room['Y'] + self.current_room['height']+1
-                self.new_room['X'] = self.new_room['connect'][0] - random.randint(0,self.new_room['width']-2)
-                self.new_room['Y'] = self.new_room['connect'][1] +1
+                self.room_place_down()
                 last_down = True
+            self.fix_collide_rooms()
             
-            rect_append(self.world_map,self.new_room['connect'][0],self.new_room['connect'][1]-1, 2, 2, WorldItem.CONNECT)
-            rect_append(self.world_map, self.new_room['X'], self.new_room['Y'], self.new_room['width'], self.new_room['height'], WorldItem.GROUND)
-            self.rooms.append(dic_copy(self.new_room))
-            self.current_room = dic_copy(self.new_room)
+            rect_place(world_map,self.newConnect[0],self.newConnect[1], 2, 2, WorldItem.CONNECT)
+            rect_place(world_map, self.newX, self.newY, self.newW, self.newH, WorldItem.GROUND)
+            self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':self.newConnect})
+            
+            self.x, self.y, self.w, self.h, self.connect = self.newX, self.newY, self.newW, self.newH, self.newConnect
+        
+        self.world_map = world_map
+    
+    def room_place_left(self):
+        self.newConnect[0] = self.x - 2
+        self.newConnect[1] = self.y + random.randint(0,self.h-2)
+        self.newX = self.newConnect[0] - self.newW
+        self.newY = self.newConnect[1] - random.randint(1,self.newH-1)
+        self.last_down = False
+    def room_place_right(self):
+        self.newConnect[0] = self.x + self.w
+        self.newConnect[1] = self.y + random.randint(0,self.h-2)
+        self.newX = self.newConnect[0] +2
+        self.newY = self.newConnect[1] - random.randint(1,self.newH-1)
+        self.last_down = False
+    def room_place_down(self):
+        self.newConnect[0] = self.x + random.randint(1,self.w-2)
+        self.newConnect[1] = self.y + self.h
+        self.newX = self.newConnect[0] - random.randint(0,self.newW-2)
+        self.newY = self.newConnect[1] +2
+    def fix_collide_rooms(self):
+        collided=False
+        for room in self.rooms:
+            if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                print('collision at',room['X'],room['Y'])
+
+
+            
 
 class Furniture:
-    def __init(self,world):
+    def __init__(self,world):
         self.world = world
 
 def dic_copy(dico):
@@ -171,7 +197,7 @@ def rooms_collide(world, x, y, w, h): #verified+
                 return True
     return False
 
-def rect_append(world_map, x, y, w, h, block): #verified+
+def rect_place(world_map, x, y, w, h, block): #verified+
     for in_y in range(h):
         for in_x in range(w):
             world_map[y+in_y][x+in_x] = block
@@ -332,6 +358,8 @@ class Player:
                     if self.gun["ammo"] > self.gun["max_ammo"]:
                         self.gun["ammo"] = self.gun["max_ammo"]
                 #if item["name"] == 
+        if on_tick(2):
+            print(self.x//TILE_SIZE, self.y//TILE_SIZE)
 
     def getItem(self, item):
         self.ownedItems.append(item)
@@ -662,5 +690,6 @@ class Camera:
 
 def collision(x1, y1, x2, y2, size1, size2):
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
+
 
 App()
