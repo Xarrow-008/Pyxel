@@ -24,20 +24,20 @@ class App:
         
         pyxel.mouse(True)
 
-        #self.enemies_spawn()
+        self.enemies_spawn()
 
         pyxel.run(self.update,self.draw)
     
 
     def update(self):
-        self.player.update()
-        for entity in loadedEntities:
-            entity.itemList = self.itemList
-            entity.update()
-            print(entity)
+        if self.player.alive:
+            self.player.update()
+            for entity in loadedEntities:
+                entity.itemList = self.itemList
+                entity.update()
 
-        self.camera.update(self.player)
-        pyxel.camera(self.camera.x,self.camera.y)
+            self.camera.update(self.player)
+            pyxel.camera(self.camera.x,self.camera.y)
     
     def draw(self):
         for y in range(HEIGHT):
@@ -69,6 +69,31 @@ class App:
         pyxel.text(self.camera.x+1, self.camera.y+1, "Health:"+str(self.player.health)+"/"+str(self.player.max_health),8)
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
         pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["ammo"])+"/"+str(self.player.gun["max_ammo"]),7)
+    
+    def enemies_spawn(self):
+        margin_spawn = 5
+        for room in self.world.roombuild.rooms:
+            if room['name']>=margin_spawn + 2:
+                nb_enemies = random.randint(room['name']-margin_spawn,room['name'])
+            else:
+                nb_enemies = random.randint(0,room['name'])
+
+            for i in range(nb_enemies):
+                occupied = True
+                for attempt in range(3):
+                    if occupied:
+                        X_pos = room['X'] + random.randint(0,room['W']-1)
+                        Y_pos = room['Y'] + random.randint(0,room['H']-1)
+                        if not (check_entity(loadedEntities, 'x', X_pos) and check_entity(loadedEntities, 'y', Y_pos)):
+                            occupied = False
+                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
+                    
+
+def check_entity(loadedEntities, key, value):
+    for entity in loadedEntities:
+        if getattr(entity,key) == value:
+            return True
+    return False
     
 def on_tick(tickrate=0.5):
     return pyxel.frame_count % (FPS * tickrate) == 0
@@ -117,27 +142,30 @@ class RoomBuild:
         self.collide_tolerated = 3
     def random_rooms_place(self, world_map, startX, startY, startW, startH, nb_rooms):
         rect_place(world_map,startX,startY,startW,startH,WorldItem.GROUND)
-        last_down = False
+        last_placement = 'N/A'
         for i in range(nb_rooms):
             self.newW = random.randint(2,self.max_size)*2
             self.newH = random.randint(2,self.max_size)*2
-            if last_down:
-                sq_pos = random.randint(0,2)
-                if sq_pos == 0 and self.x>self.max_size*2+1:
+            if last_placement == 'down':
+                self.problem=True
+                self.room_pos = random.randint(0,2)
+                if self.room_pos == 0 and self.x>self.max_size*2+1:
                     self.room_place_left()
-                    last_down=False
+                    last_placement = 'left'
 
-                elif sq_pos == 1 and self.x<WIDTH-self.max_size*2+1:
+                elif self.room_pos == 1 and self.x<WIDTH-self.max_size*2+1:
                     self.room_place_right()
-                    last_down=False
+                    last_placement = 'right'
 
                 else:
                     self.room_place_down()
 
             else:
                 self.room_place_down()
-                last_down = True
-            self.fix_collide_rooms()
+                last_placement = 'down'
+
+                if last_placement != 'down':
+                    self.fix_collide_rooms() #found 1 bug "1fixed 1fixed" but 1 was left unfixed when it couldve been
             
             rect_place(world_map,self.newConnect[0],self.newConnect[1], 2, 2, WorldItem.CONNECT)
             rect_place(world_map, self.newX, self.newY, self.newW, self.newH, WorldItem.GROUND)
@@ -151,24 +179,35 @@ class RoomBuild:
         self.newConnect[0] = self.x - 2
         self.newConnect[1] = self.y + random.randint(0,self.h-2)
         self.newX = self.newConnect[0] - self.newW
-        self.newY = self.newConnect[1] - random.randint(1,self.newH-1)
+        self.newY = self.newConnect[1] - random.randint(0,self.newH-2)
         self.last_down = False
     def room_place_right(self):
         self.newConnect[0] = self.x + self.w
         self.newConnect[1] = self.y + random.randint(0,self.h-2)
         self.newX = self.newConnect[0] +2
-        self.newY = self.newConnect[1] - random.randint(1,self.newH-1)
+        self.newY = self.newConnect[1] - random.randint(0,self.newH-2)
         self.last_down = False
     def room_place_down(self):
         self.newConnect[0] = self.x + random.randint(1,self.w-2)
         self.newConnect[1] = self.y + self.h
         self.newX = self.newConnect[0] - random.randint(0,self.newW-2)
         self.newY = self.newConnect[1] +2
-    def fix_collide_rooms(self):
-        collided=False
+        
+    def fix_collide_rooms(self): #plupart des collisions arrivent a cause de newY trop haut
         for room in self.rooms:
+            collided=False
             if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
-                print('collision at',room['X'],room['Y'])
+                collided=True
+            
+            if collided:
+                if self.newH>4:
+                    for i in range(self.newH-4):
+                        if collided:
+                            if not collision(self.newX-1,self.newY-1+i,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])): #ajouté +i pour descendre la room pour voir si ca collide pas
+                                self.newY = self.newY+i
+                                collided = False
+        
+        
 
 
             
@@ -215,6 +254,7 @@ def world_item_draw(pyxel,x,y,block):
 
 class Player:
     def __init__(self, world, camera):
+        self.alive = True
         self.x = world.player_init_posX*TILE_SIZE
         self.y = world.player_init_posY
         self.image = (1,3)
@@ -358,8 +398,8 @@ class Player:
                     if self.gun["ammo"] > self.gun["max_ammo"]:
                         self.gun["ammo"] = self.gun["max_ammo"]
                 #if item["name"] == 
-        if on_tick(2):
-            print(self.x//TILE_SIZE, self.y//TILE_SIZE)
+        if self.health<=0:
+            self.alive = False
 
     def getItem(self, item):
         self.ownedItems.append(item)
@@ -519,6 +559,7 @@ class Enemy:
         self.lunge_cooldown = template["lunge_cooldown"]
         self.lungeFrame = 0
 
+        self.facing = [1*TILE_SIZE,4*TILE_SIZE]
         self.image = template["image"]
         self.width = template["width"]
         self.height = template["height"]
@@ -535,6 +576,7 @@ class Enemy:
     def update(self):
 
         if self.hitStun:
+            self.image[0], self.image[1] = self.facing[0]+4*TILE_SIZE, self.facing[1]+4*TILE_SIZE
             if self.hitFrame >= 24:
                 self.hitStun = False
                 self.hitFrame = 0
@@ -571,6 +613,7 @@ class Enemy:
                     self.attackFrame = 0
                     self.isAttacking = False
                     Bullet(self.x+self.width/2, self.y+self.height/2, 3,3,self.attackVector, self.damage, self.attack_speed, self.range, 0, self.world, self.player,(256*TILE_SIZE,256*TILE_SIZE), "enemy", "enemy_melee")
+                
             
             if not self.isAttacking:
                 horizontal = self.player.x - self.x
@@ -597,6 +640,21 @@ class Enemy:
                         self.physics.momentum = self.speed
             self.lungeFrame += 1
             self.attackFrame += 1
+
+            if abs(horizontal)>=abs(vertical):
+                self.facing[1] = 4*TILE_SIZE
+                if horizontal>0:
+                    self.facing[0] = 0
+                else:
+                    self.facing[0] = 1*TILE_SIZE
+            else:
+                self.facing[1] = 5*TILE_SIZE
+                if vertical>0:
+                    self.facing[0] = 0
+                else:
+                    self.facing[0] = 1*TILE_SIZE
+
+            self.image[0], self.image[1] = self.facing[0], self.facing[1]
 
         if self.health <= 0:
             self.player.justKilled = True
@@ -644,16 +702,16 @@ class PickUp:
 class ItemList:
     def __init__(self, player):
         self.player = player
-        self.SPEED_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[[self.player.speed, "additive", 0.15]]}
-        self.HEALTH_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[[self.player.max_health, "additive", 5], [self.player.health, "additive", 5]]}
-        self.RANGE_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["range"], "multiplicative", 1.2]]}
-        self.PIERCING_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["piercing"], "additive", 1]]}
-        self.SPREAD_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["spread"], "multiplicative", 0.8]]}
-        self.HEAL_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
+        self.SPEED_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[[self.player.speed, "additive", 0.15]]}
+        self.HEALTH_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[[self.player.max_health, "additive", 5], [self.player.health, "additive", 5]]}
+        self.RANGE_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["range"], "multiplicative", 1.2]]}
+        self.PIERCING_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["piercing"], "additive", 1]]}
+        self.SPREAD_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["spread"], "multiplicative", 0.8]]}
+        self.HEAL_KILL = {"name":"placeholder", "description":"placeholder", "image":[5*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
         self.AMMO_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.COOLDOWN_KILL = {}
-        self.DAMAGE_ROLL = {}
-        self.SPEED_ROLL = {}
+        self.COOLDOWN_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
+        self.DAMAGE_ROLL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
+        self.SPEED_ROLL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.COOLDOWN_KILL, self.DAMAGE_ROLL, self.SPEED_ROLL]
     
         
