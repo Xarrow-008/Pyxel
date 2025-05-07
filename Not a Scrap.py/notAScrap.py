@@ -20,6 +20,7 @@ class App:
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,0))
         self.player = Player(self.world, self.camera)
         self.itemList = ItemList(self.player)
+        self.effects = ScreenEffect(self.player)
 
         
         pyxel.mouse(True)
@@ -38,6 +39,7 @@ class App:
 
             self.camera.update(self.player)
             pyxel.camera(self.camera.x,self.camera.y)
+        self.effects.update(self.player)
     
     def draw(self):
         for y in range(HEIGHT):
@@ -65,7 +67,16 @@ class App:
             self.player.height,
             colkey=11
         )
-
+        if self.effects.redscreen:
+            pyxel.dither(self.effects.dither)
+            draw_screen(
+                pyxel,
+                0,
+                16,
+                self.camera.x,
+                self.camera.y,)
+        pyxel.dither(1)
+        
         pyxel.text(self.camera.x+1, self.camera.y+1, "Health:"+str(self.player.health)+"/"+str(self.player.max_health),8)
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
         pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["ammo"])+"/"+str(self.player.gun["max_ammo"]),7)
@@ -86,8 +97,9 @@ class App:
                         Y_pos = room['Y'] + random.randint(0,room['H']-1)
                         if not (check_entity(loadedEntities, 'x', X_pos) and check_entity(loadedEntities, 'y', Y_pos)):
                             occupied = False
-                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
+                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.world.roombuild.rooms)
                     
+
 
 def check_entity(loadedEntities, key, value):
     for entity in loadedEntities:
@@ -206,11 +218,16 @@ class RoomBuild:
                             if not collision(self.newX-1,self.newY-1+i,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])): #ajouté +i pour descendre la room pour voir si ca collide pas
                                 self.newY = self.newY+i
                                 collided = False
-        
+    def find_room(self,x,y):
+        print('half works')
+        for room in self.rooms:
+            if x > room['X'] and x < room['X'] and y > room['Y'] and y < room['Y']:
+                print(room['name'],works)
+                return room['name']
         
 
 
-            
+         
 
 class Furniture:
     def __init__(self,world):
@@ -252,6 +269,37 @@ def world_item_draw(pyxel,x,y,block):
         TILE_SIZE
     )
 
+class ScreenEffect:
+    def __init__(self,player):
+        self.player = player
+        self.redscreen = False
+        self.redscreen_alpha = 0
+        self.dither = 0
+    def update(self,player):
+        if player.isHit:
+            self.redscreen = True
+            if player.hitLength > player.hitFrame:
+                self.dither = (player.hitLength - player.hitFrame)/player.hitLength - 0.5
+                if self.dither<0:
+                    self.dither = 0
+            else:
+                self.dither=0
+                self.redscreen = False
+
+def draw_screen(pyxel, u, v,camx,camy):
+    for y in range(CAM_HEIGHT//2):
+        for x in range(CAM_WIDTH//2):
+            pyxel.blt(
+                camx+x*16,
+                camy+y*16,
+                1,
+                u,
+                v,
+                16,
+                16
+            )
+
+
 class Player:
     def __init__(self, world, camera):
         self.alive = True
@@ -276,6 +324,10 @@ class Player:
 
         self.health = 50
         self.max_health = 50
+        self.last_health = self.health
+        self.hitFrame = 0
+        self.hitLength = 120
+        self.isHit = False
 
         self.gun = Guns.SHOTGUN
         self.attackFrame = 0
@@ -374,9 +426,21 @@ class Player:
             if self.dashFrame >= self.dashLength:
                 self.isDashing = False
                 self.dashFrame = 0
+        
+        if self.last_health !=self.health:
+            self.hitFrame = 0
+            self.last_health = self.health
+            self.isHit = True   
+        if self.hitFrame >= self.hitLength:
+                self.isHit = False
+                self.hitFrame = 0
 
+        
+        
+        
         self.attackFrame += 1
         self.dashFrame += 1
+        self.hitFrame += 1
 
         if self.x<0:
             self.x = 0
@@ -399,12 +463,14 @@ class Player:
                     if self.gun["ammo"] > self.gun["max_ammo"]:
                         self.gun["ammo"] = self.gun["max_ammo"]
                 #if item["name"] == 
+
         if self.health<=0:
             self.alive = False
 
     def getItem(self, item):
         self.ownedItems.append(item)
         if item["trigger"] == "passive" and (item["effect"] == "stat_p" or item["effect"] == "stat_g"):
+            print("got passive item")
             for change in item["function"]:
                 if change[1] == "additive":
                     change[0] += change[2]
@@ -474,11 +540,11 @@ class Physics:
         return x,y
 
 class Guns:
-    PISTOL = {"damage":10, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":1.5*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)]}
+    PISTOL = {"damage":8, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":1.5*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)]}
     RIFLE = {"damage":8, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)]}
     SMG = {"damage":5, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)]}
-    SNIPER = {"damage":40, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":5, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)]}
-    SHOTGUN = {"damage":7, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)]}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)]}
+    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)]}
     GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(95,101)]}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
@@ -530,15 +596,17 @@ class Bullet:
             loadedEntities.remove(self)
 
 class EnemyTemplates:
-    BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":240, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":4*120, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
+    BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":240, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
-    def __init__(self, x, y, template, player, world):
+    def __init__(self, x, y, template, player, world, room):
         self.x = x
         self.y = y
         self.player = player
         self.world = world
         self.physics = Physics(world)
+        self.room = self.world.roombuild.find_room(self.x//TILE_SIZE,self.y//TILE_SIZE)
+        #print(self.world.roombuild.rooms[5],self.x//TILE_SIZE,self.y//TILE_SIZE)
 
         self.health = template["health"]
         self.speed = template["speed"]
@@ -585,10 +653,12 @@ class Enemy:
             sin = 0
 
         if self.hitStun:
-            if self.image[0]<32:
+            if self.image[0]<16:
                 self.image[0] += 32
+            elif self.image[0]<32:
+                self.image[0] += 16
             if self.hitFrame<=4:
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-cos*3, -sin*3])
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-cos*2, -sin*2])
             if self.hitFrame >= 24:
                 self.hitStun = False
                 self.hitFrame = 0
@@ -641,12 +711,10 @@ class Enemy:
                     self.image[0] = 0
                 else:
                     self.image[0] = 8
-                    
+
             if self.isLunging == 1:
-                print('lunging',self.image[0])
                 if self.image[0]<16:
                     self.image[0] +=16
-                print(self.image[0])
 
         if self.health <= 0:
 
@@ -739,6 +807,4 @@ class Camera:
 
 def collision(x1, y1, x2, y2, size1, size2):
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
-
-
 App()
