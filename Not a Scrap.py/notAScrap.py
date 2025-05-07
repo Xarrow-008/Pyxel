@@ -14,7 +14,7 @@ loadedEntities = []
 class App:
     def __init__(self):
         os.system('cls')
-        pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=FPS)
+        pyxel.init(CAM_WIDTH+20,CAM_HEIGHT+20,title='Not a Scrap', fps=FPS)
         pyxel.load('../notAScrap.pyxres')
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,0))
@@ -193,7 +193,7 @@ class RoomBuild:
         self.newX = self.newConnect[0] - random.randint(0,self.newW-2)
         self.newY = self.newConnect[1] +2
         
-    def fix_collide_rooms(self): #plupart des collisions arrivent a cause de newY trop haut
+    def fix_collide_rooms(self): #plupart des collisions arrivent a cause de newY trop haut 'dont work'
         for room in self.rooms:
             collided=False
             if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
@@ -560,7 +560,6 @@ class Enemy:
         self.lunge_cooldown = template["lunge_cooldown"]
         self.lungeFrame = 0
 
-        self.facing = [1*TILE_SIZE,4*TILE_SIZE]
         self.image = template["image"]
         self.width = template["width"]
         self.height = template["height"]
@@ -577,13 +576,26 @@ class Enemy:
     def update(self):
 
         if self.hitStun:
-            self.image = [32,32]
+            if self.image[0]<32:
+                self.image[0] += 32
+            if self.hitFrame<=4:
+                horizontal = self.player.x - self.x
+                vertical = self.player.y - self.y
+                norm = math.sqrt(horizontal**2+vertical**2)
+                if norm != 0:
+                    cos = horizontal/norm
+                    sin = vertical/norm
+                else:
+                    cos = 0
+                    sin = 0
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-cos*3, -sin*3])
             if self.hitFrame >= 24:
                 self.hitStun = False
                 self.hitFrame = 0
             self.hitFrame += 1
         else:
             self.image = [0,32]
+
             if not self.isAttacking and self.isLunging == 0:
                 horizontal = self.player.x - self.x
                 vertical = self.player.y - self.y
@@ -594,7 +606,8 @@ class Enemy:
                 else:
                     cos = 0
                     sin = 0
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
+                if norm < 100 and norm > 5:
+                    self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
 
             if self.isLunging == 0:
                 horizontal = self.player.x - self.x
@@ -634,6 +647,8 @@ class Enemy:
                     self.lungeFrame = 0
                     self.isLunging = 2
                     self.physics.momentum = self.lunge_speed
+                    if self.image[0]<16:
+                        self.image[0] +=16
                 if self.isLunging==2:
                     self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.lungeVector)
                     if self.lungeFrame >= self.lunge_length:
