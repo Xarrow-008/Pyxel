@@ -9,7 +9,7 @@ DIRECTIONS = (UP,DOWN,LEFT,RIGHT)
 class Snake:
     def __init__(self):
         pyxel.init(WID*TILE_SIZE,HEI*TILE_SIZE,title='snake',fps=120)
-        pyxel.load('../snake.pyxres')
+        pyxel.load('../../snake.pyxres')
 
         self.world = World(pyxel.tilemaps[0])
         self.player = Player(self.world)
