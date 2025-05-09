@@ -176,7 +176,7 @@ class RoomBuild:
             
             rect_place(world_map,self.newConnect[0],self.newConnect[1], 2, 2, WorldItem.CONNECT)
             rect_place(world_map, self.newX, self.newY, self.newW, self.newH, WorldItem.GROUND)
-            self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':self.newConnect})
+            self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':(self.newConnect[0],self.newConnect[1])})
             
             self.x, self.y, self.w, self.h, self.connect = self.newX, self.newY, self.newW, self.newH, self.newConnect
         
@@ -217,7 +217,7 @@ class RoomBuild:
 def find_room(x,y,rooms):
     for room in rooms:
         if x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']:
-            return room['name']
+            return room
     return 'None'
         
 
@@ -310,7 +310,7 @@ class Player:
         self.height = TILE_SIZE
         self.world = world
         self.rooms = self.world.roombuild.rooms
-        self.room = 0
+        self.room = self.rooms[0]
 
         self.physics = Physics(world)
         self.speed = 0.25
@@ -690,7 +690,26 @@ class Enemy:
 
             if not self.isAttacking and self.isLunging == 0:
                 if norm < 100 and norm > 5:
-                    self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
+                    if self.room['name'] > self.player.room['name'] and current_room != 'None':
+                        horizontal = self.room['connect'][0]*TILE_SIZE - self.x + TILE_SIZE-1
+                        vertical = self.room['connect'][1]*TILE_SIZE - self.y + 1
+                        norm = math.sqrt(horizontal**2+vertical**2)
+                        if norm != 0:
+                            cos = horizontal/norm
+                            sin = vertical/norm
+                        else:
+                            cos = 0
+                            sin = 0
+                        #print(round(self.x//TILE_SIZE),round(self.y//TILE_SIZE),self.room['connect'],current_room)
+                        if self.y//TILE_SIZE == self.room['Y'] and not (self.x//TILE_SIZE > self.room['connect'][0] and self.x//TILE_SIZE < self.room['connect'][0]+2): #bugged as shit but the idea is there
+                            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, 0])
+                        elif self.x//TILE_SIZE == self.room['X'] and not (self.y//TILE_SIZE > self.room['connect'][1] and self.y//TILE_SIZE < self.room['connect'][1]+2):
+                            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,sin])
+                        else:
+                            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
+                        
+                    else:
+                        self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
 
             if self.isLunging == 0: #hmmmmmmm maybe rewrite clearly
                 if norm <= self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
