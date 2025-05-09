@@ -30,13 +30,7 @@ class Snake:
             self.apple.y,
             self.apple.image
         )
-        for i in range(len(self.player.pos)):
-            world_item_draw(
-                pyxel,
-                self.player.pos[i][0],
-                self.player.pos[i][1],
-                self.player.image
-            )
+        player_draw(pyxel,self.player.pos,self.player)
 
 class WorldItem:
     WALL = (1,1)
@@ -70,7 +64,7 @@ class World:
             self.world_map[y][0] = WorldItem.WALL
             self.world_map[y][WID-1] = WorldItem.WALL
 
-def world_item_draw(pyxel,x,y,block):
+def world_item_draw(pyxel,x,y,block,colk=15):
     pyxel.blt(
         x*TILE_SIZE,
         y*TILE_SIZE,
@@ -78,8 +72,35 @@ def world_item_draw(pyxel,x,y,block):
         block[0]*TILE_SIZE,
         block[1]*TILE_SIZE,
         TILE_SIZE,
-        TILE_SIZE
+        TILE_SIZE,
+        colkey=colk
         )
+def player_draw(pyxel,pos,player):
+    for i in range(len(pos)):
+        if i == 0:
+            world_item_draw(
+                pyxel,
+                pos[i][0],
+                pos[i][1],
+                (0,2)
+            )
+        elif player.eat_frame > pyxel.frame_count-40 and i>len(pos)-2:
+            world_item_draw(
+                pyxel,
+                pos[i][0],
+                pos[i][1],
+                (4-(i-len(pos)+2),2),
+                0
+            )
+        else:
+            world_item_draw(
+                pyxel,
+                pos[i][0],
+                pos[i][1],
+                (1,2)
+            )
+
+
 
 class Player:
     def __init__(self,world):
@@ -93,6 +114,7 @@ class Player:
         self.added_length = False
         self.dead = False
         self.facing = (1,0)
+        self.eat_frame = 0
     def update(self):
         self.moved = False
         if (pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_UP)) and self.facing != DOWN:
@@ -152,6 +174,7 @@ class Apple:
                     free_space.append((x,y))
         self.x, self.y = free_space[random.randint(0,len(free_space)-1)]
         player.length+=1
+        player.eat_frame = pyxel.frame_count
         
 
 def on_tick(tickframe=60):
