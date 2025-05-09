@@ -97,7 +97,7 @@ class App:
                         Y_pos = room['Y'] + random.randint(0,room['H']-1)
                         if not (check_entity(loadedEntities, 'x', X_pos) and check_entity(loadedEntities, 'y', Y_pos)):
                             occupied = False
-                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.world.roombuild.rooms)
+                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
                     
 
 
@@ -137,7 +137,7 @@ class World:
 
 class RoomBuild:
     def __init__(self, name, startX, startY):
-        self.rooms = []
+        self.rooms = [{'name':name,'X':startX,'Y':startY,'W':4,'H':4,'connect':(startX,startY)}]
         self.world_map = []
         self.name = name
         self.x = startX
@@ -218,12 +218,12 @@ class RoomBuild:
                             if not collision(self.newX-1,self.newY-1+i,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])): #ajouté +i pour descendre la room pour voir si ca collide pas
                                 self.newY = self.newY+i
                                 collided = False
-    def find_room(self,x,y):
-        print('half works')
-        for room in self.rooms:
-            if x > room['X'] and x < room['X'] and y > room['Y'] and y < room['Y']:
-                print(room['name'],works)
-                return room['name']
+
+def find_room(x,y,rooms):
+    for room in rooms:
+        if x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']:
+            return room['name']
+    return 'None'
         
 
 
@@ -268,6 +268,11 @@ def world_item_draw(pyxel,x,y,block):
         TILE_SIZE,
         TILE_SIZE
     )
+def list_dic_find(list,value,key):
+    for dic in list:
+        if dic[key] == value:
+            return dic
+    return None
 
 class ScreenEffect:
     def __init__(self,player):
@@ -309,6 +314,8 @@ class Player:
         self.width = TILE_SIZE
         self.height = TILE_SIZE
         self.world = world
+        self.rooms = self.world.roombuild.rooms
+        self.room = 0
 
         self.physics = Physics(world)
         self.speed = 0.25
@@ -329,7 +336,7 @@ class Player:
         self.hitLength = 120
         self.isHit = False
 
-        self.gun = Guns.SHOTGUN
+        self.gun = dic_copy(Guns.SHOTGUN)
         self.attackFrame = 0
 
         self.ownedItems = []
@@ -466,6 +473,9 @@ class Player:
 
         if self.health<=0:
             self.alive = False
+        current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
+        if current_room != 'None':
+            self.room = current_room
 
     def getItem(self, item):
         self.ownedItems.append(item)
@@ -478,7 +488,7 @@ class Player:
                     change[0] *= change[2]
 
     def changeWeapon(self, gun):
-        self.gun = gun
+        self.gun = dic_copy(gun)
         for key in self.gun.keys():
             if key != "name" and key != "rate" and key != "image" and key !="bullet_count":
                 lowest_value = self.gun[key]*0.9
@@ -599,14 +609,14 @@ class EnemyTemplates:
     BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":240, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
-    def __init__(self, x, y, template, player, world, room):
+    def __init__(self, x, y, template, player, world):
         self.x = x
         self.y = y
         self.player = player
         self.world = world
         self.physics = Physics(world)
-        self.room = self.world.roombuild.find_room(self.x//TILE_SIZE,self.y//TILE_SIZE)
-        #print(self.world.roombuild.rooms[5],self.x//TILE_SIZE,self.y//TILE_SIZE)
+        self.rooms = self.world.roombuild.rooms
+        self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
 
         self.health = template["health"]
         self.speed = template["speed"]
@@ -642,6 +652,11 @@ class Enemy:
         loadedEntities.append(self)
 
     def update(self):
+        
+        current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
+        if current_room != 'None':
+            self.room = current_room
+        
         horizontal = self.player.x - self.x
         vertical = self.player.y - self.y
         norm = math.sqrt(horizontal**2+vertical**2)
