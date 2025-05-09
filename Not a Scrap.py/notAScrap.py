@@ -121,16 +121,10 @@ class World:
     def __init__(self,tilemap,roombuild):
         self.tilemap = tilemap
         self.roombuild = roombuild
-        self.world_map = []
+        self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
         self.player_init_posX = WIDTH//2+2
         self.player_init_posY = 0
         self.nb_rooms = 20
-        for y in range(HEIGHT):
-            self.world_map.append([])
-            for x in range(WIDTH):
-                for block in WorldItem.BLOCKS:
-                    if block == self.tilemap.pget(x,y):
-                        self.world_map[y].append(self.tilemap.pget(x,y))
         
         self.roombuild.random_rooms_place(self.world_map,WIDTH//2,0,4,4,20)
         self.world_map = self.roombuild.world_map
@@ -156,10 +150,11 @@ class RoomBuild:
         rect_place(world_map,startX,startY,startW,startH,WorldItem.GROUND)
         last_placement = 'N/A'
         for i in range(nb_rooms):
+
             self.newW = random.randint(2,self.max_size)*2
             self.newH = random.randint(2,self.max_size)*2
+
             if last_placement == 'down':
-                self.problem=True
                 self.room_pos = random.randint(0,2)
                 if self.room_pos == 0 and self.x>self.max_size*2+1:
                     self.room_place_left()
@@ -348,42 +343,7 @@ class Player:
         self.posXmouse = self.camera.x+pyxel.mouse_x
         self.poxYmouse = self.camera.y+pyxel.mouse_y
         if not self.isDashing:
-            if pyxel.btn(pyxel.KEY_Q):
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-1,0])
-                self.facing[0] = -1
-                self.image = (1,2)
-            if pyxel.btn(pyxel.KEY_D):
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [1,0])
-                self.facing[0] = 1
-                self.image = (0,2)
-            if pyxel.btn(pyxel.KEY_Z):
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,-1])
-                self.facing[1] = -1
-                self.image = (0,3)
-            if pyxel.btn(pyxel.KEY_S):
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,1])
-                self.facing[1] = 1
-                self.image = (1,3)
-            if not (pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
-                self.facing[0] = 0
-            if not (pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S)):
-                self.facing[1] = 0
-            
-            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_D)):
-                self.image = (2,2)
-            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_Q)):
-                self.image = (3,2)
-            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_D)):
-                self.image = (2,3)
-            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_Q)):
-                self.image = (3,3)
-            
-            if self.facing == [0,0]:
-                self.facing[0] = self.last_facing[0]
-                self.facing[1] = self.last_facing[1]
-            else:
-                self.last_facing[0] = self.facing[0]
-                self.last_facing[1] = self.facing[1]
+            self.inputs_to_moves()
 
             if pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S) and self.physics.momentum <= self.speed:
                 self.physics.momentum = self.speed
@@ -391,30 +351,7 @@ class Player:
                 self.physics.momentum /= self.speedFallOff
 
             if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.attackFrame>=self.gun["cooldown"] and self.gun["ammo"]>0:
-                self.attackFrame = 0
-                self.gun["ammo"] -= 1
-                for i in range(self.gun["bullet_count"]):
-                    horizontal = self.posXmouse - (self.x+self.width/2)
-                    vertical = self.poxYmouse - (self.y+self.height/2)
-                    norm = math.sqrt(horizontal**2+vertical**2)
-                    if norm != 0:
-                        cos = horizontal/norm
-                        lowest_cos = cos*(1-self.gun["spread"])
-                        highest_cos = cos*(1+self.gun["spread"])
-                        cos = random.uniform(lowest_cos, highest_cos)
-
-                        sin = vertical/norm
-                        lowest_sin = sin*(1-self.gun["spread"])
-                        highest_sin = sin*(1+self.gun["spread"])
-                        sin = random.uniform(lowest_sin, highest_sin)
-                    else:
-                        cos = 0
-                        sin = 0
-
-                    if self.gun != Guns.GRENADE_LAUNCHER:
-                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_normal")
-                    else:
-                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_explode", 1.5*TILE_SIZE)
+                self.shoot()
 
             if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"] and self.gun["ammo"]!=0:
                 self.gun["ammo"] = 0
@@ -434,7 +371,7 @@ class Player:
                 self.isDashing = False
                 self.dashFrame = 0
         
-        if self.last_health !=self.health:
+        if self.last_health != self.health:
             self.hitFrame = 0
             self.last_health = self.health
             self.isHit = True   
@@ -473,9 +410,75 @@ class Player:
 
         if self.health<=0:
             self.alive = False
+        
         current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
         if current_room != 'None':
             self.room = current_room
+    
+    def inputs_to_moves(self):
+            if pyxel.btn(pyxel.KEY_Q):
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-1,0])
+                self.facing[0] = -1
+                self.image = (1,2)
+            if pyxel.btn(pyxel.KEY_D):
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [1,0])
+                self.facing[0] = 1
+                self.image = (0,2)
+            if pyxel.btn(pyxel.KEY_Z):
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,-1])
+                self.facing[1] = -1
+                self.image = (0,3)
+            if pyxel.btn(pyxel.KEY_S):
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,1])
+                self.facing[1] = 1
+                self.image = (1,3)
+            if not (pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
+                self.facing[0] = 0
+            if not (pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S)):
+                self.facing[1] = 0
+            
+            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_D)):
+                self.image = (2,2)
+            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_Q)):
+                self.image = (3,2)
+            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_D)):
+                self.image = (2,3)
+            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_Q)):
+                self.image = (3,3)
+            
+            if self.facing == [0,0]:
+                self.facing[0] = self.last_facing[0]
+                self.facing[1] = self.last_facing[1]
+            else:
+                self.last_facing[0] = self.facing[0]
+                self.last_facing[1] = self.facing[1]
+
+    def shoot(self):
+        self.attackFrame = 0
+        self.gun["ammo"] -= 1
+        for i in range(self.gun["bullet_count"]):
+            horizontal = self.posXmouse - (self.x+self.width/2)
+            vertical = self.poxYmouse - (self.y+self.height/2)
+            norm = math.sqrt(horizontal**2+vertical**2)
+            if norm != 0:
+                cos = horizontal/norm
+                lowest_cos = cos*(1-self.gun["spread"])
+                highest_cos = cos*(1+self.gun["spread"])
+                cos = random.uniform(lowest_cos, highest_cos)
+
+                sin = vertical/norm
+                lowest_sin = sin*(1-self.gun["spread"])
+                highest_sin = sin*(1+self.gun["spread"])
+                sin = random.uniform(lowest_sin, highest_sin)
+            else:
+                cos = 0
+                sin = 0
+
+            if self.gun != Guns.GRENADE_LAUNCHER:
+                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_normal")
+            else:
+                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_explode", 1.5*TILE_SIZE)
+
 
     def getItem(self, item):
         self.ownedItems.append(item)
@@ -581,17 +584,7 @@ class Bullet:
 
     def update(self):
         self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.vector)
-        for entity in loadedEntities:
-            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
-                entity.health -= self.damage
-                entity.hitStun = True
-                if self.piercing != 0:
-                    entity.pierced.append(self)
-                self.piercing -= 1
-        if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and self.piercing>=0:
-            self.player.health -= self.damage
-            self.piercing -= 1
-        self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
+        self.check_hit()
 
         if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
             if self.type == "bullet_explode":
@@ -604,6 +597,19 @@ class Bullet:
                             entity.health -= self.damage
                             entity.hitStun = True
             loadedEntities.remove(self)
+    
+    def check_hit(self):
+        for entity in loadedEntities:
+            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
+                entity.health -= self.damage
+                entity.hitStun = True
+                if self.piercing != 0:
+                    entity.pierced.append(self)
+                self.piercing -= 1
+        if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and self.piercing>=0:
+            self.player.health -= self.damage
+            self.piercing -= 1
+        self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
 
 class EnemyTemplates:
     BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":240, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
@@ -657,6 +663,7 @@ class Enemy:
         if current_room != 'None':
             self.room = current_room
         
+        
         horizontal = self.player.x - self.x
         vertical = self.player.y - self.y
         norm = math.sqrt(horizontal**2+vertical**2)
@@ -685,7 +692,7 @@ class Enemy:
                 if norm < 100 and norm > 5:
                     self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
 
-            if self.isLunging == 0:
+            if self.isLunging == 0: #hmmmmmmm maybe rewrite clearly
                 if norm <= self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
                     self.attackFrame = 0
                     self.isAttacking = True
@@ -713,23 +720,7 @@ class Enemy:
             self.lungeFrame += 1
             self.attackFrame += 1
 
-
-            if abs(horizontal)>abs(vertical):
-                self.image[1] = 32
-                if horizontal>0:
-                    self.image[0] = 0
-                else:
-                    self.image[0] = 8
-            else:
-                self.image[1] = 40
-                if vertical>0:
-                    self.image[0] = 0
-                else:
-                    self.image[0] = 8
-
-            if self.isLunging == 1:
-                if self.image[0]<16:
-                    self.image[0] +=16
+            self.direction_to_image(horizontal,vertical)
 
         if self.health <= 0:
 
@@ -752,6 +743,25 @@ class Enemy:
                         PickUp(self.x, self.y, "weapon", gun, self.player)
 
             loadedEntities.remove(self)
+        
+
+    def direction_to_image(self,horizontal,vertical):
+        if abs(horizontal)>abs(vertical):
+            self.image[1] = 32
+            if horizontal>0:
+                self.image[0] = 0
+            else:
+                self.image[0] = 8
+        else:
+            self.image[1] = 40
+            if vertical>0:
+                self.image[0] = 0
+            else:
+                self.image[0] = 8
+
+        if self.isLunging == 1:
+            if self.image[0]<16:
+                self.image[0] +=16
 
 class PickUp:
     def __init__(self, x, y, type, object, player):
