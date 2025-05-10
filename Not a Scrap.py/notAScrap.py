@@ -728,6 +728,10 @@ class Enemy:
         if not self.isAttacking and self.isLunging == 0:
             if self.norm < 100 and self.norm > 5:
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [self.cos, self.sin])
+                for entity in loadedEntities:
+                    if entity.type == "enemy" and collision(self.x, self.y, entity.x ,entity.y, [self.width, self.height], [entity.width, entity.height]):
+                        self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [self.sin, self.cos])
+                        entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-entity.sin, -entity.cos])
 
     def attack(self):
         if self.isLunging == 0:
