@@ -465,11 +465,7 @@ class Player:
             self.dashFrame = 0
 
     def hitDetection(self):
-        if self.last_health !=self.health:
-            self.hitFrame = 0
-            self.last_health = self.health
-            self.isHit = True   
-        if self.hitFrame >= self.hitLength:
+        if self.isHit and self.hitFrame >= self.hitLength:
                 self.isHit = False
                 self.hitFrame = 0
 
@@ -507,12 +503,8 @@ class Player:
     def getItem(self, item):
         self.ownedItems.append(item)
         if item["trigger"] == "passive" and (item["effect"] == "stat_p" or item["effect"] == "stat_g"):
-            print("got passive item")
             for change in item["function"]:
-                if change[1] == "additive":
-                    change[0] += change[2]
-                if change[1] == "mutliplicative":
-                    change[0] *= change[2]
+                self.increaseStat(change[0], change[1], change[2])
 
     def changeWeapon(self, gun):
         self.gun = dic_copy(gun)
@@ -532,6 +524,79 @@ class Player:
                     if change[1] == "mutliplicative":
                         change[0] *= change[2]
 
+    def increaseStat(self, stat, operation, value):
+        if stat == "health":
+            if operation == "addition":
+                self.health += value
+            elif operation == "multiplication":
+                self.health *= value
+        elif stat == "max_health":
+            if operation == "addition":
+                self.max_health += value
+            elif operation == "multiplication":
+                self.max_health *= value
+        elif stat == "speed":
+            if operation == "addition":
+                self.speed += value
+            elif operation == "multiplication":
+                self.speed *= value
+        elif stat == "dash_cooldown":
+            if operation == "addition":
+                self.dashCooldown += value
+            elif operation == "multiplication":
+                self.dashCooldown *= value
+        elif stat == "damage":
+            if operation == "addition":
+                self.gun["damage"] += value
+            elif operation == "multiplication":
+                self.gun["damage"] *= value
+        elif stat == "range":
+            if operation == "addition":
+                self.gun["range"] += value
+            elif operation == "multiplication":
+                self.gun["range"] *= value
+        elif stat == "spread":
+            if operation == "addition":
+                self.gun["spread"] += value
+            elif operation == "multiplication":
+                self.gun["spread"] *= value
+        elif stat == "piercing":
+            if operation == "addition":
+                self.gun["piercing"] += value
+            elif operation == "multiplication":
+                self.gun["piercing"] *= value
+        elif stat == "bullet_speed":
+            if operation == "addition":
+                self.gun["bullet_speed"] += value
+            elif operation == "multiplication":
+                self.gun["bullet_speed"] *= value
+        elif stat == "max_ammo":
+            if operation == "addition":
+                self.gun["max_ammo"] += value
+            elif operation == "multiplication":
+                self.gun["max_ammo"] *= value
+        elif stat == "ammo":
+            if operation == "addition":
+                self.gun["ammo"] += value
+            elif operation == "multiplication":
+                self.gun["ammo"] *= value
+        elif stat == "reload":
+            if operation == "addition":
+                self.gun["reload"] += value
+            elif operation == "multiplication":
+                self.gun["reload"] *= value
+        elif stat == "gun_cooldown":
+            if operation == "addition":
+                self.gun["cooldown"] += value
+            elif operation == "multiplication":
+                self.gun["cooldown"] *= value
+        elif stat == "bullet_count":
+            if operation == "addition":
+                self.gun["bullet_count"] += value
+            elif operation == "multiplication":
+                self.gun["bullet_count"] *= value
+        
+        
 
 class Physics:
     def __init__(self, world):
@@ -585,7 +650,6 @@ class Guns:
     GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(95,101)], "description":"Single fire, explosive shots"}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
-
 class Bullet:
     def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, explode_radius):
         self.x = x
@@ -622,6 +686,8 @@ class Bullet:
         if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and self.piercing>=0:
             self.player.health -= self.damage
             self.piercing -= 1
+            self.player.isHit = True
+            self.player.hitFrame = 0
         self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
     def bullet_destroyed(self):
         if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
@@ -636,7 +702,6 @@ class Bullet:
                             entity.health -= self.damage
                             entity.hitStun = True
             loadedEntities.remove(self)
-
 
 class EnemyTemplates:
     BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":240, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
@@ -730,8 +795,12 @@ class Enemy:
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [self.cos, self.sin])
                 for entity in loadedEntities:
                     if entity.type == "enemy" and collision(self.x, self.y, entity.x ,entity.y, [self.width, self.height], [entity.width, entity.height]) and entity != self:
-                        self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0.5*self.sin, 0.5*self.cos])
-                        entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-0.5*entity.sin, -0.5*entity.cos])
+                        if abs(self.horizontal)>= abs(self.vertical):
+                            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0, self.sin])
+                            entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [0, -self.sin])
+                        else:
+                            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [self.cos, 0])
+                            entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-self.cos, 0])
 
     def attack(self):
         if self.isLunging == 0:
@@ -785,7 +854,7 @@ class Enemy:
                 item_rarity = random.randint(1,20)
                 if item_rarity == 20:
                     print("gave legendary item")
-                elif item_rarity>14 and item_rarity<15:
+                elif item_rarity>15 and item_rarity<20:
                     print("gave uncommon item")
                 else:
                     item_random = random.randint(0, len(self.itemList.common_list)-1)
@@ -828,11 +897,11 @@ class PickUp:
 class ItemList:
     def __init__(self, player):
         self.player = player
-        self.SPEED_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[[self.player.speed, "additive", 0.15]]}
-        self.HEALTH_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[[self.player.max_health, "additive", 5], [self.player.health, "additive", 5]]}
-        self.RANGE_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["range"], "multiplicative", 1.2]]}
-        self.PIERCING_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["piercing"], "additive", 1]]}
-        self.SPREAD_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[[self.player.gun["spread"], "multiplicative", 0.8]]}
+        self.SPEED_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["speed", "addition", 0.15]]}
+        self.HEALTH_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
+        self.RANGE_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
+        self.PIERCING_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
+        self.SPREAD_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["spread", "multiplication", 0.8]]}
         self.HEAL_KILL = {"name":"placeholder", "description":"placeholder", "image":[5*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
         self.AMMO_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
         self.COOLDOWN_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
