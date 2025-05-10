@@ -107,7 +107,7 @@ class App:
                         Y_pos = room['Y'] + random.randint(0,room['H']-1)
                         if not (check_entity(loadedEntities, 'x', X_pos) and check_entity(loadedEntities, 'y', Y_pos)):
                             occupied = False
-                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.world.roombuild.rooms)
+                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
 
     def restartGame(self):
         global loadedEntities
@@ -239,10 +239,6 @@ def find_room(x,y,rooms):
         if x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']:
             return room
     return 'None'
-        
-
-
-         
 
 class Furniture:
     def __init__(self,world):
@@ -351,7 +347,7 @@ class Player:
         self.hitLength = 120
         self.isHit = False
 
-        self.gun = dic_copy(Guns.SHOTGUN)
+        self.gun = dic_copy(Guns.GRENADE_LAUNCHER)
         self.attackFrame = 0
 
         self.ownedItems = []
@@ -442,7 +438,7 @@ class Player:
                 else:
                     cos = 0
                     sin = 0
-                if self.gun != Guns.GRENADE_LAUNCHER:
+                if self.gun["name"] != "Grenade Launcher":
                     Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", 0)
                 else:
                     Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", 1.5*TILE_SIZE)
@@ -507,71 +503,6 @@ class Player:
         current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
         if current_room != 'None':
             self.room = current_room
-    
-    def inputs_to_moves(self):
-            if pyxel.btn(pyxel.KEY_Q):
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-1,0])
-                self.facing[0] = -1
-                self.image = (1,2)
-            if pyxel.btn(pyxel.KEY_D):
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [1,0])
-                self.facing[0] = 1
-                self.image = (0,2)
-            if pyxel.btn(pyxel.KEY_Z):
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,-1])
-                self.facing[1] = -1
-                self.image = (0,3)
-            if pyxel.btn(pyxel.KEY_S):
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,1])
-                self.facing[1] = 1
-                self.image = (1,3)
-            if not (pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
-                self.facing[0] = 0
-            if not (pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S)):
-                self.facing[1] = 0
-            
-            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_D)):
-                self.image = (2,2)
-            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_Q)):
-                self.image = (3,2)
-            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_D)):
-                self.image = (2,3)
-            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_Q)):
-                self.image = (3,3)
-            
-            if self.facing == [0,0]:
-                self.facing[0] = self.last_facing[0]
-                self.facing[1] = self.last_facing[1]
-            else:
-                self.last_facing[0] = self.facing[0]
-                self.last_facing[1] = self.facing[1]
-
-    def shoot(self):
-        self.attackFrame = 0
-        self.gun["ammo"] -= 1
-        for i in range(self.gun["bullet_count"]):
-            horizontal = self.posXmouse - (self.x+self.width/2)
-            vertical = self.poxYmouse - (self.y+self.height/2)
-            norm = math.sqrt(horizontal**2+vertical**2)
-            if norm != 0:
-                cos = horizontal/norm
-                lowest_cos = cos*(1-self.gun["spread"])
-                highest_cos = cos*(1+self.gun["spread"])
-                cos = random.uniform(lowest_cos, highest_cos)
-
-                sin = vertical/norm
-                lowest_sin = sin*(1-self.gun["spread"])
-                highest_sin = sin*(1+self.gun["spread"])
-                sin = random.uniform(lowest_sin, highest_sin)
-            else:
-                cos = 0
-                sin = 0
-
-            if self.gun != Guns.GRENADE_LAUNCHER:
-                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_normal")
-            else:
-                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_explode", 1.5*TILE_SIZE)
-
 
     def getItem(self, item):
         self.ownedItems.append(item)
@@ -678,19 +609,7 @@ class Bullet:
     def update(self):
         self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.vector)
         self.check_hit()
-
-        if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
-            if self.explode_radius > 0:
-                Effect(5,[1*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6, 4:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
-                for entity in loadedEntities:
-                    if entity.type == "enemy":
-                        horizontal = entity.x+entity.width/2 - self.x+self.width/2
-                        vertical = entity.y+entity.height/2 - self.y+self.height/2
-                        norm = math.sqrt(horizontal**2 + vertical**2)
-                        if norm <= self.explode_radius:
-                            entity.health -= self.damage
-                            entity.hitStun = True
-            loadedEntities.remove(self)
+        self.bullet_destroyed()
     
     def check_hit(self):
         for entity in loadedEntities:
@@ -704,6 +623,20 @@ class Bullet:
             self.player.health -= self.damage
             self.piercing -= 1
         self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
+    def bullet_destroyed(self):
+        if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
+            if self.explode_radius > 0:
+                Effect(5,[1*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6, 4:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
+                for entity in loadedEntities:
+                    if entity.type == "enemy":
+                        horizontal = entity.x+entity.width/2 - self.x+self.width/2
+                        vertical = entity.y+entity.height/2 - self.y+self.height/2
+                        norm = math.sqrt(horizontal**2 + vertical**2)
+                        if norm <= self.explode_radius:
+                            entity.health -= self.damage
+                            entity.hitStun = True
+            loadedEntities.remove(self)
+
 
 class EnemyTemplates:
     BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":240, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
@@ -757,13 +690,6 @@ class Enemy:
         if current_room != 'None':
             self.room = current_room
         
-        
-        horizontal = self.player.x - self.x
-        vertical = self.player.y - self.y
-        norm = math.sqrt(horizontal**2+vertical**2)
-        if norm != 0:
-            cos = horizontal/norm
-            sin = vertical/norm
         self.horizontal = self.player.x - self.x
         self.vertical = self.player.y - self.y
         self.norm = math.sqrt(self.horizontal**2+self.vertical**2)
