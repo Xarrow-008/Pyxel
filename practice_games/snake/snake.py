@@ -41,7 +41,7 @@ class WorldItem:
 
 class World:
     def __init__(self,tilemap):
-        self.world_map = [[(0) for j in range(WID)] for i in range(HEI)]
+        self.world_map = [[(0,0) for j in range(WID)] for i in range(HEI)]
         self.tilemap = tilemap
         self.player_init_posX = 2
         self.player_init_posY = 2

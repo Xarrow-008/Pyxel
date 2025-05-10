@@ -141,23 +141,17 @@ class World:
     def __init__(self,tilemap,roombuild):
         self.tilemap = tilemap
         self.roombuild = roombuild
-        self.world_map = []
+        self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
         self.player_init_posX = WIDTH//2+2
         self.player_init_posY = 0
         self.nb_rooms = 20
-        for y in range(HEIGHT):
-            self.world_map.append([])
-            for x in range(WIDTH):
-                for block in WorldItem.BLOCKS:
-                    if block == self.tilemap.pget(x,y):
-                        self.world_map[y].append(self.tilemap.pget(x,y))
         
         self.roombuild.random_rooms_place(self.world_map,WIDTH//2,0,4,4,20)
         self.world_map = self.roombuild.world_map
 
 class RoomBuild:
     def __init__(self, name, startX, startY):
-        self.rooms = []
+        self.rooms = [{'name':name,'X':startX,'Y':startY,'W':4,'H':4,'connect':(startX,startY)}]
         self.world_map = []
         self.name = name
         self.x = startX
@@ -176,10 +170,11 @@ class RoomBuild:
         rect_place(world_map,startX,startY,startW,startH,WorldItem.GROUND)
         last_placement = 'N/A'
         for i in range(nb_rooms):
+
             self.newW = random.randint(2,self.max_size)*2
             self.newH = random.randint(2,self.max_size)*2
+
             if last_placement == 'down':
-                self.problem=True
                 self.room_pos = random.randint(0,2)
                 if self.room_pos == 0 and self.x>self.max_size*2+1:
                     self.room_place_left()
@@ -201,7 +196,7 @@ class RoomBuild:
             
             rect_place(world_map,self.newConnect[0],self.newConnect[1], 2, 2, WorldItem.CONNECT)
             rect_place(world_map, self.newX, self.newY, self.newW, self.newH, WorldItem.GROUND)
-            self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':self.newConnect})
+            self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':(self.newConnect[0],self.newConnect[1])})
             
             self.x, self.y, self.w, self.h, self.connect = self.newX, self.newY, self.newW, self.newH, self.newConnect
         
@@ -238,12 +233,12 @@ class RoomBuild:
                             if not collision(self.newX-1,self.newY-1+i,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])): #ajouté +i pour descendre la room pour voir si ca collide pas
                                 self.newY = self.newY+i
                                 collided = False
-    def find_room(self,x,y):
-        print('half works')
-        for room in self.rooms:
-            if x > room['X'] and x < room['X'] and y > room['Y'] and y < room['Y']:
-                print(room['name'], "works")
-                return room['name']
+
+def find_room(x,y,rooms):
+    for room in rooms:
+        if x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']:
+            return room
+    return 'None'
         
 
 
@@ -288,6 +283,11 @@ def world_item_draw(pyxel,x,y,block):
         TILE_SIZE,
         TILE_SIZE
     )
+def list_dic_find(list,value,key):
+    for dic in list:
+        if dic[key] == value:
+            return dic
+    return None
 
 class ScreenEffect:
     def __init__(self,player):
@@ -329,6 +329,8 @@ class Player:
         self.width = TILE_SIZE
         self.height = TILE_SIZE
         self.world = world
+        self.rooms = self.world.roombuild.rooms
+        self.room = self.rooms[0]
 
         self.physics = Physics(world)
         self.speed = 0.25
@@ -349,7 +351,7 @@ class Player:
         self.hitLength = 120
         self.isHit = False
 
-        self.gun = Guns.GRENADE_LAUNCHER
+        self.gun = dic_copy(Guns.SHOTGUN)
         self.attackFrame = 0
 
         self.ownedItems = []
@@ -501,6 +503,75 @@ class Player:
     def death(self):
         if self.health<=0:
             self.alive = False
+        
+        current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
+        if current_room != 'None':
+            self.room = current_room
+    
+    def inputs_to_moves(self):
+            if pyxel.btn(pyxel.KEY_Q):
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-1,0])
+                self.facing[0] = -1
+                self.image = (1,2)
+            if pyxel.btn(pyxel.KEY_D):
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [1,0])
+                self.facing[0] = 1
+                self.image = (0,2)
+            if pyxel.btn(pyxel.KEY_Z):
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,-1])
+                self.facing[1] = -1
+                self.image = (0,3)
+            if pyxel.btn(pyxel.KEY_S):
+                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,1])
+                self.facing[1] = 1
+                self.image = (1,3)
+            if not (pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
+                self.facing[0] = 0
+            if not (pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S)):
+                self.facing[1] = 0
+            
+            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_D)):
+                self.image = (2,2)
+            if (pyxel.btn(pyxel.KEY_Z) and pyxel.btn(pyxel.KEY_Q)):
+                self.image = (3,2)
+            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_D)):
+                self.image = (2,3)
+            if (pyxel.btn(pyxel.KEY_S) and pyxel.btn(pyxel.KEY_Q)):
+                self.image = (3,3)
+            
+            if self.facing == [0,0]:
+                self.facing[0] = self.last_facing[0]
+                self.facing[1] = self.last_facing[1]
+            else:
+                self.last_facing[0] = self.facing[0]
+                self.last_facing[1] = self.facing[1]
+
+    def shoot(self):
+        self.attackFrame = 0
+        self.gun["ammo"] -= 1
+        for i in range(self.gun["bullet_count"]):
+            horizontal = self.posXmouse - (self.x+self.width/2)
+            vertical = self.poxYmouse - (self.y+self.height/2)
+            norm = math.sqrt(horizontal**2+vertical**2)
+            if norm != 0:
+                cos = horizontal/norm
+                lowest_cos = cos*(1-self.gun["spread"])
+                highest_cos = cos*(1+self.gun["spread"])
+                cos = random.uniform(lowest_cos, highest_cos)
+
+                sin = vertical/norm
+                lowest_sin = sin*(1-self.gun["spread"])
+                highest_sin = sin*(1+self.gun["spread"])
+                sin = random.uniform(lowest_sin, highest_sin)
+            else:
+                cos = 0
+                sin = 0
+
+            if self.gun != Guns.GRENADE_LAUNCHER:
+                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_normal")
+            else:
+                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", "bullet_explode", 1.5*TILE_SIZE)
+
 
     def getItem(self, item):
         self.ownedItems.append(item)
@@ -513,7 +584,7 @@ class Player:
                     change[0] *= change[2]
 
     def changeWeapon(self, gun):
-        self.gun = gun
+        self.gun = dic_copy(gun)
         for key in self.gun.keys():
             if key not in ["name", "description", "image", "rate", "bullet_count"]:
                 lowest_value = self.gun[key]*0.9
@@ -606,17 +677,7 @@ class Bullet:
 
     def update(self):
         self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.vector)
-        for entity in loadedEntities:
-            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
-                entity.health -= self.damage
-                entity.hitStun = True
-                if self.piercing != 0:
-                    entity.pierced.append(self)
-                self.piercing -= 1
-        if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and self.piercing>=0:
-            self.player.health -= self.damage
-            self.piercing -= 1
-        self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
+        self.check_hit()
 
         if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
             if self.explode_radius > 0:
@@ -630,19 +691,32 @@ class Bullet:
                             entity.health -= self.damage
                             entity.hitStun = True
             loadedEntities.remove(self)
+    
+    def check_hit(self):
+        for entity in loadedEntities:
+            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
+                entity.health -= self.damage
+                entity.hitStun = True
+                if self.piercing != 0:
+                    entity.pierced.append(self)
+                self.piercing -= 1
+        if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and self.piercing>=0:
+            self.player.health -= self.damage
+            self.piercing -= 1
+        self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
 
 class EnemyTemplates:
     BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":240, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
-    def __init__(self, x, y, template, player, world, room):
+    def __init__(self, x, y, template, player, world):
         self.x = x
         self.y = y
         self.player = player
         self.world = world
         self.physics = Physics(world)
-        self.room = self.world.roombuild.find_room(self.x//TILE_SIZE,self.y//TILE_SIZE)
-        #print(self.world.roombuild.rooms[5],self.x//TILE_SIZE,self.y//TILE_SIZE)
+        self.rooms = self.world.roombuild.rooms
+        self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
 
         self.health = template["health"]
         self.speed = template["speed"]
@@ -678,6 +752,18 @@ class Enemy:
         loadedEntities.append(self)
 
     def update(self):
+        
+        current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
+        if current_room != 'None':
+            self.room = current_room
+        
+        
+        horizontal = self.player.x - self.x
+        vertical = self.player.y - self.y
+        norm = math.sqrt(horizontal**2+vertical**2)
+        if norm != 0:
+            cos = horizontal/norm
+            sin = vertical/norm
         self.horizontal = self.player.x - self.x
         self.vertical = self.player.y - self.y
         self.norm = math.sqrt(self.horizontal**2+self.vertical**2)
