@@ -151,7 +151,7 @@ class World:
 
 class RoomBuild:
     def __init__(self, name, startX, startY):
-        self.rooms = [{'name':name,'X':startX,'Y':startY,'W':4,'H':4,'connect':(startX,startY)}]
+        self.rooms = [{'name':name,'X':startX,'Y':startY,'W':4,'H':4,'connect':(startX,startY),'direction':'down'}]
         self.world_map = []
         self.name = name
         self.x = startX
@@ -196,7 +196,7 @@ class RoomBuild:
             
             rect_place(world_map,self.newConnect[0],self.newConnect[1], 2, 2, WorldItem.CONNECT)
             rect_place(world_map, self.newX, self.newY, self.newW, self.newH, WorldItem.GROUND)
-            self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':(self.newConnect[0],self.newConnect[1])})
+            self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':(self.newConnect[0],self.newConnect[1]),'direction':last_placement})
             
             self.x, self.y, self.w, self.h, self.connect = self.newX, self.newY, self.newW, self.newH, self.newConnect
         
@@ -735,6 +735,9 @@ class Enemy:
         self.lunge_length = template["lunge_length"]
         self.lunge_cooldown = template["lunge_cooldown"]
         self.lungeFrame = 0
+
+        self.p_state = 0 #p for pathing nb of room from player
+        self.p_objective= []
 
         self.image = template["image"]
         self.width = template["width"]
