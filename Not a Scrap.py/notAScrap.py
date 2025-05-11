@@ -878,8 +878,12 @@ class Enemy:
 
     def death(self):
         if self.health <= 0:
+
+            item_chance = 10
+            gun_chance = 10
+
             pickup = random.randint(1,100)
-            if pickup <= 100:
+            if pickup <= item_chance:
                 item_rarity = random.randint(1,20)
                 if item_rarity == 20:
                     print("gave legendary item")
@@ -890,7 +894,7 @@ class Enemy:
                     item = self.itemList.common_list[item_random]
                     PickUp(self.x, self.y, "item", item, self.player)
 
-            elif pickup > 100-0:
+            elif pickup > 100-gun_chance:
                 gun_random = random.randint(1,100)
                 for gun in Guns.Gun_list:
                     if gun_random in gun["rate"]:
@@ -938,7 +942,7 @@ class ItemList:
         self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"Gain a damage boost after dash", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
         self.SPEED_DASH = {"name":"Inertia", "description":"Gain a speed boost after dash", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.2, 1.5*120]]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
-    
+
 class Camera:
     def __init__(self):
         self.x = (WIDTH//2-6)*TILE_SIZE
