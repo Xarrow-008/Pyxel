@@ -907,9 +907,9 @@ class ItemList:
         self.SPREAD_PASSIVE = {"name":"Focused Fire", "description":"Slightly decreases your gun's spread", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
         self.HEAL_KILL = {"name":"Compost", "description":"Get a small heal on kill", "image":[5*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_p", "function":[["health", "addition", 7]]}
         self.AMMO_KILL = {"name":"Reduce, Reuse, Recycle", "description":"Gain ammo back on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_g", "function":[["ammo", "addition", 3]]}
-        self.SPEED_KILL = {"name":"Blood is fuel", "description":"Temporarily increase speed on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "multiplication", 1.1, 1*120]]}
-        self.DAMAGE_ROLL = {"name":"Terminal Velocity", "description":"Temporarily increase damage after roll", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
-        self.SPEED_ROLL = {"name":"Inertia", "description":"Temporarily increase speed after roll", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.2, 1.5*120]]}
+        self.SPEED_KILL = {"name":"Blood is fuel", "description":"Gain a speed boost on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "multiplication", 1.1, 1*120]]}
+        self.DAMAGE_ROLL = {"name":"Terminal Velocity", "description":"Gain a damage boost after roll", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
+        self.SPEED_ROLL = {"name":"Inertia", "description":"Gain a speed boost after roll", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.2, 1.5*120]]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_ROLL, self.SPEED_ROLL]
     
 class Camera:
