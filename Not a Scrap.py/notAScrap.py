@@ -897,17 +897,17 @@ class PickUp:
 class ItemList:
     def __init__(self, player):
         self.player = player
-        self.SPEED_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["speed", "addition", 0.15]]}
-        self.HEALTH_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
-        self.RANGE_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
-        self.PIERCING_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
-        self.SPREAD_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["spread", "multiplication", 0.8]]}
-        self.HEAL_KILL = {"name":"placeholder", "description":"placeholder", "image":[5*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.AMMO_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.COOLDOWN_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.DAMAGE_ROLL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.SPEED_ROLL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.COOLDOWN_KILL, self.DAMAGE_ROLL, self.SPEED_ROLL]
+        self.SPEED_PASSIVE = {"name":"Jet Fuel", "description":"Slightly increases movement speed", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["speed", "addition", 0.05]]}
+        self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Slightly increases health", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
+        self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Slighlty increases your gun's range", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
+        self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Your attacks pierce through 1 more enemy", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
+        self.SPREAD_PASSIVE = {"name":"Focused Fire", "description":"Slightly decreases your gun's spread", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
+        self.HEAL_KILL = {"name":"Compost", "description":"Get a small heal on kill", "image":[5*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_p", "function":[["health", "addition", 7]]}
+        self.AMMO_KILL = {"name":"Reduce, Reuse, Recycle", "description":"Gain ammo back on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_g", "function":[["ammo", "addition", 3]]}
+        self.SPEED_KILL = {"name":"Blood is fuel", "description":"Temporarily increase speed on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "multiplication", 1.1, 1*120]]}
+        self.DAMAGE_ROLL = {"name":"Terminal Velocity", "description":"Temporarily increase damage after roll", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
+        self.SPEED_ROLL = {"name":"Inertia", "description":"Temporarily increase speed after roll", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onRoll", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.2, 1.5*120]]}
+        self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_ROLL, self.SPEED_ROLL]
     
 class Camera:
     def __init__(self):
