@@ -1,4 +1,4 @@
-import pyxel, os, random
+import pyxel, os, random, math
 
 TILE_SIZE = 8
 WID = 128
@@ -13,35 +13,75 @@ class Snake:
         pyxel.init(CAM_w* TILE_SIZE,CAM_h* TILE_SIZE,title='snake',fps=120)
         pyxel.load('../../snake.pyxres')
 
-        self.world = World(pyxel.tilemaps[0])
-        self.player = Player(self.world)
-        self.apple = Apple()
-        self.camera = Camera(self.player,1/4)
+        self.win = False
+        self.win_frame = 0
+        self.nb_rooms = 3
+
+        self.world = World(pyxel.tilemaps[0],self.nb_rooms)
+        self.player = Player(self.world,1)
+        self.apple = Apple(self.world,self.player)
+        self.camera = Camera(self.player,3/8)
+        self.map = self.world.world_map
+        self.roomlist = self.world.roomlist
 
         pyxel.run(self.update,self.draw)
+
+    
     def update(self):
-        if not self.player.dead:
-            self.player.update()
-            self.camera.update()
-            pyxel.camera(self.camera.x*TILE_SIZE,self.camera.y*TILE_SIZE)
-        self.apple.update(self.player,self.world.world_map)
-        if on_tick(120):
-            print((self.player.x,self.player.y),end='',flush=True)
-        if pyxel.btn(pyxel.KEY_R):
-            self.player.x,self.player.y = self.apple.pos[0][0], self.apple.pos[0][1]
+        if not self.win:
+            if not self.player.dead:
+                self.player.update()
+                self.apple.update(self.player,self.roomlist)
+
+                self.camera.update()
+                pyxel.camera(self.camera.x*TILE_SIZE,self.camera.y*TILE_SIZE)
+            elif not self.player.no_action:
+                self.player.death_anim()
+            
+            if len(self.apple.pos) == 0:
+                self.win = True
+                self.player.no_action = True
+                self.player.no_action_frame = pyxel.frame_count
+        
+        elif not self.player.no_action:
+            self.win_frame = pyxel.frame_count
+            self.player.no_action = True
+            self.player.no_action_frame = pyxel.frame_count
+        
+        if self.win and pyxel.frame_count-self.win_frame>60:
+            self.win = False
+            self.nb_rooms += random.randint(1,3)
+        
+        if self.player.dead:
+            self.player.length = 1
+        
+        
+        if self.player.no_action and pyxel.frame_count - self.player.no_action_frame > 60:
+
+            self.player.no_action = False
+            print(self.nb_rooms)
+            self.world.init(pyxel.tilemaps[0],self.nb_rooms)
+            self.player.init(self.world,self.player.length)
+            self.apple.init(self.world,self.player)
+            self.camera.init(self.player,3/8)
+
+            
+        
+    
     def draw(self):
-        pyxel.cls(0)
-        for y in range(HEI):
-            for x in range(WID):
-                world_item_draw(pyxel,x,y,self.world.world_map[y][x])
-        for i in range(len(self.apple.pos)):
-            world_item_draw(
-                pyxel,
-                self.apple.pos[i][0],
-                self.apple.pos[i][1],
-                self.apple.image
-            )
-        player_draw(pyxel,self.player.pos,self.player)
+        if not self.win or pyxel.frame_count-self.win_frame<60:
+            pyxel.cls(0)
+            for y in range(HEI):
+                for x in range(WID):
+                    world_item_draw(pyxel,x,y,self.map[y][x])
+            for i in range(len(self.apple.pos)):
+                world_item_draw(
+                    pyxel,
+                    self.apple.pos[i][0],
+                    self.apple.pos[i][1],
+                    self.apple.image
+                )
+            player_draw(pyxel,self.player.pos,self.player)
 
 class Blocks:
     WALL = (1,1)
@@ -52,16 +92,18 @@ class Blocks:
     CON = (0,3)
 
 class World:
-    def __init__(self,tilemap):
+    def __init__(self,tilemap,nb_rooms):
+        self.init(tilemap,nb_rooms)
+    def init(self,tilemap,nb_rooms):
         self.world_map = [[Blocks.WALL for j in range(WID)] for i in range(HEI)]
         self.tilemap = tilemap
         self.player_init_posX = 10
         self.player_init_posY = 10
 
         self.roomlist = []
-        self.nb_rooms = 3
+        self.nb_rooms = nb_rooms
 
-        self.room_size = 20
+        self.room_size = 12
 
         rect_place(self.world_map,self.player_init_posX-1,self.player_init_posY-1,20,20,Blocks.GROUND1)
         self.rooms_place(self.player_init_posX-1,self.player_init_posY+19)
@@ -116,7 +158,7 @@ class World:
             
             rect_place(self.world_map,self.con_x,self.con_y,2,2,Blocks.CON)
             rect_place(self.world_map,self.x,self.y,self.room_size,self.room_size,Blocks.GROUND1)
-            self.roomlist.append(dic_copy({'name':0,'x':self.x,'y':self.y,'con_x':self.con_x,'con_y':self.con_y}))
+            self.roomlist.append(dic_copy({'name':i+1,'x':self.x,'y':self.y,'con_x':self.con_x,'con_y':self.con_y}))
 
             
             
@@ -138,63 +180,81 @@ def world_item_draw(pyxel,x,y,block,colk=15):
         TILE_SIZE,
         colkey=colk
         )
+
 def player_draw(pyxel,pos,player):
-    for i in range(len(pos)):
-        if i == 0:
-            if player.dead:
-                world_item_draw(
-                    pyxel,
-                    pos[0][0],
-                    pos[0][1],
-                    (0,3)
-                )
-            else:
-                world_item_draw(
-                    pyxel,
-                    pos[i][0],
-                    pos[i][1],
-                    (0,2)
-                )
-        else:
-            world_item_draw(
-                pyxel,
-                pos[i][0],
-                pos[i][1],
-                (1,2)
-            )
+    for i in range(1,len(pos)):
+        world_item_draw(
+            pyxel,
+            pos[i][0],
+            pos[i][1],
+            (1,2)
+        )
+    if not player.dead:
+        world_item_draw(
+            pyxel,
+            pos[0][0],
+            pos[0][1],
+            (0,2)
+        )
+    else:
+        world_item_draw(
+            pyxel,
+            pos[0][0],
+            pos[0][1],
+            (player.death_phase,3)
+        )
 
 
 
 class Player:
-    def __init__(self,world):
+    def __init__(self,world,length):
+        self.init(world,length)
+    def init(self,world,length):
         self.x = world.player_init_posX
         self.y = world.player_init_posY
         self.pos = [(self.x,self.y)]
         self.image = [0,2]
         self.map = world.world_map
-        self.length = 1
+
+        self.length = length
         self.moved = False
         self.added_length = False
         self.dead = False
-        self.facing = (1,0)
+        self.facing = RIGHT
+        self.new_facing = RIGHT
+        self.speed = 12
+
         self.eat_frame = 0
+        self.death_frame = 0
+        self.death_phase = 0
+        self.death_length = 90
+        self.no_action = False
+        self.no_action_frame = 0
     def update(self):
         self.moved = False
-        if (pyxel.btnp(pyxel.KEY_Z) or pyxel.btnp(pyxel.KEY_UP)) and self.facing != DOWN:
-            self.facing = UP
-        elif (pyxel.btnp(pyxel.KEY_S) or pyxel.btnp(pyxel.KEY_DOWN)) and self.facing != UP:
-            self.facing = DOWN
-        elif (pyxel.btnp(pyxel.KEY_Q) or pyxel.btnp(pyxel.KEY_LEFT)) and self.facing != RIGHT:
-            self.facing = LEFT
-        elif (pyxel.btnp(pyxel.KEY_D) or pyxel.btnp(pyxel.KEY_RIGHT)) and self.facing != LEFT:
-            self.facing = RIGHT
-        self.move(self.facing)
-        if self.moved:
-            self.tail_move()
-            for i in range(1,len(self.pos)):
-                if (self.x,self.y) == self.pos[i]:
-                    self.dead = True
-                    print('you died')
+        if (pyxel.btnp(pyxel.KEY_Z) or pyxel.btnp(pyxel.KEY_UP)) and self.facing != DOWN and self.facing != UP:
+            self.new_facing = UP
+        elif (pyxel.btnp(pyxel.KEY_S) or pyxel.btnp(pyxel.KEY_DOWN)) and self.facing != UP and self.facing != DOWN:
+            self.new_facing = DOWN
+        elif (pyxel.btnp(pyxel.KEY_Q) or pyxel.btnp(pyxel.KEY_LEFT)) and self.facing != RIGHT and self.facing != LEFT:
+            self.new_facing = LEFT
+        elif (pyxel.btnp(pyxel.KEY_D) or pyxel.btnp(pyxel.KEY_RIGHT)) and self.facing != LEFT and self.facing != RIGHT:
+            self.new_facing = RIGHT
+            
+            
+        if on_tick(self.speed):
+            self.move()
+            self.facing = list_copy(self.new_facing)
+            if self.moved:
+                self.tail_move()
+                for i in range(1,len(self.pos)):
+                    if (self.x,self.y) == self.pos[i]:
+                        self.dead = True
+            
+            if self.dead:
+                print('you died')
+                self.death_frame = pyxel.frame_count
+        
 
     def tail_move(self):
         if self.length == len(self.pos):
@@ -205,40 +265,71 @@ class Player:
         else:
             self.pos.insert(0,(self.x,self.y))
     
-    def move(self,direction):
-        new_X = self.x + direction[0]
-        new_Y = self.y + direction[1]
+    def move(self):
+
+        new_X = self.x + self.new_facing[0]
+        new_Y = self.y + self.new_facing[1]
+        
+        if self.map[new_Y][new_X] == Blocks.WALL:
+            self.dead = True
+        else:
+            self.x, self.y = new_X, new_Y
+            self.moved = True
+
+
+    def death_anim(self):
+        if (pyxel.frame_count-self.death_frame)*4//self.death_length!=4:
+            self.death_phase = (pyxel.frame_count-self.death_frame)*4//self.death_length
+        else:
+            self.no_action = True
+            self.no_action_frame = pyxel.frame_count
         
         
 
-        if on_tick(10):
-            if self.map[new_Y][new_X] == Blocks.WALL:
-                self.dead = True
-                print('you died')
-            else:
-                self.x, self.y = new_X, new_Y
-                self.moved = True
 
 class Apple:
-    def __init__(self):
-        self.pos = [[11,11],[11,13]]
+    def __init__(self,world,player):
+        self.init(world,player)
+    def init(self,world,player):
+        self.world = world
+        self.player = player
+        self.pos = [[self.player.x,self.player.y + 10],[self.player.x + 2,self.player.y + 10]]
         self.image = (1,0)
-    def update(self,player,map):
+
+        self.spawning_limits = 10
+        self.apples_spawn()
+    def update(self,player,roomlist):
+        removed = 0
         for i in range(len(self.pos)):
-            if [player.x,player.y] == self.pos[i]:
-                self.eaten(player,map,i)
+            if [player.x,player.y] == self.pos[i-1-removed]:
+                self.eaten(player,roomlist,i-1-removed)
+                removed += 1
             else:
                 player.added_length = False
-    def eaten(self,player,map,i):
-        free_space = []
-        for y in range(HEI):
-            for x in range(WID):
-                if map[y][x] != Blocks.WALL: #and (x,y) not in player.pos and [x,y] not in self.pos:
-                    free_space.append((x,y))
-        self.pos[i][0], self.pos[i][0] = free_space[random.randint(0,len(free_space)-1)]
-        print(self.pos[i][0],self.pos[i][1],map[self.pos[i][0]][self.pos[i][1]])
+    def eaten(self,player,roomlist,i):
+        self.pos.remove(self.pos[i])
         player.length+=1
         player.eat_frame = pyxel.frame_count
+    
+    def apples_spawn(self):
+        for room in self.world.roomlist:
+            nb_apples = random.randint(room['name'],room['name']+self.spawning_limits)
+
+            for i in range(nb_apples):
+                free_space = []
+                for in_y in range(self.world.room_size-1):
+                    for in_x in range(self.world.room_size-1):
+                        if (room['x']+in_x,room['y']+in_y) not in self.pos:
+                            free_space.append((room['x']+in_x,room['y']+in_y))
+                if len(free_space)>0:
+                    x,y = free_space[random.randint(0,len(free_space)-1)]
+                else:
+                    x = random.randint(room['x'], room['x'] + self.world.room_size-1)
+                    y = random.randint(room['y'], room['y'] + self.world.room_size-1)
+                
+                self.pos.append([x,y])
+                        
+
         
 
 def on_tick(tickframe=60):
@@ -246,6 +337,8 @@ def on_tick(tickframe=60):
 
 class Camera:
     def __init__(self,player,margin):
+        self.init(player,margin)
+    def init(self,player,margin):
         self.x = 0
         self.y = 0
         self.player = player
@@ -277,7 +370,7 @@ def dic_copy(dico):
 def list_copy(tab):
     new_tab = []
     for i in tab:
-        new_tab.append(tab[i])
+        new_tab.append(i)
     return new_tab
 
 
