@@ -38,6 +38,9 @@ class App:
                 entity.itemList = self.itemList
                 entity.update()
 
+            for boost in activeBoosts:
+                boost.update()
+
             self.camera.update(self.player)
             pyxel.camera(self.camera.x,self.camera.y)
         else:
@@ -372,6 +375,10 @@ class Player:
         self.preventOOB()
         self.getPickupText()
         self.death()
+        if self.health > self.max_health:
+            self.health = self.max_health
+        if self.gun["ammo"] > self.gun["max_ammo"]:
+            self.gun["ammo"] = self.gun["max_ammo"]
         
 
     def movement(self):
@@ -463,6 +470,7 @@ class Player:
         if self.dashFrame >= self.dashLength:
             self.isDashing = False
             self.dashFrame = 0
+            self.triggerOnDashItems()
 
     def hitDetection(self):
         if self.isHit and self.hitFrame >= self.hitLength:
@@ -519,10 +527,10 @@ class Player:
         for item in self.ownedItems:
             if item["trigger"] == "passive" and item["effect"]=="stat_g":
                 for change in item["function"]:
-                    if change[1] == "additive":
-                        change[0] += change[2]
-                    if change[1] == "mutliplicative":
-                        change[0] *= change[2]
+                    self.increaseStat(change[0], change[1], change[2])
+        for boost in activeBoosts:
+            if boost.target == "boost_g":
+                self.increaseStat(boost.stat, boost.operation, boost.value)
 
     def increaseStat(self, stat, operation, value):
         if stat == "health":
@@ -596,7 +604,25 @@ class Player:
             elif operation == "multiplication":
                 self.gun["bullet_count"] *= value
         
+    def triggerOnKillItems(self):
+        for item in self.ownedItems:
+            if item["trigger"] == "onKill":
+                if item["effect"] == "stat_p" or item["effect"] == "stat_g":
+                    for change in item["function"]:
+                        self.increaseStat(change[0], change[1], change[2])
+                elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
+                    for change in item["function"]:
+                        Boost(change[0], change[1], change[2], change[3], item["effect"], self)
         
+    def triggerOnDashItems(self):
+        for item in self.ownedItems:
+            if item["trigger"] == "onDash":
+                if item["effect"] == "stat_p" or item["effect"] == "stat_g":
+                    for change in item["function"]:
+                        self.increaseStat(change[0], change[1], change[2])
+                elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
+                    for change in item["function"]:
+                        Boost(change[0], change[1], change[2], change[3], item["effect"], self)
 
 class Physics:
     def __init__(self, world):
@@ -852,8 +878,12 @@ class Enemy:
 
     def death(self):
         if self.health <= 0:
+
+            item_chance = 10
+            gun_chance = 10
+
             pickup = random.randint(1,100)
-            if pickup <= 10:
+            if pickup <= item_chance:
                 item_rarity = random.randint(1,20)
                 if item_rarity == 20:
                     print("gave legendary item")
@@ -864,12 +894,13 @@ class Enemy:
                     item = self.itemList.common_list[item_random]
                     PickUp(self.x, self.y, "item", item, self.player)
 
-            elif pickup > 100-10:
+            elif pickup > 100-gun_chance:
                 gun_random = random.randint(1,100)
                 for gun in Guns.Gun_list:
                     if gun_random in gun["rate"]:
                         PickUp(self.x, self.y, "weapon", gun, self.player)
 
+            self.player.triggerOnKillItems()
             loadedEntities.remove(self)
 
 pickUpsOnGround = []
@@ -900,18 +931,18 @@ class PickUp:
 class ItemList:
     def __init__(self, player):
         self.player = player
-        self.SPEED_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["speed", "addition", 0.15]]}
-        self.HEALTH_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
-        self.RANGE_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
-        self.PIERCING_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
-        self.SPREAD_PASSIVE = {"name":"placeholder", "description":"placeholder", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["spread", "multiplication", 0.8]]}
-        self.HEAL_KILL = {"name":"placeholder", "description":"placeholder", "image":[5*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.AMMO_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.COOLDOWN_KILL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.DAMAGE_ROLL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.SPEED_ROLL = {"name":"placeholder", "description":"placeholder", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common"}
-        self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.COOLDOWN_KILL, self.DAMAGE_ROLL, self.SPEED_ROLL]
-    
+        self.SPEED_PASSIVE = {"name":"Jet Fuel", "description":"Slightly increases movement speed", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["speed", "addition", 0.05]]}
+        self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Slightly increases health", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
+        self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Slighlty increases your gun's range", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
+        self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Increase your gun's piercing by 1", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
+        self.SPREAD_PASSIVE = {"name":"Focused Fire", "description":"Slightly decreases your gun's spread", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
+        self.HEAL_KILL = {"name":"Compost", "description":"Get a small heal on kill", "image":[5*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_p", "function":[["health", "addition", 7]]}
+        self.AMMO_KILL = {"name":"Reduce, Reuse, Recycle", "description":"Gain ammo back on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_g", "function":[["ammo", "addition", 3]]}
+        self.SPEED_KILL = {"name":"Blood is fuel", "description":"Gain a speed boost on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 1.1, 1*120]]}
+        self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"Gain a damage boost after dash", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
+        self.SPEED_DASH = {"name":"Inertia", "description":"Gain a speed boost after dash", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.2, 1.5*120]]}
+        self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
+
 class Camera:
     def __init__(self):
         self.x = (WIDTH//2-6)*TILE_SIZE
@@ -953,6 +984,29 @@ class Effect:
             self.frame = 0
         if self.state == self.length :
             loadedEntities.remove(self)
+        self.frame += 1
+
+activeBoosts = []
+
+class Boost:
+    def __init__(self, stat, operation, value, duration, target, player):
+        self.stat = stat
+        self.operation = operation
+        self.value = value
+        self.duration = duration
+        self.frame = 0
+        self.player = player
+        self.target = target
+        self.player.increaseStat(self.stat, self.operation, self.value)
+        activeBoosts.append(self)
+
+    def update(self):
+        if self.frame >= self.duration:
+            if self.operation == "addition":
+                self.player.increaseStat(self.stat, self.operation, -self.value)
+            elif self.operation == "multiplication":
+                self.player.increaseStat(self.stat, self.operation, 1/self.value)
+            activeBoosts.remove(self)
         self.frame += 1
 
 def collision(x1, y1, x2, y2, size1, size2):
