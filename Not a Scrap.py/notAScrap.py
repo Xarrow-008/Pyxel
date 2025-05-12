@@ -17,11 +17,13 @@ class App:
         os.system('cls')
         pyxel.init(CAM_WIDTH+20,CAM_HEIGHT+20,title='Not a Scrap', fps=FPS)
         pyxel.load('../notAScrap.pyxres')
+
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,0))
         self.player = Player(self.world, self.camera)
         self.itemList = ItemList(self.player)
         self.effects = ScreenEffect(self.player)
+        self.game_start = 0
 
         
         pyxel.mouse(True)
@@ -113,13 +115,18 @@ class App:
                 Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
 
     def restartGame(self):
+        global pickUpsOnGround
         global loadedEntities
         loadedEntities = []
+        pickUpsOnGround = []
+
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,0))
         self.player = Player(self.world, self.camera)
         self.itemList = ItemList(self.player)
         self.effects = ScreenEffect(self.player)
+        self.game_start = pyxel.frame_count
+
         pyxel.mouse(True)
         self.enemies_spawn()      
 
@@ -130,8 +137,8 @@ def check_entity(loadedEntities, key, value):
             return True
     return False
     
-def on_tick(tickrate=0.5):
-    return pyxel.frame_count % (FPS * tickrate) == 0
+def on_tick(tickrate=60):
+    return pyxel.frame_count % tickrate == 0
 
 class WorldItem:
     WALL = (0,0)
@@ -359,6 +366,14 @@ class Player:
         self.camera = camera
 
     def update(self):
+
+        self.loadedEntitiesInRange = []
+
+        for entity in loadedEntities:
+            if self != entity:
+                if in_perimeter(self.x,self.y,entity.x,entity.y,200):
+                    self.loadedEntitiesInRange.append(entity)
+
         self.posXmouse = self.camera.x+pyxel.mouse_x
         self.poxYmouse = self.camera.y+pyxel.mouse_y
         if not self.isDashing:
@@ -669,8 +684,8 @@ class Physics:
 
 class Guns:
     PISTOL = {"damage":8, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":1.5*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon"}
-    RIFLE = {"damage":8, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage"}
-    SMG = {"damage":5, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage"}
+    RIFLE = {"damage":10, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage"}
+    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage"}
     SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)], "description":"Single fire, high damage"}
     SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)], "description":"Multiple pellets, medium damage"}
     GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(95,101)], "description":"Single fire, explosive shots"}
@@ -715,6 +730,7 @@ class Bullet:
             self.player.isHit = True
             self.player.hitFrame = 0
         self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
+    
     def bullet_destroyed(self):
         if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
             if self.explode_radius > 0:
@@ -764,6 +780,8 @@ class Enemy:
 
         self.p_state = 0 #p for pathing nb of room from player
         self.p_objective= []
+        self.loaded = False
+
 
         self.image = template["image"]
         self.width = template["width"]
@@ -780,12 +798,22 @@ class Enemy:
 
     def update(self):
         
+        if self in self.player.loadedEntitiesInRange:
+            self.loaded = True
+        else:
+            self.loaded = False
+
         current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
         if current_room != 'None':
             self.room = current_room
         
+        if self.room == self.player.room:
+            pass
+
         self.horizontal = self.player.x - self.x
         self.vertical = self.player.y - self.y
+        
+        
         self.norm = math.sqrt(self.horizontal**2+self.vertical**2)
         if self.norm != 0:
             self.cos = self.horizontal/self.norm
@@ -793,18 +821,23 @@ class Enemy:
         else:
             self.cos = 0
             self.sin = 0
+            
+
+
 
         if self.hitStun:
             self.hitStunFunction()
         else:
-            self.image = [0,32]
-            self.moveTowardsPlayer()
-            self.attack()
-            self.lunge()
-            self.lungeFrame += 1
-            self.attackFrame += 1
-            self.getImage()
-            self.death()
+            if self.loaded:
+                self.image = [0,32]
+                self.moveTowardsPlayer()
+                self.enemies_pusharound()
+                self.attack()
+                self.lunge()
+                self.lungeFrame += 1
+                self.attackFrame += 1
+                self.getImage()
+                self.death()
 
     def hitStunFunction(self):
         if self.image[0]<16:
@@ -822,14 +855,15 @@ class Enemy:
         if not self.isAttacking and self.isLunging == 0:
             if self.norm < 100 and self.norm > 5:
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [self.cos, self.sin])
-                for entity in loadedEntities:
-                    if entity.type == "enemy" and collision(self.x, self.y, entity.x ,entity.y, [self.width, self.height], [entity.width, entity.height]) and entity != self:
-                        if abs(self.horizontal)>= abs(self.vertical):
-                            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0, self.sin])
-                            entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [0, -self.sin])
-                        else:
-                            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [self.cos, 0])
-                            entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-self.cos, 0])
+    
+    def enemies_pusharound(self):
+        for entity in self.player.loadedEntitiesInRange:
+            cos = random.randint(-200,200)/100
+            sin = math.sqrt((2-cos)**2) * (random.randint(0,1)*2-1)
+            if self.x-entity.x<5 and self.y-entity.y<5 and self != entity:
+                if entity.type == "enemy" and collision(self.x, self.y, entity.x ,entity.y, [self.width, self.height], [entity.width, entity.height]):
+                    self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
+                    entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-cos, -sin])
 
     def attack(self):
         if self.isLunging == 0:
@@ -902,6 +936,9 @@ class Enemy:
 
             self.player.triggerOnKillItems()
             loadedEntities.remove(self)
+
+def in_perimeter(x1,y1,x2,y2,distance):
+    return (x1-x2<distance and x1-x2>-distance) and (y1-y2<distance and y1-y2>-distance)
 
 pickUpsOnGround = []
 
