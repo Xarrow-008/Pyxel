@@ -366,6 +366,8 @@ class Player:
         self.camera = camera
 
     def update(self):
+        if pyxel.btnp(pyxel.KEY_F):
+            print(self.room['name'],self.room['connect'][0]*TILE_SIZE, self.room['connect'][1]*TILE_SIZE, self.x, self.y,self.room['direction'])
 
         current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
         if current_room != 'None':
@@ -928,32 +930,30 @@ class Enemy:
             if self.room['name']>self.player.room['name']:
                 x_con = self.room['connect'][0]
                 y_con = self.room['connect'][1]
-            elif self.room['name']<self.player.room['name']:
-                x_con = self.rooms[self.room['name']+1]['connect'][0]
-                y_con = self.rooms[self.room['name']+1]['connect'][1]
+                if self.room['direction'] == 'left':
+                    x_entry = x_con-1
+                    y_entry = y_con+0.5
+                    x_exit = x_con+3
+                    y_exit = y_con+0.5
+                elif self.room['direction'] == 'right':
+                    x_entry = x_con+3
+                    y_entry = y_con+0.5
+                    x_exit = x_con-1
+                    y_exit = y_con+0.5
+                elif self.room['direction'] == 'down':
+                    x_entry = x_con+0.5
+                    y_entry = y_con+3
+                    x_exit = x_con+0.5
+                    y_exit = y_con-1
             
-            if self.room['direction'] == 'left':
-                x_entry = x_con-1
-                y_entry = y_con+0.5
-                x_exit = x_con+3
-                y_exit = y_con+0.5
-            elif self.room['direction'] == 'right':
-                x_entry = x_con+3
-                y_entry = y_con+0.5
-                x_exit = x_con-1
-                y_exit = y_con+0.5
-            elif self.room['direction'] == 'down':
-                x_entry = x_con+0.5
-                y_entry = y_con-3
-                x_exit = x_con+0.5
-                y_exit = y_con-1
-            
-            if distance(self.x, self.y, x_exit*TILE_SIZE,y_exit*TILE_SIZE)>TILE_SIZE*5:
-                self.horizontal = x_entry*TILE_SIZE - self.x
-                self.vertical = y_entry*TILE_SIZE - self.y
-            else:
-                self.horizontal = x_exit*TILE_SIZE - self.x
-                self.vertical = y_exit*TILE_SIZE - self.y
+                if distance(self.x, self.y, x_exit*TILE_SIZE,y_exit*TILE_SIZE)<TILE_SIZE*5:
+                    self.horizontal = x_exit*TILE_SIZE - self.x
+                    self.vertical = y_exit*TILE_SIZE - self.y
+                else:
+                    if on_tick(60):
+                        print('else',self.x, self.y, x_entry*TILE_SIZE,y_entry*TILE_SIZE)
+                    self.horizontal = x_entry*TILE_SIZE - self.x
+                    self.vertical = y_entry*TILE_SIZE - self.y
                     
         self.norm = math.sqrt(self.horizontal**2+self.vertical**2)
         if self.norm != 0:
