@@ -207,7 +207,7 @@ class RoomBuild:
             rect_place(world_map,self.newConnect[0],self.newConnect[1], 2, 2, WorldItem.CONNECT)
             rect_place(world_map, self.newX, self.newY, self.newW, self.newH, WorldItem.GROUND)
             self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':(self.newConnect[0],self.newConnect[1]),'direction':last_placement})
-            
+
             self.x, self.y, self.w, self.h, self.connect = self.newX, self.newY, self.newW, self.newH, self.newConnect
         
         self.world_map = world_map
@@ -246,7 +246,7 @@ class RoomBuild:
 
 def find_room(x,y,rooms):
     for room in rooms:
-        if x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']:
+        if (x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']) or (x >= room['connect'][0] and x < room['connect'][0]+2 and y >= room['connect'][1] and y < room['connect'][1]+2):
             return room
     return 'None'
 
@@ -357,7 +357,7 @@ class Player:
         self.hitLength = 120
         self.isHit = False
 
-        self.gun = dic_copy(Guns.GRENADE_LAUNCHER)
+        self.gun = dic_copy(Guns.PISTOL)
         self.attackFrame = 0
 
         self.ownedItems = []
@@ -367,12 +367,15 @@ class Player:
 
     def update(self):
 
+        current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
+        if current_room != 'None':
+            self.room = current_room
+
         self.loadedEntitiesInRange = []
 
         for entity in loadedEntities:
-            if self != entity:
-                if in_perimeter(self.x,self.y,entity.x,entity.y,200):
-                    self.loadedEntitiesInRange.append(entity)
+            if in_perimeter(self.x,self.y,entity.x,entity.y,200):
+                self.loadedEntitiesInRange.append(entity)
 
         self.posXmouse = self.camera.x+pyxel.mouse_x
         self.poxYmouse = self.camera.y+pyxel.mouse_y
@@ -390,6 +393,7 @@ class Player:
         self.preventOOB()
         self.getPickupText()
         self.death()
+
         if self.health > self.max_health:
             self.health = self.max_health
         if self.gun["ammo"] > self.gun["max_ammo"]:
@@ -518,10 +522,6 @@ class Player:
     def death(self):
         if self.health<=0:
             self.alive = False
-        
-        current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
-        if current_room != 'None':
-            self.room = current_room
 
     def getItem(self, item):
         self.ownedItems.append(item)
@@ -778,7 +778,6 @@ class Enemy:
         self.lunge_cooldown = template["lunge_cooldown"]
         self.lungeFrame = 0
 
-        self.p_state = 0 #p for pathing nb of room from player
         self.p_objective= []
         self.loaded = False
 
@@ -807,30 +806,14 @@ class Enemy:
         if current_room != 'None':
             self.room = current_room
         
-        if self.room == self.player.room:
-            pass
-
-        self.horizontal = self.player.x - self.x
-        self.vertical = self.player.y - self.y
-        
-        
-        self.norm = math.sqrt(self.horizontal**2+self.vertical**2)
-        if self.norm != 0:
-            self.cos = self.horizontal/self.norm
-            self.sin = self.vertical/self.norm
-        else:
-            self.cos = 0
-            self.sin = 0
-            
-
-
 
         if self.hitStun:
             self.hitStunFunction()
         else:
             if self.loaded:
                 self.image = [0,32]
-                self.moveTowardsPlayer()
+                self.pathing()
+                self.moveInPathing()
                 self.enemies_pusharound()
                 self.attack()
                 self.lunge()
@@ -851,7 +834,7 @@ class Enemy:
             self.hitFrame = 0
         self.hitFrame += 1
 
-    def moveTowardsPlayer(self):
+    def moveInPathing(self):
         if not self.isAttacking and self.isLunging == 0:
             if self.norm < 100 and self.norm > 5:
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [self.cos, self.sin])
@@ -860,7 +843,7 @@ class Enemy:
         for entity in self.player.loadedEntitiesInRange:
             cos = random.randint(-200,200)/100
             sin = math.sqrt((2-cos)**2) * (random.randint(0,1)*2-1)
-            if self.x-entity.x<5 and self.y-entity.y<5 and self != entity:
+            if in_perimeter(self.x,self.y,entity.x,entity.y,3) and self != entity:
                 if entity.type == "enemy" and collision(self.x, self.y, entity.x ,entity.y, [self.width, self.height], [entity.width, entity.height]):
                     self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
                     entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-cos, -sin])
@@ -936,6 +919,53 @@ class Enemy:
 
             self.player.triggerOnKillItems()
             loadedEntities.remove(self)
+    
+    def pathing(self):
+        if self.room['name'] == self.player.room['name']:
+            self.horizontal = self.player.x - self.x
+            self.vertical = self.player.y - self.y
+        else:
+            if self.room['name']>self.player.room['name']:
+                x_con = self.room['connect'][0]
+                y_con = self.room['connect'][1]
+            elif self.room['name']<self.player.room['name']:
+                x_con = self.rooms[self.room['name']+1]['connect'][0]
+                y_con = self.rooms[self.room['name']+1]['connect'][1]
+            
+            if self.room['direction'] == 'left':
+                x_entry = x_con-1
+                y_entry = y_con+0.5
+                x_exit = x_con+3
+                y_exit = y_con+0.5
+            elif self.room['direction'] == 'right':
+                x_entry = x_con+3
+                y_entry = y_con+0.5
+                x_exit = x_con-1
+                y_exit = y_con+0.5
+            elif self.room['direction'] == 'down':
+                x_entry = x_con+0.5
+                y_entry = y_con-3
+                x_exit = x_con+0.5
+                y_exit = y_con-1
+            
+            if distance(self.x, self.y, x_exit*TILE_SIZE,y_exit*TILE_SIZE)>TILE_SIZE*5:
+                self.horizontal = x_entry*TILE_SIZE - self.x
+                self.vertical = y_entry*TILE_SIZE - self.y
+            else:
+                self.horizontal = x_exit*TILE_SIZE - self.x
+                self.vertical = y_exit*TILE_SIZE - self.y
+                    
+        self.norm = math.sqrt(self.horizontal**2+self.vertical**2)
+        if self.norm != 0:
+            self.cos = self.horizontal/self.norm
+            self.sin = self.vertical/self.norm
+        else:
+            self.cos = 0
+            self.sin = 0
+
+            
+def distance(x1,y1,x2,y2):
+    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 def in_perimeter(x1,y1,x2,y2,distance):
     return (x1-x2<distance and x1-x2>-distance) and (y1-y2<distance and y1-y2>-distance)
@@ -975,7 +1005,7 @@ class ItemList:
         self.SPREAD_PASSIVE = {"name":"Focused Fire", "description":"Slightly decreases your gun's spread", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
         self.HEAL_KILL = {"name":"Compost", "description":"Get a small heal on kill", "image":[5*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_p", "function":[["health", "addition", 7]]}
         self.AMMO_KILL = {"name":"Reduce, Reuse, Recycle", "description":"Gain ammo back on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_g", "function":[["ammo", "addition", 3]]}
-        self.SPEED_KILL = {"name":"Blood is fuel", "description":"Gain a speed boost on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 1.1, 1*120]]}
+        self.SPEED_KILL = {"name":"Blood is fuel", "description":"Gain a speed boost on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1*120]]}
         self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"Gain a damage boost after dash", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
         self.SPEED_DASH = {"name":"Inertia", "description":"Gain a speed boost after dash", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.2, 1.5*120]]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
