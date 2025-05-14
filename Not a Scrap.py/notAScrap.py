@@ -34,6 +34,7 @@ class App:
     
 
     def update(self):
+        self.update_effects()
         if self.player.alive:
             self.player.update()
             for entity in loadedEntities:
@@ -75,6 +76,20 @@ class App:
             self.player.height,
             colkey=11
         )
+
+        for slash in self.world.effects:
+            pyxel.blt(
+                slash['x'],
+                slash['y'],
+                0,
+                slash['image'][0]*TILE_SIZE,
+                slash['image'][1]*TILE_SIZE,
+                TILE_SIZE,
+                TILE_SIZE,
+                colkey=11,
+                scale=slash['scale']
+            )
+
         if self.effects.redscreen:
             pyxel.dither(self.effects.dither)
             draw_screen(
@@ -97,14 +112,14 @@ class App:
             pyxel.text(self.camera.x+1, self.camera.y+139, pickup_text[1], 7)
     
     def enemies_spawn(self):
-        margin_spawn = 5
+        margin_spawn = 3
         for room in self.world.roombuild.rooms:
-            if room['name']>=margin_spawn + 2:
-                nb_enemies = random.randint(room['name']-margin_spawn,room['name']-2)
-            elif room['name']<=2:
-                nb_enemies = random.randint(0,room['name'])
+            ideal = (room['name']+1)//2
+            if room['name'] <=4:
+                nb_enemies = ideal
             else:
-                nb_enemies = random.randint(2,room['name'])
+                nb_enemies = random.randint(ideal-margin_spawn,ideal+margin_spawn)
+            
             for i in range(nb_enemies):
                 occupied = True
                 for attempt in range(3):
@@ -131,6 +146,10 @@ class App:
         pyxel.mouse(True)
         self.enemies_spawn()      
 
+    def update_effects(self):
+        for slash in self.world.effects:
+            if pyxel.frame_count - slash['time'] > 60:
+                self.world.effects.remove(slash)
 
 def check_entity(loadedEntities, key, value):
     for entity in loadedEntities:
@@ -159,6 +178,8 @@ class World:
         
         self.roombuild.random_rooms_place(self.world_map,WIDTH//2,0,4,4,20)
         self.world_map = self.roombuild.world_map
+
+        self.effects = []
 
 class RoomBuild:
     def __init__(self, name, startX, startY):
@@ -252,8 +273,16 @@ def find_room(x,y,rooms):
     return 'None'
 
 class Furniture:
-    def __init__(self,world):
-        self.world = world
+    def __init__(self,rooms):
+        self.rooms = rooms
+        for room in rooms:
+            nb_chest = random.randin(0,2)//2
+            free_space = []
+            for y in range(room['h']):
+                for x in range(room['w']):
+                    if not collision(room['connect'][0]+1,room['connect'][1]+1,room['x']+x,room['y']+y,2,2):
+                        free_space.append((x,y))
+
 
 def dic_copy(dico):
     dicoC = {}
@@ -749,7 +778,7 @@ class Bullet:
             loadedEntities.remove(self)
 
 class EnemyTemplates:
-    BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":240, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
+    BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
     def __init__(self, x, y, template, player, world):
@@ -781,9 +810,7 @@ class Enemy:
         self.lunge_cooldown = template["lunge_cooldown"]
         self.lungeFrame = 0
 
-        self.p_objective= []
         self.loaded = False
-
 
         self.image = template["image"]
         self.width = template["width"]
@@ -809,7 +836,6 @@ class Enemy:
         if current_room != 'None':
             self.room = current_room
         
-
         if self.hitStun:
             self.hitStunFunction()
         else:
@@ -860,8 +886,15 @@ class Enemy:
             if self.isAttacking and self.attackFrame >= self.attack_freeze:
                 self.attackFrame = 0
                 self.isAttacking = False
-                Bullet(self.x+self.width/2, self.y+self.height/2, 3,3,self.attackVector, self.damage, self.attack_speed, self.range, 0, self.world, self.player,(256*TILE_SIZE,256*TILE_SIZE), "enemy", 0)
-            
+                self.slash()
+
+    def slash(self):
+        self.world.effects.append({'x':self.x+self.cos*TILE_SIZE,'y':self.y+self.sin*TILE_SIZE,'image':[6,6],'scale':1,'time':pyxel.frame_count})
+        if collision(self.x+self.cos*TILE_SIZE,self.y+self.sin*TILE_SIZE,self.player.x,self.player.y,(TILE_SIZE,TILE_SIZE),(TILE_SIZE,TILE_SIZE)): #pas assez de sin et cos
+            self.player.health -= self.damage
+            self.player.isHit = True
+            self.player.hitFrame = 0
+
     def lunge(self):
         if not self.isAttacking:
             if self.norm<=self.lunge_range and self.norm>self.range and self.lungeFrame >= self.lunge_cooldown and self.isLunging==0:
