@@ -89,10 +89,10 @@ class App:
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
         pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["ammo"])+"/"+str(self.player.gun["max_ammo"]),7)
         if self.player.gun["ammo"] < self.player.gun["max_ammo"]:
-            pyxel.text(self.camera.x+1, self.camera.y+19, "Press 'R' to reload", 7)
+            pyxel.text(self.camera.x+1, self.camera.y+19, "[R] to reload", 7)
 
         if pickup_text != ["N/A"]:
-            pyxel.text(self.camera.x+1, self.camera.y+127, "Press 'E' to pickup", 7)
+            pyxel.text(self.camera.x+1, self.camera.y+127, "[E] to pickup", 7)
             pyxel.text(self.camera.x+1, self.camera.y+133, pickup_text[0], 7)
             pyxel.text(self.camera.x+1, self.camera.y+139, pickup_text[1], 7)
     
@@ -100,10 +100,11 @@ class App:
         margin_spawn = 5
         for room in self.world.roombuild.rooms:
             if room['name']>=margin_spawn + 2:
-                nb_enemies = random.randint(room['name']-margin_spawn,room['name'])
-            else:
+                nb_enemies = random.randint(room['name']-margin_spawn,room['name']-2)
+            elif room['name']<=2:
                 nb_enemies = random.randint(0,room['name'])
-
+            else:
+                nb_enemies = random.randint(2,room['name'])
             for i in range(nb_enemies):
                 occupied = True
                 for attempt in range(3):
@@ -945,15 +946,36 @@ class Enemy:
                     y_entry = y_con+3
                     x_exit = x_con+0.5
                     y_exit = y_con-1
+
+            else:
+                room = self.rooms[self.room['name']+1]
+                x_con = room['connect'][0]
+                y_con = room['connect'][1]
+                if room['direction'] == 'left':
+                    x_entry = x_con+3
+                    y_entry = y_con+0.5
+                    x_exit = x_con-1
+                    y_exit = y_con+0.5
+                elif room['direction'] == 'right':
+                    x_entry = x_con-1
+                    y_entry = y_con+0.5
+                    x_exit = x_con+3
+                    y_exit = y_con+0.5
+                elif room['direction'] == 'down':
+                    x_entry = x_con+0.5
+                    y_entry = y_con-1
+                    x_exit = x_con+0.5
+                    y_exit = y_con+3
+
+                    
+
             
-                if distance(self.x, self.y, x_exit*TILE_SIZE,y_exit*TILE_SIZE)<TILE_SIZE*5:
-                    self.horizontal = x_exit*TILE_SIZE - self.x
-                    self.vertical = y_exit*TILE_SIZE - self.y
-                else:
-                    if on_tick(60):
-                        print('else',self.x, self.y, x_entry*TILE_SIZE,y_entry*TILE_SIZE)
-                    self.horizontal = x_entry*TILE_SIZE - self.x
-                    self.vertical = y_entry*TILE_SIZE - self.y
+            if distance(self.x, self.y, x_exit*TILE_SIZE,y_exit*TILE_SIZE)<TILE_SIZE*5:
+                self.horizontal = x_exit*TILE_SIZE - self.x
+                self.vertical = y_exit*TILE_SIZE - self.y
+            else:
+                self.horizontal = x_entry*TILE_SIZE - self.x
+                self.vertical = y_entry*TILE_SIZE - self.y
                     
         self.norm = math.sqrt(self.horizontal**2+self.vertical**2)
         if self.norm != 0:
