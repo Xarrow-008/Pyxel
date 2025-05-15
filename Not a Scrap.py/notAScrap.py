@@ -35,6 +35,7 @@ class App:
 
     def update(self):
         self.update_effects()
+        self.effects.update(self.player)
         if self.player.alive:
             self.player.update()
             for entity in loadedEntities:
@@ -46,9 +47,12 @@ class App:
 
             self.camera.update(self.player)
             pyxel.camera(self.camera.x,self.camera.y)
-        else:
-            self.restartGame()
-        self.effects.update(self.player)
+        
+        if on_tick(30):
+            if not self.player.alive:
+                self.restartGame()
+            else:
+                self.check_win()
     
     def draw(self):
         for y in range(HEIGHT):
@@ -136,11 +140,11 @@ class App:
         loadedEntities = []
         pickUpsOnGround = []
 
-        self.camera = Camera()
-        self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,0))
-        self.player = Player(self.world, self.camera)
-        self.itemList = ItemList(self.player)
-        self.effects = ScreenEffect(self.player)
+        self.camera.__init__()
+        self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
+        self.player.__init__(self.world, self.camera)
+        self.itemList.__init__(self.player)
+        self.effects.__init__(self.player)
         self.game_start = pyxel.frame_count
 
         pyxel.mouse(True)
@@ -150,6 +154,14 @@ class App:
         for slash in self.world.effects:
             if pyxel.frame_count - slash['time'] > 60:
                 self.world.effects.remove(slash)
+
+    def check_win(self):
+        enemycounter = 0
+        for entity in loadedEntities:
+            if entity.type == 'enemy':
+                enemycounter += 1
+        if enemycounter == 0:
+            self.restartGame()
 
 def check_entity(loadedEntities, key, value):
     for entity in loadedEntities:
@@ -166,6 +178,7 @@ class WorldItem:
     CONNECT = (1,1)
 
     BLOCKS = [WALL,GROUND]
+    UPWORLD_FLOOR = [(3,0),(2,1),(3,1)]
 
 class World:
     def __init__(self,tilemap,roombuild):
@@ -178,6 +191,11 @@ class World:
         
         self.roombuild.random_rooms_place(self.world_map,20)
         self.world_map = self.roombuild.world_map
+        rect_place(self.world_map,0,0,WIDTH,9,(2,0))
+        for i in range(WIDTH):
+            self.world_map[9][i] = WorldItem.UPWORLD_FLOOR[random.randint(0,len(WorldItem.UPWORLD_FLOOR)-1)]
+        rect_place(self.world_map,0,0,1,10,WorldItem.WALL)
+        rect_place(self.world_map,WIDTH-1,0,1,10,WorldItem.WALL)
 
         self.effects = []
 
@@ -509,7 +527,7 @@ class Player:
             self.gun["ammo"]=self.gun["max_ammo"]
 
     def dash(self):
-        if (pyxel.btnp(pyxel.KEY_SPACE) or pyxel.btnp(pyxel.KEY_SHIFT)) and self.dashFrame >= self.dashCooldown:
+        if (pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_SHIFT)) and self.dashFrame >= self.dashCooldown:
             self.isDashing = True
             self.dashFrame = 0
             self.physics.momentum = self.speed*2.5
@@ -792,6 +810,8 @@ class Enemy:
         self.health = template["health"]
         self.speed = template["speed"]
         self.physics.momentum = self.speed
+        self.cos = 0
+        self.sin = 0
 
         self.isAttacking = False
         self.damage = template["damage"]
@@ -1061,7 +1081,7 @@ class ItemList:
         self.AMMO_KILL = {"name":"Blood Bullets", "description":"Gain ammo back on kill", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_g", "function":[["ammo", "addition", 2]]}
         self.SPEED_KILL = {"name":"Hot Blood", "description":"Gain a speed boost on kill", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.05, 1*120]]}
         self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"Gain a damage boost after dash", "image":[3*TILE_SIZE,9*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
-        self.SPEED_DASH = {"name":"Reactor Boost", "description":"Gain a speed boost after dash", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120]]}
+        self.SPEED_DASH = {"name":"Reactor Boost", "description":"Gain a speed boost after dash", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120]]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
 
 class Camera:
@@ -1079,6 +1099,15 @@ class Camera:
             self.y = player.y - CAM_HEIGHT * self.margin
         if player.y + TILE_SIZE  > self.y + CAM_HEIGHT * (1-self.margin) and self.y + CAM_HEIGHT < HEIGHT * TILE_SIZE:
             self.y = player.y + TILE_SIZE - CAM_HEIGHT * (1-self.margin)
+
+        if self.x<0:
+            self.x = 0
+        if self.x>WIDTH*TILE_SIZE>-CAM_WIDTH:
+            self.x = WIDTH-CAM_WIDTH
+        if self.y<0:
+            self.y = 0
+        if self.y>HEIGHT*TILE_SIZE-CAM_HEIGHT:
+            self.y = HEIGHT-CAM_HEIGHT
         
         self.x, self.y = round(self.x),round(self.y)
 
