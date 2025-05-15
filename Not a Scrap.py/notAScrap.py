@@ -19,7 +19,7 @@ class App:
         pyxel.load('../notAScrap.pyxres')
 
         self.camera = Camera()
-        self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,0))
+        self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
         self.player = Player(self.world, self.camera)
         self.itemList = ItemList(self.player)
         self.effects = ScreenEffect(self.player)
@@ -115,7 +115,7 @@ class App:
         margin_spawn = 3
         for room in self.world.roombuild.rooms:
             ideal = (room['name']+1)//2
-            if room['name'] <=4:
+            if room['name'] <=6:
                 nb_enemies = ideal
             else:
                 nb_enemies = random.randint(ideal-margin_spawn,ideal+margin_spawn)
@@ -173,10 +173,10 @@ class World:
         self.roombuild = roombuild
         self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
         self.player_init_posX = WIDTH//2+2
-        self.player_init_posY = 0
+        self.player_init_posY = 10
         self.nb_rooms = 20
         
-        self.roombuild.random_rooms_place(self.world_map,WIDTH//2,0,4,4,20)
+        self.roombuild.random_rooms_place(self.world_map,20)
         self.world_map = self.roombuild.world_map
 
         self.effects = []
@@ -198,37 +198,34 @@ class RoomBuild:
         self.newConnect = [0,0]
         self.max_size = 5
         self.collide_tolerated = 3
-    def random_rooms_place(self, world_map, startX, startY, startW, startH, nb_rooms):
-        rect_place(world_map,startX,startY,startW,startH,WorldItem.GROUND)
-        last_placement = 'N/A'
+    
+    def random_rooms_place(self, world_map, nb_rooms):
+        rect_place(world_map,self.x,self.y,self.w,self.h,WorldItem.GROUND)
+        self.last_placement = 'N/A'
         for i in range(nb_rooms):
 
             self.newW = random.randint(2,self.max_size)*2
             self.newH = random.randint(2,self.max_size)*2
 
-            if last_placement == 'down':
+            if self.last_placement == 'down':
                 self.room_pos = random.randint(0,2)
                 if self.room_pos == 0 and self.x>self.max_size*2+1:
                     self.room_place_left()
-                    last_placement = 'left'
+                    self.fix_collide_rooms()
 
                 elif self.room_pos == 1 and self.x<WIDTH-self.max_size*2+1:
                     self.room_place_right()
-                    last_placement = 'right'
+                    self.fix_collide_rooms()
 
                 else:
                     self.room_place_down()
 
             else:
                 self.room_place_down()
-                last_placement = 'down'
-
-                if last_placement != 'down':
-                    self.fix_collide_rooms() #found 1 bug "1fixed 1fixed" but 1 was left unfixed when it couldve been
             
             rect_place(world_map,self.newConnect[0],self.newConnect[1], 2, 2, WorldItem.CONNECT)
             rect_place(world_map, self.newX, self.newY, self.newW, self.newH, WorldItem.GROUND)
-            self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':(self.newConnect[0],self.newConnect[1]),'direction':last_placement})
+            self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':(self.newConnect[0],self.newConnect[1]),'direction':self.last_placement})
 
             self.x, self.y, self.w, self.h, self.connect = self.newX, self.newY, self.newW, self.newH, self.newConnect
         
@@ -239,32 +236,34 @@ class RoomBuild:
         self.newConnect[1] = self.y + random.randint(0,self.h-2)
         self.newX = self.newConnect[0] - self.newW
         self.newY = self.newConnect[1] - random.randint(0,self.newH-2)
-        self.last_down = False
+        self.last_placement = 'left'
     def room_place_right(self):
         self.newConnect[0] = self.x + self.w
         self.newConnect[1] = self.y + random.randint(0,self.h-2)
         self.newX = self.newConnect[0] +2
         self.newY = self.newConnect[1] - random.randint(0,self.newH-2)
-        self.last_down = False
+        self.last_placement = 'right'
     def room_place_down(self):
         self.newConnect[0] = self.x + random.randint(1,self.w-2)
         self.newConnect[1] = self.y + self.h
         self.newX = self.newConnect[0] - random.randint(0,self.newW-2)
         self.newY = self.newConnect[1] +2
+        self.last_placement = 'down'
         
     def fix_collide_rooms(self): #plupart des collisions arrivent a cause de newY trop haut 'dont work'
+        collided=False
         for room in self.rooms:
-            collided=False
-            if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
-                collided=True
-            
-            if collided:
-                if self.newH>4:
-                    for i in range(self.newH-4):
-                        if collided:
-                            if not collision(self.newX-1,self.newY-1+i,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])): #ajouté +i pour descendre la room pour voir si ca collide pas
-                                self.newY = self.newY+i
-                                collided = False
+            if not collided:
+                if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                    collided=True
+                    self.room_place_down()
+                    if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                        self.room_place_left()
+                        if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                            self.room_place_right()
+                            if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                                self.room_place_down()
+                                print('collision')
 
 def find_room(x,y,rooms):
     for room in rooms:
@@ -360,7 +359,7 @@ class Player:
     def __init__(self, world, camera):
         self.alive = True
         self.x = world.player_init_posX*TILE_SIZE
-        self.y = world.player_init_posY
+        self.y = world.player_init_posY*TILE_SIZE
         self.image = (1,3)
         self.width = TILE_SIZE
         self.height = TILE_SIZE
@@ -406,7 +405,7 @@ class Player:
         self.loadedEntitiesInRange = []
 
         for entity in loadedEntities:
-            if in_perimeter(self.x,self.y,entity.x,entity.y,200):
+            if in_perimeter(self.camera.x+CAM_WIDTH//2,self.camera.y+CAM_HEIGHT//2,entity.x,entity.y,CAM_WIDTH*3//4):
                 self.loadedEntitiesInRange.append(entity)
 
         self.posXmouse = self.camera.x+pyxel.mouse_x
@@ -715,8 +714,8 @@ class Physics:
         return x,y
 
 class Guns:
-    PISTOL = {"damage":8, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":1.5*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon"}
-    RIFLE = {"damage":10, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage"}
+    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon"}
+    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage"}
     SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage"}
     SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)], "description":"Single fire, high damage"}
     SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)], "description":"Multiple pellets, medium damage"}
@@ -778,7 +777,7 @@ class Bullet:
             loadedEntities.remove(self)
 
 class EnemyTemplates:
-    BASE = {"health":50, "speed":0.2, "damage":5, "range":2.5*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
+    BASE = {"health":50, "speed":0.2, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
     def __init__(self, x, y, template, player, world):
@@ -1053,16 +1052,16 @@ class PickUp:
 class ItemList:
     def __init__(self, player):
         self.player = player
-        self.SPEED_PASSIVE = {"name":"Jet Fuel", "description":"Slightly increases movement speed", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["speed", "addition", 0.05]]}
+        self.SPEED_PASSIVE = {"name":"Jet speedup", "description":"Slightly increases movement speed", "image":[1*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["speed", "addition", 0.05]]}
         self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Slightly increases health", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
         self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Slighlty increases your gun's range", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
         self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Increase your gun's piercing by 1", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
         self.SPREAD_PASSIVE = {"name":"Focused Fire", "description":"Slightly decreases your gun's spread", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
-        self.HEAL_KILL = {"name":"Compost", "description":"Get a small heal on kill", "image":[5*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_p", "function":[["health", "addition", 7]]}
-        self.AMMO_KILL = {"name":"Reduce, Reuse, Recycle", "description":"Gain ammo back on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_g", "function":[["ammo", "addition", 3]]}
-        self.SPEED_KILL = {"name":"Blood is fuel", "description":"Gain a speed boost on kill", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1*120]]}
-        self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"Gain a damage boost after dash", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
-        self.SPEED_DASH = {"name":"Inertia", "description":"Gain a speed boost after dash", "image":[1*TILE_SIZE,6*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.2, 1.5*120]]}
+        self.HEAL_KILL = {"name":"Filth Blood", "description":"Get a small heal on kill", "image":[0*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_p", "function":[["health", "addition", 7]]}
+        self.AMMO_KILL = {"name":"Blood Bullets", "description":"Gain ammo back on kill", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_g", "function":[["ammo", "addition", 2]]}
+        self.SPEED_KILL = {"name":"Hot Blood", "description":"Gain a speed boost on kill", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.05, 1*120]]}
+        self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"Gain a damage boost after dash", "image":[3*TILE_SIZE,9*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
+        self.SPEED_DASH = {"name":"Reactor Boost", "description":"Gain a speed boost after dash", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120]]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
 
 class Camera:
