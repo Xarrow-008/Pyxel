@@ -15,8 +15,9 @@ pickup_text = ["N/A"]
 class App:
     def __init__(self):
         os.system('cls')
-        pyxel.init(CAM_WIDTH+20,CAM_HEIGHT+20,title='Not a Scrap', fps=FPS)
+        pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=FPS)
         pyxel.load('../notAScrap.pyxres')
+        pyxel.playm(0, loop=True)
 
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
@@ -146,6 +147,7 @@ class App:
         self.itemList.__init__(self.player)
         self.effects.__init__(self.player)
         self.game_start = pyxel.frame_count
+        pyxel.stop()
 
         pyxel.mouse(True)
         self.enemies_spawn()      
@@ -494,6 +496,8 @@ class Player:
 
     def fireWeapon(self):
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.attackFrame>=self.gun["cooldown"] and self.gun["ammo"]>0:
+            pyxel.play(0,60)
+            pyxel.play(1,61)
             self.attackFrame = 0
             self.gun["ammo"] -= 1
             for i in range(self.gun["bullet_count"]):
@@ -1102,12 +1106,12 @@ class Camera:
 
         if self.x<0:
             self.x = 0
-        if self.x>WIDTH*TILE_SIZE>-CAM_WIDTH:
-            self.x = WIDTH-CAM_WIDTH
+        if self.x + CAM_WIDTH > WIDTH*TILE_SIZE:
+            self.x = WIDTH*TILE_SIZE - CAM_WIDTH
         if self.y<0:
             self.y = 0
-        if self.y>HEIGHT*TILE_SIZE-CAM_HEIGHT:
-            self.y = HEIGHT-CAM_HEIGHT
+        if self.y - CAM_HEIGHT > HEIGHT*TILE_SIZE:
+            self.y = HEIGHT*TILE_SIZE-CAM_HEIGHT
         
         self.x, self.y = round(self.x),round(self.y)
 
