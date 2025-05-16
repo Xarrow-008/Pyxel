@@ -60,6 +60,7 @@ class Player:
             presses.append('q')
         if pyxel.btn(pyxel.KEY_D):
             presses.append('d')
+        return button in presses
 
 
 class Camera:
