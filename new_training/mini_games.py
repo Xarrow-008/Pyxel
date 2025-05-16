@@ -66,6 +66,7 @@ class Player:
             presses.append('q')
         if pyxel.btn(pyxel.KEY_D):
             presses.append('d')
+        return button in presses
 
 class Physics:
     def __init__(self):
@@ -100,4 +101,8 @@ class Camera:
         elif self.y > HEIGHT*TILE_SIZE - CAM_H:
             self.y = HEIGHT*TILE_SIZE - CAM_H
 
+<<<<<<< HEAD
+=======
+       
+>>>>>>> 4eaca3dc025a902a042c002aa786412646b72254
 App()
