@@ -112,9 +112,9 @@ class App:
             pyxel.text(self.camera.x+1, self.camera.y+19, "[R] to reload", 7)
 
         if pickup_text != ["N/A"]:
-            pyxel.text(self.camera.x+1, self.camera.y+127, "[E] to pickup", 7)
-            pyxel.text(self.camera.x+1, self.camera.y+133, pickup_text[0], 7)
-            pyxel.text(self.camera.x+1, self.camera.y+139, pickup_text[1], 7)
+            pyxel.text(self.camera.x+1, self.camera.y+107, "[E] to pickup", 7)
+            pyxel.text(self.camera.x+1, self.camera.y+113, pickup_text[0], 7)
+            pyxel.text(self.camera.x+1, self.camera.y+119, pickup_text[1], 7)
     
     def enemies_spawn(self):
         margin_spawn = 3
