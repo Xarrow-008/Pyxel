@@ -91,11 +91,4 @@ class Camera:
             self.y = HEIGHT*TILE_SIZE - CAM_H
 
        
-
-
-
-class Player:
-    def __init__(self):
-        self.x = 2
-
 App()
