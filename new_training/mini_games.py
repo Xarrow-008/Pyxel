@@ -93,4 +93,9 @@ class Camera:
        
 
 
+
+class Player:
+    def __init__(self):
+        self.x = 2
+
 App()
