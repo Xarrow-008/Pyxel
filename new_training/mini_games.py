@@ -49,6 +49,12 @@ class Player:
     def update(self):
         if presses('z'):
             self.move(UP)
+        if presses('s'):
+            self.move(DOWN)
+        if presses('q'):
+            self.move(LEFT)
+        if presses('d'):
+            self.move(RIGHT)
 
     def presses(button):
         presses = []
@@ -60,6 +66,10 @@ class Player:
             presses.append('q')
         if pyxel.btn(pyxel.KEY_D):
             presses.append('d')
+
+class Physics:
+    def __init__(self):
+        
 
 
 class Camera:
@@ -89,13 +99,5 @@ class Camera:
             self.y = 0
         elif self.y > HEIGHT*TILE_SIZE - CAM_H:
             self.y = HEIGHT*TILE_SIZE - CAM_H
-
-       
-
-
-
-class Player:
-    def __init__(self):
-        self.x = 2
 
 App()
