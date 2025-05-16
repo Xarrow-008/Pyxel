@@ -28,4 +28,9 @@ class Camera:
     def __init__(self,player):
         pass
 
+
+class Player:
+    def __init__(self):
+        self.x = 2
+
 App()
