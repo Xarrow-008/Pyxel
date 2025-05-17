@@ -78,22 +78,33 @@ class Player:
         
         if self.presses('z'):
             self.move(UP)
+            self.facing = UP
         if self.presses('s'):
             self.move(DOWN)
+            self.facing = DOWN
         if self.presses('q'):
             self.move(LEFT)
+            self.facing = LEFT
         if self.presses('d'):
             self.move(RIGHT)
+            self.facing = RIGHT
 
         if self.presses('z') or self.presses('s') or self.presses('q') or self.presses('d'):
             self.moved = True
+            if self.facing == UP:
+                self.image = (1,2)
+            elif self.facing == DOWN:
+                self.image = (0,2)
+            elif self.facing == LEFT:
+                self.image = (1,3)
+            elif self.facing == RIGHT:
+                self.image = (0,3)
         else:
             self.moved = False
 
     def move(self,direction):
     
-        self.x, self.y = self.physics.move(self.x,self.y,TILE_SIZE,TILE_SIZE,direction)
-        print(self.x, self.y)
+        self.x, self.y = self.x + direction[0], self.y + direction[1]
 
     def presses(self,button):
         presses = []
@@ -136,13 +147,14 @@ class Camera:
 
         if self.x<0:
             self.x = 0
-        elif self.x > WIDTH*TILE_SIZE - CAM_W:
-            self.x > WIDTH*TILE_SIZE - CAM_W
+        if self.x > WIDTH*TILE_SIZE - CAM_W:
+            self.x = WIDTH*TILE_SIZE - CAM_W
         
         if self.y<0:
             self.y = 0
-        elif self.y > HEIGHT*TILE_SIZE - CAM_H:
+        if self.y > HEIGHT*TILE_SIZE - CAM_H:
             self.y = HEIGHT*TILE_SIZE - CAM_H
+        print(self.x, self.y, WIDTH*TILE_SIZE - CAM_W)
 
 
 def collision(x1, y1, x2, y2, size1, size2):

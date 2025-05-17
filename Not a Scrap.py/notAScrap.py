@@ -296,12 +296,8 @@ class Furniture:
         self.rooms = rooms
         for room in rooms:
             nb_chest = random.randin(0,2)//2
-            free_space = []
-            for y in range(room['h']):
-                for x in range(room['w']):
-                    if not collision(room['connect'][0]+1,room['connect'][1]+1,room['x']+x,room['y']+y,2,2):
-                        free_space.append((x,y))
-
+            X_chest = random.randint(room['x'],room['x']+room['w']-1)
+            Y_chest = random.randint(room['y'],room['y']+room['h']-1)
 
 def dic_copy(dico):
     dicoC = {}
@@ -496,8 +492,8 @@ class Player:
 
     def fireWeapon(self):
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.attackFrame>=self.gun["cooldown"] and self.gun["ammo"]>0:
-            pyxel.play(0,60)
-            pyxel.play(1,61)
+            pyxel.play(2,60)
+            pyxel.play(3,61)
             self.attackFrame = 0
             self.gun["ammo"] -= 1
             for i in range(self.gun["bullet_count"]):
@@ -736,11 +732,11 @@ class Physics:
         return x,y
 
 class Guns:
-    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon"}
-    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage"}
-    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage"}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)], "description":"Single fire, high damage"}
-    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)], "description":"Multiple pellets, medium damage"}
+    PISTOL = {"damage":9, "bullet_speed":0.75, "range":4*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.9*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon"}
+    RIFLE = {"damage":12, "bullet_speed":0.9, "range":6*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage"}
+    SMG = {"damage":8, "bullet_speed":1, "range":3*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage"}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":10*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)], "description":"Single fire, high damage"}
+    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":3*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)], "description":"Multiple pellets, medium damage"}
     GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(95,101)], "description":"Single fire, explosive shots"}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
@@ -799,7 +795,7 @@ class Bullet:
             loadedEntities.remove(self)
 
 class EnemyTemplates:
-    BASE = {"health":50, "speed":0.2, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.75,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
+    BASE = {"health":50, "speed":0.3, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
     def __init__(self, x, y, template, player, world):
@@ -880,7 +876,7 @@ class Enemy:
         elif self.image[0]<32:
             self.image[0] += 16
         if self.hitFrame<=4:
-            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-self.cos*2, -self.sin*2])
+            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-self.cos, -self.sin])
         if self.hitFrame >= 24:
             self.hitStun = False
             self.hitFrame = 0
@@ -1081,11 +1077,11 @@ class ItemList:
         self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Slighlty increases your gun's range", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
         self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Increase your gun's piercing by 1", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
         self.SPREAD_PASSIVE = {"name":"Focused Fire", "description":"Slightly decreases your gun's spread", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
-        self.HEAL_KILL = {"name":"Filth Blood", "description":"Get a small heal on kill", "image":[0*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_p", "function":[["health", "addition", 7]]}
-        self.AMMO_KILL = {"name":"Blood Bullets", "description":"Gain ammo back on kill", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_g", "function":[["ammo", "addition", 2]]}
-        self.SPEED_KILL = {"name":"Hot Blood", "description":"Gain a speed boost on kill", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.05, 1*120]]}
+        self.HEAL_KILL = {"name":"Filth Blood", "description":"Get a small heal on kill", "image":[0*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_p", "function":[["health", "addition", 2]]}
+        self.AMMO_KILL = {"name":"Blood Bullets", "description":"Gain ammo back on kill", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"stat_g", "function":[["ammo", "addition", 1]]}
+        self.SPEED_KILL = {"name":"Hot Blood", "description":"Gain a speed boost on kill", "image":[4*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.05, 1*120]]}
         self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"Gain a damage boost after dash", "image":[3*TILE_SIZE,9*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
-        self.SPEED_DASH = {"name":"Reactor Boost", "description":"Gain a speed boost after dash", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120]]}
+        self.SPEED_DASH = {"name":"Reactor Boost", "description":"Gain a speed boost after dash", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.01, 1*120]]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
 
 class Camera:
