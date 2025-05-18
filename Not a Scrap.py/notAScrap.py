@@ -17,7 +17,6 @@ class App:
         os.system('cls')
         pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=FPS)
         pyxel.load('../notAScrap.pyxres')
-        pyxel.playm(0, loop=True)
 
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
