@@ -516,7 +516,7 @@ class Player:
                 if self.gun["name"] != "Grenade Launcher":
                     Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", 0)
                 else:
-                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", é.5*TILE_SIZE)
+                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", 1.5*TILE_SIZE)
 
     def reloadWeapon(self):
         if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"] and self.gun["ammo"]!=0:
@@ -532,24 +532,6 @@ class Player:
             self.dashFrame = 0
             self.physics.momentum = self.speed*2.5
             self.image = [6,2]
-
-    def slash(self):
-        if (pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT) or pyxel.btn(pyxel.KEY_C)) and self.attackFrame>=self.slash_cooldown:
-            self.attackFrame = 0
-            horizontal = self.posXmouse - (self.x+self.width/2)
-            vertical = self.poxYmouse - (self.y+self.height/2)
-            norm = math.sqrt(horizontal**2+vertical**2)
-            if norm != 0:
-                cos = horizontal/norm
-                sin = vertical/norm
-            else:
-                cos = 0
-                sin = 0
-            self.world.effects.append({'x':self.x+cos*TILE_SIZE,'y':self.y+sin*TILE_SIZE,'image':[6,6],'scale':1.1,'time':pyxel.frame_count})
-            for entity in self.loadedEntitiesInRange:
-                if collision(self.x+cos*TILE_SIZE,self.y+sin*TILE_SIZE,entity.x,entity.y,(TILE_SIZE*1.1,TILE_SIZE*1.1),(TILE_SIZE,TILE_SIZE)) and entity.type == 'enemy':
-                    entity.health -= self.damage
-                    entity.hitStun = True
 
     def dashMovement(self):
         self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.facing)
