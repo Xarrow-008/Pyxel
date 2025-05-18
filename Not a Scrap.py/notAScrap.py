@@ -394,6 +394,9 @@ class Player:
         self.dashLength = 20
         self.dashFrame = 0
         self.dashStrength = self.speed*2.5
+        
+        self.damage = 10
+        self.slash_cooldown = 0.5*120
 
         self.health = 50
         self.max_health = 50
@@ -429,6 +432,7 @@ class Player:
         if not self.isDashing:
             self.movement()
             self.fireWeapon()
+            self.slash()
             self.reloadWeapon()
             self.dash()
         else:
@@ -521,6 +525,24 @@ class Player:
             
         if self.gun["ammo"]==0 and self.attackFrame>=self.gun["reload"]:
             self.gun["ammo"]=self.gun["max_ammo"]
+            
+    def slash(self):
+        if (pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT) or pyxel.btn(pyxel.KEY_C)) and self.attackFrame>=self.slash_cooldown:
+            self.attackFrame = 0
+            horizontal = self.posXmouse - (self.x+self.width/2)
+            vertical = self.poxYmouse - (self.y+self.height/2)
+            norm = math.sqrt(horizontal**2+vertical**2)
+            if norm != 0:
+                cos = horizontal/norm
+                sin = vertical/norm
+            else:
+                cos = 0
+                sin = 0
+            self.world.effects.append({'x':self.x+cos*TILE_SIZE,'y':self.y+sin*TILE_SIZE,'image':[6,6],'scale':1.1,'time':pyxel.frame_count})
+            for entity in self.loadedEntitiesInRange:
+                if collision(self.x+cos*TILE_SIZE,self.y+sin*TILE_SIZE,entity.x,entity.y,(TILE_SIZE*1.1,TILE_SIZE*1.1),(TILE_SIZE,TILE_SIZE)) and entity.type == 'enemy':
+                    entity.health -= self.damage
+                    entity.hitStun = True
 
     def dash(self):
         if (pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_SHIFT)) and self.dashFrame >= self.dashCooldown:
