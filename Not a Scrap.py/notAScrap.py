@@ -506,21 +506,17 @@ class Player:
                 norm = math.sqrt(horizontal**2+vertical**2)
                 if norm != 0:
                     cos = horizontal/norm
-                    lowest_cos = cos*(1-self.gun["spread"])
-                    highest_cos = cos*(1+self.gun["spread"])
-                    cos = random.uniform(lowest_cos, highest_cos)
-
                     sin = vertical/norm
-                    lowest_sin = sin*(1-self.gun["spread"])
-                    highest_sin = sin*(1+self.gun["spread"])
-                    sin = random.uniform(lowest_sin, highest_sin)
+                    angle = math.acos(cos)*pyxel.sgn(sin)
+                    lowest_angle = angle*(1-self.gun["spread"])
+                    highest_angle = angle*(1+self.gun["spread"])
+                    angle = random.uniform(lowest_angle, highest_angle)
+                    cos = math.cos(angle)
+                    sin = math.sin(angle)
                 else:
                     cos = 0
                     sin = 0
-                if self.gun["name"] != "Grenade Launcher":
-                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", 0)
-                else:
-                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", 1.5*TILE_SIZE)
+                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", self.gun["explode_radius"])
 
     def reloadWeapon(self):
         if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"] and self.gun["ammo"]!=0:
@@ -680,7 +676,7 @@ class Player:
                         self.increaseStat(change[0], change[1], change[2])
                 elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
                     for change in item["function"]:
-                        Boost(change[0], change[1], change[2], change[3], item["effect"], self)
+                        Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
         
     def triggerOnDashItems(self):
         for item in self.ownedItems:
@@ -690,7 +686,13 @@ class Player:
                         self.increaseStat(change[0], change[1], change[2])
                 elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
                     for change in item["function"]:
-                        Boost(change[0], change[1], change[2], change[3], item["effect"], self)
+                        boost_already_active = False
+                        for boost in activeBoosts: #Si l'item est déja actif, on remet son timer à 0, sinon, on créé un boost
+                            if boost.creator == item:
+                                boost_already_active = True
+                                boost.frame = 0
+                        if not boost_already_active:
+                            Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
 class Physics:
     def __init__(self, world):
@@ -736,12 +738,12 @@ class Physics:
         return x,y
 
 class Guns:
-    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon"}
-    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage"}
-    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage"}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)], "description":"Single fire, high damage"}
-    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)], "description":"Multiple pellets, medium damage"}
-    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(95,101)], "description":"Single fire, explosive shots"}
+    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon", "explode_radius":0}
+    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage", "explode_radius":0}
+    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage", "explode_radius":0}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)], "description":"Single fire, high damage", "explode_radius":0}
+    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)], "description":"Multiple pellets, medium damage", "explode_radius":0}
+    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(95,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
 class Bullet:
@@ -1143,7 +1145,7 @@ class Effect:
 activeBoosts = []
 
 class Boost:
-    def __init__(self, stat, operation, value, duration, target, player):
+    def __init__(self, stat, operation, value, duration, target, player, creator):
         self.stat = stat
         self.operation = operation
         self.value = value
@@ -1153,6 +1155,7 @@ class Boost:
         self.target = target
         self.player.increaseStat(self.stat, self.operation, self.value)
         activeBoosts.append(self)
+        self.creator = creator
 
     def update(self):
         if self.frame >= self.duration:
