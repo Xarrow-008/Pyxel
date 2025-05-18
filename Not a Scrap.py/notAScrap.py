@@ -395,9 +395,6 @@ class Player:
         self.dashFrame = 0
         self.dashStrength = self.speed*2.5
 
-        self.damage = 10
-        self.slash_cooldown = 0.5*120
-
         self.health = 50
         self.max_health = 50
         self.last_health = self.health
@@ -432,7 +429,6 @@ class Player:
         if not self.isDashing:
             self.movement()
             self.fireWeapon()
-            self.slash()
             self.reloadWeapon()
             self.dash()
         else:
@@ -520,7 +516,7 @@ class Player:
                 if self.gun["name"] != "Grenade Launcher":
                     Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", 0)
                 else:
-                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", 2.5*TILE_SIZE)
+                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", é.5*TILE_SIZE)
 
     def reloadWeapon(self):
         if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"] and self.gun["ammo"]!=0:
