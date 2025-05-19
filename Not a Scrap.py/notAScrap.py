@@ -24,42 +24,29 @@ class App:
         self.player = Player(self.world, self.camera)
         self.itemList = ItemList(self.player)
         self.effects = ScreenEffect(self.player)
+        self.ship_broken =  False
         self.game_start = 0
+        self.game_state = 'bunker'
 
         
         pyxel.mouse(True)
 
-        self.enemies_spawn()
+        self.enemies_spawn_in_rooms()
 
         pyxel.run(self.update,self.draw)
     
 
     def update(self):
-        self.update_effects()
-        self.effects.update()
-        if self.player.alive:
-            self.player.update()
-            for entity in loadedEntities:
-                entity.itemList = self.itemList
-                entity.update()
+        if self.game_state == 'bunker':
+            self.update_in_bunker()
 
-            for boost in activeBoosts:
-                boost.update()
-
-            self.camera.update(self.player)
-            pyxel.camera(self.camera.x,self.camera.y)
-        
-        if on_tick(30):
-            if not self.player.alive:
-                self.restartGame()
-            else:
-                self.check_win()
     
     def draw(self):
         for y in range(HEIGHT):
             for x in range(WIDTH):
                 block = self.world.world_map[y][x]
                 world_item_draw(pyxel,x,y,block)
+        pyxel.blt(WIDTH*TILE_SIZE//2 - TILE_SIZE//2,4*TILE_SIZE,1,72,0,5*TILE_SIZE,4*TILE_SIZE,colkey=11,scale=2)
 
         for entity in loadedEntities:
             pyxel.blt(entity.x,
@@ -116,7 +103,7 @@ class App:
             pyxel.text(self.camera.x+1, self.camera.y+113, pickup_text[0], 7)
             pyxel.text(self.camera.x+1, self.camera.y+119, pickup_text[1], 7)
     
-    def enemies_spawn(self):
+    def enemies_spawn_in_rooms(self):
         margin_spawn = 3
         for room in self.world.roombuild.rooms:
             ideal = (room['name']+1)//2
@@ -150,7 +137,7 @@ class App:
         pyxel.stop()
 
         pyxel.mouse(True)
-        self.enemies_spawn()      
+        self.enemies_spawn_in_rooms()      
 
     def update_effects(self):
         for slash in self.world.effects:
@@ -164,6 +151,33 @@ class App:
                 enemycounter += 1
         if enemycounter == 0:
             self.restartGame()
+    def update_in_bunker(self):
+        self.update_effects()
+        self.effects.update()
+        if self.player.alive:
+            self.player.update()
+            for entity in loadedEntities:
+                entity.itemList = self.itemList
+                entity.update()
+
+            for boost in activeBoosts:
+                boost.update()
+
+            self.camera.update(self.player)
+            pyxel.camera(self.camera.x,self.camera.y)
+        
+        if on_tick(30):
+            if not self.player.alive:
+                self.restartGame()
+            else:
+                if not on_cooldown(self.game_start,120*60):
+                    self.ship_broken = True
+                    self.enemies_spawn_in_shipdd()
+                self.check_win()
+
+    def enemies_spawn_in_ship(self):
+        for i in range(20):
+            Enemy(812,40,EnemyTemplates.BASE,self.player,self.world)
 
 def check_entity(loadedEntities, key, value):
     for entity in loadedEntities:
@@ -173,6 +187,9 @@ def check_entity(loadedEntities, key, value):
     
 def on_tick(tickrate=60):
     return pyxel.frame_count % tickrate == 0
+
+def on_cooldown(frame,cooldown):
+    return (pyxel.frame_count - frame) < cooldown
 
 class WorldItem:
     WALL = (0,0)
@@ -187,8 +204,8 @@ class World:
         self.tilemap = tilemap
         self.roombuild = roombuild
         self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
-        self.player_init_posX = WIDTH//2+2
-        self.player_init_posY = 10
+        self.player_init_posX = 812/TILE_SIZE
+        self.player_init_posY = 40/TILE_SIZE
         self.nb_rooms = 20
         
         self.roombuild.random_rooms_place(self.world_map,20)
@@ -198,6 +215,7 @@ class World:
             self.world_map[9][i] = WorldItem.UPWORLD_FLOOR[random.randint(0,len(WorldItem.UPWORLD_FLOOR)-1)]
         rect_place(self.world_map,0,0,1,10,WorldItem.WALL)
         rect_place(self.world_map,WIDTH-1,0,1,10,WorldItem.WALL)
+        self.roombuild.spaceship_walls_place()
 
         self.effects = []
 
@@ -284,6 +302,13 @@ class RoomBuild:
                             if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
                                 self.room_place_down()
                                 print('collision')
+
+    def spaceship_walls_place(self):
+        rect_place(self.world_map,105,4,1,5,WorldItem.WALL)
+        rect_place(self.world_map,98,4,1,5,WorldItem.WALL)
+        rect_place(self.world_map,99,4,6,1,WorldItem.WALL)
+        rect_place(self.world_map,103,9,2,1,WorldItem.WALL)
+        rect_place(self.world_map,99,9,2,1,WorldItem.WALL)
 
 def find_room(x,y,rooms):
     for room in rooms:
@@ -543,6 +568,7 @@ class Player:
                 if collision(self.x+cos*TILE_SIZE,self.y+sin*TILE_SIZE,entity.x,entity.y,(TILE_SIZE*1.1,TILE_SIZE*1.1),(TILE_SIZE,TILE_SIZE)) and entity.type == 'enemy':
                     entity.health -= self.damage
                     entity.hitStun = True
+                    entity.knockback = 2
 
     def dash(self):
         if (pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_SHIFT)) and self.dashFrame >= self.dashCooldown:
@@ -756,11 +782,11 @@ class Physics:
         return x,y
 
 class Guns:
-    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":0.1, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon", "explode_radius":0}
+    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":0.25, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon", "explode_radius":0}
     RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage", "explode_radius":0}
-    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.17*120, "spread":0.55, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage", "explode_radius":0}
+    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.12*120, "spread":0.3, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage", "explode_radius":0}
     SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)], "description":"Single fire, high damage", "explode_radius":0}
-    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.6, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)], "description":"Multiple pellets, medium damage", "explode_radius":0}
+    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.4, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)], "description":"Multiple pellets, medium damage", "explode_radius":0}
     GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(95,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
@@ -794,6 +820,7 @@ class Bullet:
             if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
                 entity.health -= self.damage
                 entity.hitStun = True
+                entity.knockback = 0.5
                 if self.piercing != 0:
                     entity.pierced.append(self)
                 self.piercing -= 1
@@ -816,6 +843,7 @@ class Bullet:
                         if norm <= self.explode_radius:
                             entity.health -= self.damage
                             entity.hitStun = True
+                            entity.knockback = 2
             loadedEntities.remove(self)
 
 class EnemyTemplates:
@@ -863,6 +891,7 @@ class Enemy:
 
         self.hitStun = False
         self.hitFrame = 0
+        self.knockback = 0
 
         self.type = "enemy"
 
@@ -893,14 +922,15 @@ class Enemy:
                 self.attackFrame += 1
                 self.getImage()
                 self.death()
+    
 
     def hitStunFunction(self):
         if self.image[0]<16:
             self.image[0] += 32
         elif self.image[0]<32:
             self.image[0] += 16
-        if self.hitFrame<=4:
-            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-self.cos, -self.sin])
+        if self.hitFrame<=10:
+            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-self.cos*self.knockback, -self.sin*self.knockback])
         if self.hitFrame >= 24:
             self.hitStun = False
             self.hitFrame = 0
