@@ -36,7 +36,7 @@ class App:
 
     def update(self):
         self.update_effects()
-        self.effects.update(self.player)
+        self.effects.update()
         if self.player.alive:
             self.player.update()
             for entity in loadedEntities:
@@ -346,11 +346,11 @@ class ScreenEffect:
         self.redscreen = False
         self.redscreen_alpha = 0
         self.dither = 0
-    def update(self,player):
-        if player.isHit:
+    def update(self):
+        if self.player.isHit:
             self.redscreen = True
-            if player.hitLength > player.hitFrame:
-                self.dither = (player.hitLength - player.hitFrame)/player.hitLength - 0.5
+            if self.player.hitLength > self.player.hitFrame:
+                self.dither = (self.player.hitLength - self.player.hitFrame)/self.player.hitLength - 0.5
                 if self.dither<0:
                     self.dither = 0
             else:
