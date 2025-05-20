@@ -25,7 +25,7 @@ class App:
         self.itemList = ItemList(self.player)
         self.effects = ScreenEffect(self.player)
         self.ship_broken =  False
-        self.ship_hold_time = 120*10
+        self.ship_hold_time = 120*120
         self.group_alive = False
         self.game_start = 0
         self.game_state = 'bunker'
@@ -34,7 +34,7 @@ class App:
         
         pyxel.mouse(True)
 
-        #self.enemies_spawn_in_rooms()
+        self.enemies_spawn_in_rooms()
 
         pyxel.run(self.update,self.draw)
     
