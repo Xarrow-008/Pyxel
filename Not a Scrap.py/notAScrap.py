@@ -25,13 +25,16 @@ class App:
         self.itemList = ItemList(self.player)
         self.effects = ScreenEffect(self.player)
         self.ship_broken =  False
+        self.ship_hold_time = 120*10
+        self.group_alive = False
         self.game_start = 0
         self.game_state = 'bunker'
+        self.rooms = self.world.roombuild.rooms
 
         
         pyxel.mouse(True)
 
-        self.enemies_spawn_in_rooms()
+        #self.enemies_spawn_in_rooms()
 
         pyxel.run(self.update,self.draw)
     
@@ -151,9 +154,11 @@ class App:
                 enemycounter += 1
         if enemycounter == 0:
             self.restartGame()
+
     def update_in_bunker(self):
         self.update_effects()
         self.effects.update()
+
         if self.player.alive:
             self.player.update()
             for entity in loadedEntities:
@@ -170,14 +175,14 @@ class App:
             if not self.player.alive:
                 self.restartGame()
             else:
-                if not on_cooldown(self.game_start,120*60):
+                if pyxel.frame_count - self.game_start == self.ship_hold_time:
                     self.ship_broken = True
                     self.enemies_spawn_in_shipdd()
                 self.check_win()
 
-    def enemies_spawn_in_ship(self):
-        for i in range(20):
-            Enemy(812,40,EnemyTemplates.BASE,self.player,self.world)
+    def spawn_enemies_at(self,x,y,dic):
+        for i in range(dic['spider']):
+            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
 
 def check_entity(loadedEntities, key, value):
     for entity in loadedEntities:
@@ -312,7 +317,9 @@ class RoomBuild:
 
 def find_room(x,y,rooms):
     for room in rooms:
-        if (x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']) or (x >= room['connect'][0] and x < room['connect'][0]+2 and y >= room['connect'][1] and y < room['connect'][1]+2):
+        if y<=10:
+            return rooms[0]
+        elif (x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']) or (x >= room['connect'][0] and x < room['connect'][0]+2 and y >= room['connect'][1] and y < room['connect'][1]+2):
             return room
     return 'None'
 
@@ -962,7 +969,7 @@ class Enemy:
                 self.slash()
 
     def slash(self):
-        self.world.effects.append({'x':self.x+self.cos*TILE_SIZE,'y':self.y+self.sin*TILE_SIZE,'image':[6,6],'scale':1,'time':pyxel.frame_count})
+        self.world.effects.append({'x':self.x+self.cos*TILE_SIZE,'y':self.y+self.sin*TILE_SIZE,'image':[7,6],'scale':1,'time':pyxel.frame_count})
         if collision(self.x+self.cos*TILE_SIZE,self.y+self.sin*TILE_SIZE,self.player.x,self.player.y,(TILE_SIZE,TILE_SIZE),(TILE_SIZE,TILE_SIZE)): #pas assez de sin et cos
             self.player.health -= self.damage
             self.player.isHit = True
@@ -1091,7 +1098,17 @@ class Enemy:
             self.cos = 0
             self.sin = 0
 
-            
+class EnemyGroup:
+    def __init__(self,rooms,room,dic_enemies={'spider':0}):
+        self.rooms = rooms
+        self.room = room
+        self.dic_enemies = dic_enemies
+        self.loaded = False
+    def update(self):
+        if on_tick(120*2):
+            if self.room['name']+1 <= len(self.rooms):
+                self.room = self.rooms[self.room['name']+1]
+
 def distance(x1,y1,x2,y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
