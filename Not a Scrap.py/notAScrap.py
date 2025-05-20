@@ -167,6 +167,13 @@ class App:
 
             for boost in activeBoosts:
                 boost.update()
+ 
+            if not on_cooldown(self.game_start,self.ship_hold_time) and self.group_alive:
+                if self.group.room['name'] < self.player.room['name'] - 3:
+                    self.group.update()
+                else:
+                    self.spawn_enemies_at(self.group.room['X']+2,self.group.room['Y']+2,self.group.dic_enemies,True)
+                    self.group_alive = False
 
             self.camera.update(self.player)
             pyxel.camera(self.camera.x,self.camera.y)
@@ -177,12 +184,14 @@ class App:
             else:
                 if pyxel.frame_count - self.game_start == self.ship_hold_time:
                     self.ship_broken = True
-                    self.enemies_spawn_in_shipdd()
+                    self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':10})
+                    self.group_alive = True
                 self.check_win()
 
-    def spawn_enemies_at(self,x,y,dic):
+    def spawn_enemies_at(self,x,y,dic,always_loaded=False):
         for i in range(dic['spider']):
-            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
+            print('spon',end='',flush=True)
+            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,always_loaded)
 
 def check_entity(loadedEntities, key, value):
     for entity in loadedEntities:
@@ -316,12 +325,13 @@ class RoomBuild:
         rect_place(self.world_map,99,9,2,1,WorldItem.WALL)
 
 def find_room(x,y,rooms):
+    rooms_distance = []
     for room in rooms:
-        if y<=10:
-            return rooms[0]
-        elif (x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']) or (x >= room['connect'][0] and x < room['connect'][0]+2 and y >= room['connect'][1] and y < room['connect'][1]+2):
+        if (x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']) or (x >= room['connect'][0] and x < room['connect'][0]+2 and y >= room['connect'][1] and y < room['connect'][1]+2):
             return room
-    return 'None'
+        rooms_distance.append((distance(x,y,room['X'],room['Y']),room))
+    rooms_distance = tuple_list_sort(rooms_distance)
+    return rooms_distance[0][1]
 
 class Furniture:
     def __init__(self,rooms):
@@ -330,6 +340,18 @@ class Furniture:
             nb_chest = random.randin(0,2)//2
             X_chest = random.randint(room['x'],room['x']+room['w']-1)
             Y_chest = random.randint(room['y'],room['y']+room['h']-1)
+
+def tuple_list_sort(list): #NOT CHECKED
+    for i in range(len(list)-1):
+        min=list[i][0]
+        index=i
+        for j in range(len(list)-1-i):
+            if list[i+j][0]<min:
+                min=list[i+j][0]
+                index=i+j
+        list[i], list[index] = list[index], list[i]
+    return list
+        
 
 def dic_copy(dico):
     dicoC = {}
@@ -857,7 +879,7 @@ class EnemyTemplates:
     BASE = {"health":50, "speed":0.3, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
-    def __init__(self, x, y, template, player, world):
+    def __init__(self, x, y, template, player, world,always_loaded=False):
         self.x = x
         self.y = y
         self.player = player
@@ -889,6 +911,7 @@ class Enemy:
         self.lungeFrame = 0
 
         self.loaded = False
+        self.always_loaded = always_loaded
 
         self.image = template["image"]
         self.width = template["width"]
@@ -918,7 +941,7 @@ class Enemy:
         if self.hitStun:
             self.hitStunFunction()
         else:
-            if self.loaded:
+            if self.loaded or self.always_loaded:
                 self.image = [0,32]
                 self.pathing()
                 self.moveInPathing()
@@ -1107,6 +1130,7 @@ class EnemyGroup:
     def update(self):
         if on_tick(120*2):
             if self.room['name']+1 <= len(self.rooms):
+                print('uproom',flush=True)
                 self.room = self.rooms[self.room['name']+1]
 
 def distance(x1,y1,x2,y2):
