@@ -21,11 +21,11 @@ class App:
 
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
-        self.player = Player(self.world, self.camera)
-        self.itemList = ItemList(self.player)
+        self.itemList = ItemList()
+        self.player = Player(self.world, self.camera,self.itemList)
         self.effects = ScreenEffect(self.player)
         self.ship_broken =  False
-        self.ship_hold_time = 120*120
+        self.ship_hold_time = 120*60
         self.group_alive = False
         self.game_start = 0
         self.game_state = 'bunker'
@@ -102,9 +102,9 @@ class App:
             pyxel.text(self.camera.x+1, self.camera.y+19, "[R] to reload", 7)
 
         if pickup_text != ["N/A"]:
-            pyxel.text(self.camera.x+1, self.camera.y+107, "[E] to pickup", 7)
-            pyxel.text(self.camera.x+1, self.camera.y+113, pickup_text[0], 7)
-            pyxel.text(self.camera.x+1, self.camera.y+119, pickup_text[1], 7)
+            pyxel.text(self.camera.x+1, self.camera.y+107, pickup_text[0], 7)
+            pyxel.text(self.camera.x+1, self.camera.y+113, pickup_text[1], 7)
+            pyxel.text(self.camera.x+1, self.camera.y+119, pickup_text[2], 7)
     
     def enemies_spawn_in_rooms(self):
         margin_spawn = 3
@@ -123,7 +123,7 @@ class App:
                         Y_pos = room['Y'] + random.randint(0,room['H']-1)
                         if not (check_entity(loadedEntities, 'x', X_pos) and check_entity(loadedEntities, 'y', Y_pos)):
                             occupied = False
-                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world)
+                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList)
 
     def restartGame(self):
         global pickUpsOnGround
@@ -133,8 +133,8 @@ class App:
 
         self.camera.__init__()
         self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
-        self.player.__init__(self.world, self.camera)
-        self.itemList.__init__(self.player)
+        self.itemList.__init__()
+        self.player.__init__(self.world, self.camera,self.itemList)
         self.effects.__init__(self.player)
         self.game_start = pyxel.frame_count
         pyxel.stop()
@@ -162,7 +162,6 @@ class App:
         if self.player.alive:
             self.player.update()
             for entity in loadedEntities:
-                entity.itemList = self.itemList
                 entity.update()
 
             for boost in activeBoosts:
@@ -172,7 +171,7 @@ class App:
                 if self.group.room['name'] < self.player.room['name'] - 3:
                     self.group.update()
                 else:
-                    self.spawn_enemies_at(self.group.room['X']+2,self.group.room['Y']+2,self.group.dic_enemies,True)
+                    self.spawn_enemies_at(self.group.room['X'],self.group.room['Y'],self.group.dic_enemies,True)
                     self.group_alive = False
 
             self.camera.update(self.player)
@@ -189,9 +188,10 @@ class App:
                 self.check_win()
 
     def spawn_enemies_at(self,x,y,dic,always_loaded=False):
+        print(x,y,'spawn')
         for i in range(dic['spider']):
             print('spon',end='',flush=True)
-            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,always_loaded)
+            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList,always_loaded)
 
 def check_entity(loadedEntities, key, value):
     for entity in loadedEntities:
@@ -230,6 +230,13 @@ class World:
         rect_place(self.world_map,0,0,1,10,WorldItem.WALL)
         rect_place(self.world_map,WIDTH-1,0,1,10,WorldItem.WALL)
         self.roombuild.spaceship_walls_place()
+        self.furniture = Furniture(self.roombuild.rooms)
+
+        for room in self.roombuild.rooms:
+            if 'chest' in room.keys():
+                x = room['chest'][0]
+                y = room['chest'][1]
+                self.world_map[y][x] = (4,0)
 
         self.effects = []
 
@@ -264,12 +271,16 @@ class RoomBuild:
                 if self.room_pos == 0 and self.x>self.max_size*2+1:
                     self.room_place_left()
                     self.fix_collide_rooms()
+                else:
+                    self.room_place_right()
 
-                elif self.room_pos == 1 and self.x<WIDTH-self.max_size*2+1:
+                if self.room_pos == 1 and self.x<WIDTH-self.max_size*2+1:
                     self.room_place_right()
                     self.fix_collide_rooms()
-
                 else:
+                    self.room_place_left()
+
+                if self.room_pos == 2:
                     self.room_place_down()
 
             else:
@@ -336,10 +347,30 @@ def find_room(x,y,rooms):
 class Furniture:
     def __init__(self,rooms):
         self.rooms = rooms
+        chests = []
+        for i in range(10):
+            room_chest = random.randint(1,len(self.rooms)-1)
+            if room_chest in chests:
+                for j in range(5):
+                    if room_chest in chests:
+                        if room_chest<len(self.rooms)-1:
+                            room_chest += 1
+                        else:
+                            room_chest = random.randint(1,len(self.rooms)//2+3)
+            chests.append(room_chest)
+        
+        for index in chests:
+            room = self.rooms[index]
+            X_pos = random.randint(room['X'],room['X']+room['W']-1)
+            Y_pos = random.randint(room['Y'],room['Y']+room['H']-1)
+            self.rooms[index]['chest'] = (X_pos,Y_pos)
+            self.rooms[index]['chest_opening'] = 0
+                
+
         for room in rooms:
-            nb_chest = random.randin(0,2)//2
-            X_chest = random.randint(room['x'],room['x']+room['w']-1)
-            Y_chest = random.randint(room['y'],room['y']+room['h']-1)
+            nb_chest = random.randint(0,2)//2
+            X_chest = random.randint(room['X'],room['X']+room['W']-1)
+            Y_chest = random.randint(room['Y'],room['Y']+room['H']-1)
 
 def tuple_list_sort(list): #NOT CHECKED
     for i in range(len(list)-1):
@@ -426,7 +457,7 @@ def draw_screen(pyxel, u, v,camx,camy):
 
 
 class Player:
-    def __init__(self, world, camera):
+    def __init__(self, world, camera,itemList):
         self.alive = True
         self.x = world.player_init_posX*TILE_SIZE
         self.y = world.player_init_posY*TILE_SIZE
@@ -451,6 +482,10 @@ class Player:
         
         self.damage = 10
         self.slash_cooldown = 0.5*120
+        self.stuck = False
+        self.open_time = 240
+        self.itemList = itemList
+        self.pickup_text = ["N/A"]
 
         self.health = 50
         self.max_health = 50
@@ -468,12 +503,12 @@ class Player:
         self.camera = camera
 
     def update(self):
-        if pyxel.btnp(pyxel.KEY_F):
-            print(self.room['name'],self.room['connect'][0]*TILE_SIZE, self.room['connect'][1]*TILE_SIZE, self.x, self.y,self.room['direction'])
+        self.no_text = True
 
-        current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
-        if current_room != 'None':
-            self.room = current_room
+        if pyxel.btnp(pyxel.KEY_A):
+            print(self.room['name'],self.room['X'], self.room['Y'], self.x, self.y,self.room['direction'])
+
+        self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
 
         self.loadedEntitiesInRange = []
 
@@ -483,7 +518,7 @@ class Player:
 
         self.posXmouse = self.camera.x+pyxel.mouse_x
         self.poxYmouse = self.camera.y+pyxel.mouse_y
-        if not self.isDashing:
+        if not self.isDashing and not self.stuck:
             self.movement()
             self.fireWeapon()
             self.slash()
@@ -491,13 +526,16 @@ class Player:
             self.dash()
         else:
             self.dashMovement()
+        
         self.hitDetection()
         self.attackFrame += 1
         self.dashFrame += 1
         self.hitFrame += 1
         self.preventOOB()
-        self.getPickupText()
-        self.death()
+        self.chest_gestion()
+        self.description_text()
+        self.change_PickupText()
+        self.check_death()
 
         if self.health > self.max_health:
             self.health = self.max_health
@@ -543,7 +581,7 @@ class Player:
             self.last_facing[0] = self.facing[0]
             self.last_facing[1] = self.facing[1]
 
-        if pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S) and self.physics.momentum <= self.speed:
+        if (pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S))and self.physics.momentum <= self.speed and not self.stuck:
             self.physics.momentum = self.speed
         else:
             self.physics.momentum /= self.speedFallOff
@@ -562,8 +600,8 @@ class Player:
                     cos = horizontal/norm
                     sin = vertical/norm
                     angle = math.acos(cos)*pyxel.sgn(sin)
-                    lowest_angle = angle*(1-self.gun["spread"])
-                    highest_angle = angle*(1+self.gun["spread"])
+                    lowest_angle = angle - self.gun["spread"]*(math.pi/180)
+                    highest_angle = angle + self.gun["spread"]*(math.pi/180)
                     angle = random.uniform(lowest_angle, highest_angle)
                     cos = math.cos(angle)
                     sin = math.sin(angle)
@@ -571,6 +609,45 @@ class Player:
                     cos = 0
                     sin = 0
                 Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", self.gun["explode_radius"])
+
+    def chest_gestion(self):
+        global pickup_text
+        if 'chest' in self.room.keys():
+            if in_perimeter(self.x,self.y,self.room['chest'][0]*TILE_SIZE,self.room['chest'][1]*TILE_SIZE,TILE_SIZE*1.5):
+                if self.no_text:
+                    self.pickup_text = ['[F] to open', 'chest', 'get item or weapon']
+                    self.no_text = False
+
+                if pyxel.btn(pyxel.KEY_F):
+                    print(self.room['chest_opening'])
+                    self.stuck = True
+                    self.physics.momentum /= self.speedFallOff
+                    self.room['chest_opening'] += 1
+
+                    if self.room['chest_opening'] >= self.open_time:
+                        self.spawn_item(self.room['chest'][0],self.room['chest'][1])
+                        self.world.world_map[self.room['chest'][1]][self.room['chest'][0]] = WorldItem.GROUND
+                        self.room.pop('chest')
+                        self.room.pop('chest_opening')
+                        self.stuck = False
+                else:
+                    pickup_text = ["N/A"]
+                    self.stuck = False
+                    self.room['chest_opening'] = 0
+
+    def spawn_item(self,x,y):
+
+        pickup = random.randint(1,3)
+        if pickup == 1:
+            item_random = random.randint(0, len(self.itemList.common_list)-1)
+            item = self.itemList.common_list[item_random]
+            PickUp(x*TILE_SIZE, y*TILE_SIZE, "item", item, self)
+
+        elif pickup >= 2:
+            gun_random = random.randint(26,100)
+            for gun in Guns.Gun_list:
+                if gun_random in gun["rate"]:
+                    PickUp(x*TILE_SIZE, y*TILE_SIZE, "weapon", gun, self)
 
     def reloadWeapon(self):
         if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"] and self.gun["ammo"]!=0:
@@ -628,20 +705,21 @@ class Player:
         if self.y > HEIGHT*TILE_SIZE:
             self.y = (HEIGHT-1)*TILE_SIZE
 
-    def getPickupText(self):
-        global pickup_text
-        self.collision_with_item = False
-        for i in range(len(pickUpsOnGround)-1, -1, -1):
+    def description_text(self):
+        for i in range(len(pickUpsOnGround)-1, -1, -1): #from oldest to most recent 
             pickup = pickUpsOnGround[i]
             if collision(self.x, self.y, pickup.x, pickup.y, [self.width, self.height], [pickup.width, pickup.height]):
-                pickup_text = [pickup.object["name"], pickup.object["description"]]
-                self.collision_with_item = True
-            if not self.collision_with_item:
-                pickup_text = ["N/A"]
-        if len(pickUpsOnGround) == 0:
+                self.pickup_text = ["[E] to pickup", pickup.object["name"], pickup.object["description"]]
+                self.no_text = False
+
+    def change_PickupText(self):
+        global pickup_text
+        if not self.no_text:
+            pickup_text = self.pickup_text
+        else:
             pickup_text = ["N/A"]
 
-    def death(self):
+    def check_death(self):
         if self.health<=0:
             self.alive = False
 
@@ -811,12 +889,12 @@ class Physics:
         return x,y
 
 class Guns:
-    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":0.25, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,31)], "description":"Basic weapon", "explode_radius":0}
-    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":0.2, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(31,51)], "description":"High fire rate, medium damage", "explode_radius":0}
-    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.12*120, "spread":0.3, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(71,83)], "description":"Highest fire rate, low damage", "explode_radius":0}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(83,95)], "description":"Single fire, high damage", "explode_radius":0}
-    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":0.4, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,71)], "description":"Multiple pellets, medium damage", "explode_radius":0}
-    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(95,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
+    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
+    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
+    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
+    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
+    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
 class Bullet:
@@ -879,7 +957,7 @@ class EnemyTemplates:
     BASE = {"health":50, "speed":0.3, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
-    def __init__(self, x, y, template, player, world,always_loaded=False):
+    def __init__(self, x, y, template, player, world,itemList,always_loaded=False):
         self.x = x
         self.y = y
         self.player = player
@@ -912,6 +990,7 @@ class Enemy:
 
         self.loaded = False
         self.always_loaded = always_loaded
+        self.itemList = itemList
 
         self.image = template["image"]
         self.width = template["width"]
@@ -934,9 +1013,7 @@ class Enemy:
         else:
             self.loaded = False
 
-        current_room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
-        if current_room != 'None':
-            self.room = current_room
+        self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
         
         if self.hitStun:
             self.hitStunFunction()
@@ -1036,7 +1113,7 @@ class Enemy:
         if self.health <= 0:
 
             item_chance = 10
-            gun_chance = 10
+            gun_chance = 12
 
             pickup = random.randint(1,100)
             if pickup <= item_chance:
@@ -1130,8 +1207,9 @@ class EnemyGroup:
     def update(self):
         if on_tick(120*2):
             if self.room['name']+1 <= len(self.rooms):
-                print('uproom',flush=True)
+                print(self.room['X'],self.room['Y'],flush=True)
                 self.room = self.rooms[self.room['name']+1]
+
 
 def distance(x1,y1,x2,y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
@@ -1165,8 +1243,7 @@ class PickUp:
                 pickUpsOnGround.remove(self)
 
 class ItemList:
-    def __init__(self, player):
-        self.player = player
+    def __init__(self):
         self.SPEED_PASSIVE = {"name":"Jet speedup", "description":"Slightly increases movement speed", "image":[1*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["speed", "addition", 0.05]]}
         self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Slightly increases health", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
         self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Slighlty increases your gun's range", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "rarity":"common", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
