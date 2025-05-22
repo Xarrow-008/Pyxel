@@ -213,17 +213,24 @@ class App:
             print('spon',end='',flush=True)
             Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList,always_loaded)
 
-def check_entity(loadedEntities, key, value):
-    for entity in loadedEntities:
-        if getattr(entity,key) == value:
-            return True
-    return False
-    
-def on_tick(tickrate=60):
-    return pyxel.frame_count % tickrate == 0
 
-def on_cooldown(frame,cooldown):
-    return (pyxel.frame_count - frame) < cooldown
+class Animation:
+    def __init__(self):
+        self.image1 = (0,0)
+        self.slide  = [random.choice(FLOORS) for i in range(10)]
+        self.slide_pos = 0
+    def loop(self,length,duration,u,v,direction):
+        if on_tick(duration):
+            for i in range(length):
+                if pyxel.frame_count % (length*duration) == i*duration:
+                    self.image1 = (u+direction[0]*i*8,v+direction[1]*i*8)
+    def slide_anim(self,length,duration,blocks_list):
+        if on_tick(duration):
+            self.slide_pos += -1
+            if self.slide_pos <= -8:
+                self.slide.pop(0)
+                self.slide.append(random.choice(blocks_list))
+                self.slide_pos = 0
 
 class WorldItem:
     WALL = (0,0)
@@ -366,15 +373,6 @@ class RoomBuild:
         rect_place(self.world_map,103,9,2,1,WorldItem.WALL)
         rect_place(self.world_map,99,9,2,1,WorldItem.WALL)
 
-def find_room(x,y,rooms):
-    rooms_distance = []
-    for room in rooms:
-        if (x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']) or (x >= room['connect'][0] and x < room['connect'][0]+2 and y >= room['connect'][1] and y < room['connect'][1]+2):
-            return room
-        rooms_distance.append((distance(x,y,room['X'],room['Y']),room))
-    rooms_distance = tuple_list_sort(rooms_distance)
-    return rooms_distance[0][1]
-
 class Furniture:
     def __init__(self,rooms):
         self.rooms = rooms
@@ -403,89 +401,50 @@ class Furniture:
             X_chest = random.randint(room['X'],room['X']+room['W']-1)
             Y_chest = random.randint(room['Y'],room['Y']+room['H']-1)
 
-def tuple_list_sort(list): #NOT CHECKED
-    for i in range(len(list)-1):
-        min=list[i][0]
-        index=i
-        for j in range(len(list)-1-i):
-            if list[i+j][0]<min:
-                min=list[i+j][0]
-                index=i+j
-        list[i], list[index] = list[index], list[i]
-    return list
-        
+class Physics:
+    def __init__(self, world):
+        self.world = world
+        self.momentum = 0
+        self.collision_happened = False
 
-def dic_copy(dico):
-    dicoC = {}
-    for key in dico.keys():
-        dicoC[key]=dico[key]
-    return dicoC
+    def move(self, x, y, width, height, vector):
+        X = int(x//TILE_SIZE)
+        Y = int(y//TILE_SIZE)
 
+        new_x = x + vector[0]*self.momentum
 
-def list_copy(listP):
-    listC = []
-    for i in range(len(listP)):
-        listC.append(listP[i])
-        return listC
-
-def rooms_collide(world, x, y, w, h): #verified+
-    for in_y in range(h+2):
-        for in_x in range(w+2):
-            if world[y+in_y-1][x+in_x-1] == WorldItem.GROUND:
-                return True
-    return False
-
-def rect_place(world_map, x, y, w, h, block): #verified+
-    for in_y in range(h):
-        for in_x in range(w):
-            world_map[y+in_y][x+in_x] = block
-
-def world_item_draw(pyxel,x,y,block):
-    pyxel.blt(
-        x*TILE_SIZE,
-        y*TILE_SIZE,
-        0,
-        block[0]*TILE_SIZE,
-        block[1]*TILE_SIZE,
-        TILE_SIZE,
-        TILE_SIZE
-    )
-def list_dic_find(list,value,key):
-    for dic in list:
-        if dic[key] == value:
-            return dic
-    return None
-
-class ScreenEffect:
-    def __init__(self,player):
-        self.player = player
-        self.redscreen = False
-        self.redscreen_alpha = 0
-        self.dither = 0
-    def update(self):
-        if self.player.isHit:
-            self.redscreen = True
-            if self.player.hitLength > self.player.hitFrame:
-                self.dither = (self.player.hitLength - self.player.hitFrame)/self.player.hitLength - 0.5
-                if self.dither<0:
-                    self.dither = 0
+        new_X = X+pyxel.sgn(vector[0])
+        if vector[0]!=0:
+            next_X_1 = self.world.world_map[Y][new_X]
+            if y != Y*TILE_SIZE:
+                next_X_2 = self.world.world_map[Y+1][new_X]
             else:
-                self.dither=0
-                self.redscreen = False
+                next_X_2 = WorldItem.GROUND
+            
+            if (next_X_1!=WorldItem.WALL or not collision(new_x, y, new_X*TILE_SIZE, Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_X_2!=WorldItem.WALL or not collision(new_x, y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
+                x = new_x
+            elif (next_X_1==WorldItem.WALL or next_X_2==WorldItem.WALL) and new_x+width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+                self.collision_happened = True
+                x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
+        
+        X = int(x//TILE_SIZE)
 
-def draw_screen(pyxel, u, v,camx,camy):
-    for y in range(CAM_HEIGHT//2):
-        for x in range(CAM_WIDTH//2):
-            pyxel.blt(
-                camx+x*16,
-                camy+y*16,
-                1,
-                u,
-                v,
-                16,
-                16
-            )
+        new_y = y + vector[1]*self.momentum
+        new_Y = Y+pyxel.sgn(vector[1])
+        if vector[1]!=0:
+            next_Y_1 = self.world.world_map[new_Y][X]
+            if x != X*TILE_SIZE:
+                next_Y_2 = self.world.world_map[new_Y][X+1]
+            else:
+                next_Y_2 = WorldItem.GROUND
+            
+            if (next_Y_1!=WorldItem.WALL or not collision(x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2!=WorldItem.WALL or not collision(x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
+                y = new_y
+            elif (next_Y_1==WorldItem.WALL or next_Y_2==WorldItem.WALL) and new_y+height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+                self.collision_happened = True
+                y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
+        return x,y
 
 class Player:
     def __init__(self, world, camera,itemList):
@@ -876,117 +835,6 @@ class Player:
                         if not boost_already_active:
                             Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
-class Physics:
-    def __init__(self, world):
-        self.world = world
-        self.momentum = 0
-        self.collision_happened = False
-
-    def move(self, x, y, width, height, vector):
-        X = int(x//TILE_SIZE)
-        Y = int(y//TILE_SIZE)
-
-        new_x = x + vector[0]*self.momentum
-
-        new_X = X+pyxel.sgn(vector[0])
-        if vector[0]!=0:
-            next_X_1 = self.world.world_map[Y][new_X]
-            if y != Y*TILE_SIZE:
-                next_X_2 = self.world.world_map[Y+1][new_X]
-            else:
-                next_X_2 = WorldItem.GROUND
-            
-            if (next_X_1!=WorldItem.WALL or not collision(new_x, y, new_X*TILE_SIZE, Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_X_2!=WorldItem.WALL or not collision(new_x, y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
-                x = new_x
-            elif (next_X_1==WorldItem.WALL or next_X_2==WorldItem.WALL) and new_x+width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
-                self.collision_happened = True
-                x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
-        
-        X = int(x//TILE_SIZE)
-
-        new_y = y + vector[1]*self.momentum
-        new_Y = Y+pyxel.sgn(vector[1])
-        if vector[1]!=0:
-            next_Y_1 = self.world.world_map[new_Y][X]
-            if x != X*TILE_SIZE:
-                next_Y_2 = self.world.world_map[new_Y][X+1]
-            else:
-                next_Y_2 = WorldItem.GROUND
-            
-            if (next_Y_1!=WorldItem.WALL or not collision(x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2!=WorldItem.WALL or not collision(x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
-                y = new_y
-            elif (next_Y_1==WorldItem.WALL or next_Y_2==WorldItem.WALL) and new_y+height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
-                self.collision_happened = True
-                y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
-
-        return x,y
-
-class Guns:
-    NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
-    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
-    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
-    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
-    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
-    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
-    Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
-
-class Bullet:
-    def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, explode_radius):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.vector = vector
-        self.damage = damage
-        self.range = range
-        self.world = world
-        self.player = player
-        self.image = image
-        self.physics = Physics(world)
-        self.physics.momentum = speed
-        self.owner = owner
-        self.explode_radius = explode_radius
-        self.piercing = piercing
-        self.type = "bullet"
-        loadedEntities.append(self)
-
-    def update(self):
-        self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.vector)
-        self.check_hit()
-        self.bullet_destroyed()
-    
-    def check_hit(self):
-        for entity in loadedEntities:
-            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
-                entity.health -= self.damage
-                entity.hitStun = True
-                entity.knockback = 0.5
-                if self.piercing != 0:
-                    entity.pierced.append(self)
-                self.piercing -= 1
-        if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and self.piercing>=0:
-            self.player.health -= self.damage
-            self.piercing -= 1
-            self.player.isHit = True
-            self.player.hitFrame = 0
-        self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
-    
-    def bullet_destroyed(self):
-        if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
-            if self.explode_radius > 0:
-                Effect(5,[1*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6, 4:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
-                for entity in loadedEntities:
-                    if entity.type == "enemy":
-                        horizontal = entity.x+entity.width/2 - self.x+self.width/2
-                        vertical = entity.y+entity.height/2 - self.y+self.height/2
-                        norm = math.sqrt(horizontal**2 + vertical**2)
-                        if norm <= self.explode_radius:
-                            entity.health -= self.damage
-                            entity.hitStun = True
-                            entity.knockback = 2
-            loadedEntities.remove(self)
-
 class EnemyTemplates:
     BASE = {"health":50, "speed":0.3, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
@@ -1244,14 +1092,71 @@ class EnemyGroup:
                 print(self.room['X'],self.room['Y'],flush=True)
                 self.room = self.rooms[self.room['name']+1]
 
+class Guns:
+    NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
+    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
+    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
+    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
+    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
+    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
+    Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
-def distance(x1,y1,x2,y2):
-    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+class Bullet:
+    def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, explode_radius):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.vector = vector
+        self.damage = damage
+        self.range = range
+        self.world = world
+        self.player = player
+        self.image = image
+        self.physics = Physics(world)
+        self.physics.momentum = speed
+        self.owner = owner
+        self.explode_radius = explode_radius
+        self.piercing = piercing
+        self.type = "bullet"
+        loadedEntities.append(self)
 
-def in_perimeter(x1,y1,x2,y2,distance):
-    return (x1-x2<distance and x1-x2>-distance) and (y1-y2<distance and y1-y2>-distance)
-
-pickUpsOnGround = []
+    def update(self):
+        self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.vector)
+        self.check_hit()
+        self.bullet_destroyed()
+    
+    def check_hit(self):
+        for entity in loadedEntities:
+            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
+                entity.health -= self.damage
+                entity.hitStun = True
+                entity.knockback = 0.5
+                if self.piercing != 0:
+                    entity.pierced.append(self)
+                self.piercing -= 1
+        if self.owner=="enemy" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and self.piercing>=0:
+            self.player.health -= self.damage
+            self.piercing -= 1
+            self.player.isHit = True
+            self.player.hitFrame = 0
+        self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
+    
+    def bullet_destroyed(self):
+        if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
+            if self.explode_radius > 0:
+                Effect(5,[1*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6, 4:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
+                for entity in loadedEntities:
+                    if entity.type == "enemy":
+                        horizontal = entity.x+entity.width/2 - self.x+self.width/2
+                        vertical = entity.y+entity.height/2 - self.y+self.height/2
+                        norm = math.sqrt(horizontal**2 + vertical**2)
+                        if norm <= self.explode_radius:
+                            entity.health -= self.damage
+                            entity.hitStun = True
+                            entity.knockback = 2
+            loadedEntities.remove(self)
 
 class PickUp:
     def __init__(self, x, y, type, object, player):
@@ -1290,6 +1195,70 @@ class ItemList:
         self.SPEED_DASH = {"name":"Reactor Boost", "description":"Gain a speed boost after dash", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "rarity":"common", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120]]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
 
+class Effect:
+    def __init__(self, length, image, durations, x, y, width, height):
+        self.length = length
+        self.image = image
+        self.durations = durations
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.type = "effect"
+
+        self.state = 0
+        self.frame = 0
+        
+        loadedEntities.append(self)
+    
+    def update(self):
+        if self.frame == self.durations[self.state]:
+            self.image[0] += TILE_SIZE
+            self.state += 1
+            self.frame = 0
+        if self.state == self.length :
+            loadedEntities.remove(self)
+        self.frame += 1
+
+class ScreenEffect:
+    def __init__(self,player):
+        self.player = player
+        self.redscreen = False
+        self.redscreen_alpha = 0
+        self.dither = 0
+    def update(self):
+        if self.player.isHit:
+            self.redscreen = True
+            if self.player.hitLength > self.player.hitFrame:
+                self.dither = (self.player.hitLength - self.player.hitFrame)/self.player.hitLength - 0.5
+                if self.dither<0:
+                    self.dither = 0
+            else:
+                self.dither=0
+                self.redscreen = False
+
+class Boost:
+    def __init__(self, stat, operation, value, duration, target, player, creator):
+        self.stat = stat
+        self.operation = operation
+        self.value = value
+        self.duration = duration
+        self.frame = 0
+        self.player = player
+        self.target = target
+        self.player.increaseStat(self.stat, self.operation, self.value)
+        activeBoosts.append(self)
+        self.creator = creator
+
+    def update(self):
+        if self.frame >= self.duration:
+            if self.operation == "addition":
+                self.player.increaseStat(self.stat, self.operation, -self.value)
+            elif self.operation == "multiplication":
+                self.player.increaseStat(self.stat, self.operation, 1/self.value)
+            activeBoosts.remove(self)
+        self.frame += 1
+
 class Camera:
     def __init__(self):
         self.x = (WIDTH//2-6)*TILE_SIZE
@@ -1317,54 +1286,104 @@ class Camera:
         
         self.x, self.y = round(self.x),round(self.y)
 
-class Effect:
-    def __init__(self, length, image, durations, x, y, width, height):
-        self.length = length
-        self.image = image
-        self.durations = durations
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
-        self.type = "effect"
 
-        self.state = 0
-        self.frame = 0
-        
-        loadedEntities.append(self)
+def draw_screen(pyxel, u, v,camx,camy):
+    for y in range(CAM_HEIGHT//2):
+        for x in range(CAM_WIDTH//2):
+            pyxel.blt(
+                camx+x*16,
+                camy+y*16,
+                1,
+                u,
+                v,
+                16,
+                16
+            )
+
+
+def check_entity(loadedEntities, key, value):
+    for entity in loadedEntities:
+        if getattr(entity,key) == value:
+            return True
+    return False
     
-    def update(self):
-        if self.frame == self.durations[self.state]:
-            self.image[0] += TILE_SIZE
-            self.state += 1
-            self.frame = 0
-        if self.state == self.length :
-            loadedEntities.remove(self)
-        self.frame += 1
+def on_tick(tickrate=60):
+    return pyxel.frame_count % tickrate == 0
 
+def on_cooldown(frame,cooldown):
+    return (pyxel.frame_count - frame) < cooldown
+
+
+def distance(x1,y1,x2,y2):
+    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+def in_perimeter(x1,y1,x2,y2,distance):
+    return (x1-x2<distance and x1-x2>-distance) and (y1-y2<distance and y1-y2>-distance)
+
+def tuple_list_sort(list): #NOT CHECKED
+    for i in range(len(list)-1):
+        min=list[i][0]
+        index=i
+        for j in range(len(list)-1-i):
+            if list[i+j][0]<min:
+                min=list[i+j][0]
+                index=i+j
+        list[i], list[index] = list[index], list[i]
+    return list
+        
+
+def dic_copy(dico):
+    dicoC = {}
+    for key in dico.keys():
+        dicoC[key]=dico[key]
+    return dicoC
+
+
+def list_copy(listP):
+    listC = []
+    for i in range(len(listP)):
+        listC.append(listP[i])
+        return listC
+
+def rooms_collide(world, x, y, w, h): #verified+
+    for in_y in range(h+2):
+        for in_x in range(w+2):
+            if world[y+in_y-1][x+in_x-1] == WorldItem.GROUND:
+                return True
+    return False
+
+def rect_place(world_map, x, y, w, h, block): #verified+
+    for in_y in range(h):
+        for in_x in range(w):
+            world_map[y+in_y][x+in_x] = block
+
+def world_item_draw(pyxel,x,y,block):
+    pyxel.blt(
+        x*TILE_SIZE,
+        y*TILE_SIZE,
+        0,
+        block[0]*TILE_SIZE,
+        block[1]*TILE_SIZE,
+        TILE_SIZE,
+        TILE_SIZE
+    )
+def list_dic_find(list,value,key):
+    for dic in list:
+        if dic[key] == value:
+            return dic
+    return None
+
+def find_room(x,y,rooms):
+    rooms_distance = []
+    for room in rooms:
+        if (x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']) or (x >= room['connect'][0] and x < room['connect'][0]+2 and y >= room['connect'][1] and y < room['connect'][1]+2):
+            return room
+        rooms_distance.append((distance(x,y,room['X'],room['Y']),room))
+    rooms_distance = tuple_list_sort(rooms_distance)
+    return rooms_distance[0][1]
+
+pickUpsOnGround = []
 activeBoosts = []
-
-class Boost:
-    def __init__(self, stat, operation, value, duration, target, player, creator):
-        self.stat = stat
-        self.operation = operation
-        self.value = value
-        self.duration = duration
-        self.frame = 0
-        self.player = player
-        self.target = target
-        self.player.increaseStat(self.stat, self.operation, self.value)
-        activeBoosts.append(self)
-        self.creator = creator
-
-    def update(self):
-        if self.frame >= self.duration:
-            if self.operation == "addition":
-                self.player.increaseStat(self.stat, self.operation, -self.value)
-            elif self.operation == "multiplication":
-                self.player.increaseStat(self.stat, self.operation, 1/self.value)
-            activeBoosts.remove(self)
-        self.frame += 1
 
 def collision(x1, y1, x2, y2, size1, size2):
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
