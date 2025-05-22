@@ -25,7 +25,7 @@ class App:
         self.player = Player(self.world, self.camera,self.itemList)
         self.effects = ScreenEffect(self.player)
         self.ship_broken =  False
-        self.ship_hold_time = 120*60
+        self.ship_hold_time = 120*120
         self.group_alive = False
         self.game_start = 0
         self.game_state = 'bunker'
@@ -136,7 +136,14 @@ class App:
         self.itemList.__init__()
         self.player.__init__(self.world, self.camera,self.itemList)
         self.effects.__init__(self.player)
+        self.player.speed = 0.25
         self.game_start = pyxel.frame_count
+        self.ship_broken =  False
+        self.ship_hold_time = 120*120
+        self.group_alive = False
+        self.game_start = pyxel.frame_count
+        self.game_state = 'bunker'
+        self.rooms = self.world.roombuild.rooms
         pyxel.stop()
 
         pyxel.mouse(True)
@@ -177,7 +184,7 @@ class App:
             self.camera.update(self.player)
             pyxel.camera(self.camera.x,self.camera.y)
         
-        if on_tick(30):
+        if on_tick(60):
             if not self.player.alive:
                 self.restartGame()
             else:
@@ -219,7 +226,7 @@ class World:
         self.roombuild = roombuild
         self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
         self.player_init_posX = 812/TILE_SIZE
-        self.player_init_posY = 40/TILE_SIZE
+        self.player_init_posY = 45/TILE_SIZE
         self.nb_rooms = 20
         
         self.roombuild.random_rooms_place(self.world_map,20)
@@ -320,13 +327,22 @@ class RoomBuild:
                 if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
                     collided=True
                     self.room_place_down()
-                    if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
-                        self.room_place_left()
-                        if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
-                            self.room_place_right()
-                            if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
-                                self.room_place_down()
-                                print('collision')
+
+        for room in self.rooms:
+            if not collided:
+                if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                    self.room_place_left()
+                    print('tried place left',flush=True)
+
+        for room in self.rooms:
+            if not collided:
+                if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                    self.room_place_right()
+                    print('tried place right',flush=True)
+        for room in self.rooms:
+            if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                self.room_place_down()
+                print('collision',flush=True)
 
     def spaceship_walls_place(self):
         rect_place(self.world_map,105,4,1,5,WorldItem.WALL)
@@ -506,7 +522,7 @@ class Player:
         self.no_text = True
 
         if pyxel.btnp(pyxel.KEY_A):
-            print(self.room['name'],self.room['X'], self.room['Y'], self.x, self.y,self.room['direction'])
+            print(self.room['name'],self.room['X'], self.room['Y'], self.speed)
 
         self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
 
@@ -864,6 +880,7 @@ class Physics:
                 next_X_2 = self.world.world_map[Y+1][new_X]
             else:
                 next_X_2 = WorldItem.GROUND
+            
             if (next_X_1!=WorldItem.WALL or not collision(new_x, y, new_X*TILE_SIZE, Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_X_2!=WorldItem.WALL or not collision(new_x, y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
                 x = new_x
             elif (next_X_1==WorldItem.WALL or next_X_2==WorldItem.WALL) and new_x+width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
@@ -880,6 +897,7 @@ class Physics:
                 next_Y_2 = self.world.world_map[new_Y][X+1]
             else:
                 next_Y_2 = WorldItem.GROUND
+            
             if (next_Y_1!=WorldItem.WALL or not collision(x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2!=WorldItem.WALL or not collision(x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
                 y = new_y
             elif (next_Y_1==WorldItem.WALL or next_Y_2==WorldItem.WALL) and new_y+height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
