@@ -51,6 +51,14 @@ class App:
                 world_item_draw(pyxel,x,y,block)
         pyxel.blt(WIDTH*TILE_SIZE//2 - TILE_SIZE//2,4*TILE_SIZE,1,72,0,5*TILE_SIZE,4*TILE_SIZE,colkey=11,scale=2)
 
+        self.draw_entities()
+        self.draw_player()
+        self.draw_effects()
+        self.draw_screen_effects()
+        self.draw_stats()
+        self.draw_help()
+
+    def draw_entities(self):
         for entity in loadedEntities:
             pyxel.blt(entity.x,
                       entity.y,
@@ -60,7 +68,8 @@ class App:
                       entity.width,
                       entity.height,
                       colkey=11)
-
+    
+    def draw_player(self):
         pyxel.blt(
             self.player.x,
             self.player.y,
@@ -72,6 +81,7 @@ class App:
             colkey=11
         )
 
+    def draw_effects(self):
         for slash in self.world.effects:
             pyxel.blt(
                 slash['x'],
@@ -85,6 +95,7 @@ class App:
                 scale=slash['scale']
             )
 
+    def draw_screen_effects(self):
         if self.effects.redscreen:
             pyxel.dither(self.effects.dither)
             draw_screen(
@@ -94,18 +105,20 @@ class App:
                 self.camera.x,
                 self.camera.y,)
         pyxel.dither(1)
-        
+
+    def draw_stats(self):
         pyxel.text(self.camera.x+1, self.camera.y+1, "Health:"+str(self.player.health)+"/"+str(self.player.max_health),8)
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
         pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["ammo"])+"/"+str(self.player.gun["max_ammo"]),7)
         if self.player.gun["ammo"] < self.player.gun["max_ammo"]:
             pyxel.text(self.camera.x+1, self.camera.y+19, "[R] to reload", 7)
 
+    def draw_help(self):
         if pickup_text != ["N/A"]:
             pyxel.text(self.camera.x+1, self.camera.y+107, pickup_text[0], 7)
             pyxel.text(self.camera.x+1, self.camera.y+113, pickup_text[1], 7)
             pyxel.text(self.camera.x+1, self.camera.y+119, pickup_text[2], 7)
-    
+
     def enemies_spawn_in_rooms(self):
         margin_spawn = 3
         for room in self.world.roombuild.rooms:
@@ -216,8 +229,10 @@ class WorldItem:
     WALL = (0,0)
     GROUND = (0,1)
     CONNECT = (1,1)
+    INVISIBLE = (6,0)
 
     BLOCKS = [WALL,GROUND]
+    WALLS = [WALL,INVISIBLE]
     UPWORLD_FLOOR = [(3,0),(2,1),(3,1)]
 
 class World:
@@ -907,6 +922,7 @@ class Physics:
         return x,y
 
 class Guns:
+    NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
     PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
     SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
     SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
