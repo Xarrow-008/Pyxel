@@ -5,7 +5,7 @@ FLOORS = [(3,0),(2,1),(3,1)]
 
 class App:
     def __init__(self):
-        pyxel.init(50,50,fps=120)
+        pyxel.init(128,128,fps=120)
         pyxel.load('../notAScrap.pyxres')
 
         self.animation = Animation()
@@ -16,20 +16,13 @@ class App:
         self.animation.slide_anim(10,3,FLOORS)
     def draw(self):
         pyxel.cls(0)
-        pyxel.blt(
-            0,0,1,
-            self.animation.image1[0],
-            self.animation.image1[1],
-            16,
-            8
-        )
         waves = (math.cos(pyxel.frame_count/40)+1)/2
         pyxel.dither(waves/2+0.32)
-        print(waves)
+        draw_screen(48,0,0,0)
         for i in range(len(self.animation.slide)-1):
             pyxel.blt(
                 self.animation.slide_pos + i*8,
-                8,
+                105,
                 0,
                 self.animation.slide[i][0]*8,
                 self.animation.slide[i][1]*8,
@@ -37,11 +30,34 @@ class App:
                 8
                 )
         pyxel.dither(1)
+        
+        pyxel.blt(
+            20,95,1,
+            self.animation.image1[0],
+            self.animation.image1[1],
+            16,
+            8,
+            scale=2
+        )
+
+
+def draw_screen(u, v,camx,camy):
+    for y in range(7):
+        for x in range(128//8):
+            pyxel.blt(
+                camx+x*16,
+                camy+y*16,
+                0,
+                u,
+                v,
+                16,
+                16
+            )
 
 class Animation:
     def __init__(self):
         self.image1 = (0,0)
-        self.slide  = [random.choice(FLOORS) for i in range(10)]
+        self.slide  = [random.choice(FLOORS) for i in range(18)]
         self.slide_pos = 0
     def loop(self,length,duration,u,v,direction):
         if on_tick(duration):

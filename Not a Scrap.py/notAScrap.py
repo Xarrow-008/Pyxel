@@ -24,6 +24,8 @@ class App:
         self.itemList = ItemList()
         self.player = Player(self.world, self.camera,self.itemList)
         self.effects = ScreenEffect(self.player)
+        self.anim = Animation()
+
         self.ship_broken =  False
         self.ship_hold_time = 120*120
         self.group_alive = False
@@ -42,22 +44,29 @@ class App:
     def update(self):
         if self.game_state == 'bunker':
             self.update_in_bunker()
+        if self.game_state == 'ship':
+            self.update_in_ship()
 
     
     def draw(self):
-        for y in range(HEIGHT):
-            for x in range(WIDTH):
-                block = self.world.world_map[y][x]
-                world_item_draw(pyxel,x,y,block)
-        pyxel.blt(WIDTH*TILE_SIZE//2 - TILE_SIZE//2,4*TILE_SIZE,1,72,0,5*TILE_SIZE,4*TILE_SIZE,colkey=11,scale=2)
+        if self.game_state == 'bunker':
+            for y in range(HEIGHT):
+                for x in range(WIDTH):
+                    block = self.world.world_map[y][x]
+                    world_item_draw(pyxel,x,y,block)
+            
+            pyxel.blt(WIDTH*TILE_SIZE//2 - TILE_SIZE//2,4*TILE_SIZE,1,72,0,5*TILE_SIZE,4*TILE_SIZE,colkey=11,scale=2)
 
-        self.draw_entities()
-        self.draw_player()
-        self.draw_effects()
-        self.draw_screen_effects()
-        self.draw_stats()
-        self.draw_help()
+            self.draw_entities()
+            self.draw_player()
+            self.draw_effects()
+            self.draw_screen_effects()
+            self.draw_stats()
+            self.draw_help()
 
+        if self.game_state == 'ship':
+            self.draw_ship_outside()
+            self.draw_ship()
     def draw_entities(self):
         for entity in loadedEntities:
             pyxel.blt(entity.x,
@@ -119,6 +128,10 @@ class App:
             pyxel.text(self.camera.x+1, self.camera.y+113, pickup_text[1], 7)
             pyxel.text(self.camera.x+1, self.camera.y+119, pickup_text[2], 7)
 
+    def draw_ship(self):
+        pyxel.blt(CAM_WIDTH//2 - TILE_SIZE,TILE_SIZE*2,1,72,0,5*TILE_SIZE,4*TILE_SIZE,colkey=11,scale=2)
+
+
     def enemies_spawn_in_rooms(self):
         margin_spawn = 3
         for room in self.world.roombuild.rooms:
@@ -138,42 +151,15 @@ class App:
                             occupied = False
                 Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList)
 
-    def restartGame(self):
-        global pickUpsOnGround
-        global loadedEntities
-        loadedEntities = []
-        pickUpsOnGround = []
+    def spawn_enemies_at(self,x,y,dic,always_loaded=False):
+        print(x,y,'spawn')
+        for i in range(dic['spider']):
+            print('spon',end='',flush=True)
+            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList,always_loaded)
 
-        self.camera.__init__()
-        self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
-        self.itemList.__init__()
-        self.player.__init__(self.world, self.camera,self.itemList)
-        self.effects.__init__(self.player)
-        self.player.speed = 0.25
-        self.game_start = pyxel.frame_count
-        self.ship_broken =  False
-        self.ship_hold_time = 120*120
-        self.group_alive = False
-        self.game_start = pyxel.frame_count
-        self.game_state = 'bunker'
-        self.rooms = self.world.roombuild.rooms
-        pyxel.stop()
-
-        pyxel.mouse(True)
-        self.enemies_spawn_in_rooms()      
-
-    def update_effects(self):
-        for slash in self.world.effects:
-            if pyxel.frame_count - slash['time'] > 60:
-                self.world.effects.remove(slash)
-
-    def check_win(self):
-        enemycounter = 0
-        for entity in loadedEntities:
-            if entity.type == 'enemy':
-                enemycounter += 1
-        if enemycounter == 0:
-            self.restartGame()
+    def update_in_ship(self):
+        self.anim.loop(6,10,32,24,[0,1])
+        self.animation.slide_anim(10,3,WorldItem.UPWORLD_FLOOR)
 
     def update_in_bunker(self):
         self.update_effects()
@@ -207,17 +193,48 @@ class App:
                     self.group_alive = True
                 self.check_win()
 
-    def spawn_enemies_at(self,x,y,dic,always_loaded=False):
-        print(x,y,'spawn')
-        for i in range(dic['spider']):
-            print('spon',end='',flush=True)
-            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList,always_loaded)
+    def update_effects(self):
+        for slash in self.world.effects:
+            if pyxel.frame_count - slash['time'] > 60:
+                self.world.effects.remove(slash)
+
+    def check_win(self):
+        enemycounter = 0
+        for entity in loadedEntities:
+            if entity.type == 'enemy':
+                enemycounter += 1
+        if enemycounter == 0:
+            self.restartGame()
+
+    def restartGame(self):
+        global pickUpsOnGround
+        global loadedEntities
+        loadedEntities = []
+        pickUpsOnGround = []
+
+        self.camera.__init__()
+        self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
+        self.itemList.__init__()
+        self.player.__init__(self.world, self.camera,self.itemList)
+        self.effects.__init__(self.player)
+        self.player.speed = 0.25
+        self.game_start = pyxel.frame_count
+        self.ship_broken =  False
+        self.ship_hold_time = 120*120
+        self.group_alive = False
+        self.game_start = pyxel.frame_count
+        self.game_state = 'bunker'
+        self.rooms = self.world.roombuild.rooms
+        pyxel.stop()
+
+        pyxel.mouse(True)
+        self.enemies_spawn_in_rooms()      
 
 
 class Animation:
     def __init__(self):
         self.image1 = (0,0)
-        self.slide  = [random.choice(FLOORS) for i in range(10)]
+        self.slide  = [random.choice(WorldItem.UPWORLD_FLOOR) for i in range(CAM_WIDTH//TILE_SIZE+1)]
         self.slide_pos = 0
     def loop(self,length,duration,u,v,direction):
         if on_tick(duration):
