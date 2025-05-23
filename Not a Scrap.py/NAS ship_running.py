@@ -1,7 +1,7 @@
 import pyxel,os,math,random
 FLOOR = (0,3)
 FLOORS = [(3,0),(2,1),(3,1)]
-
+TILE_SIZE = 8
 
 class App:
     def __init__(self):
@@ -16,8 +16,8 @@ class App:
         self.animation.slide_anim(10,3,FLOORS)
     def draw(self):
         pyxel.cls(0)
-        waves = (math.cos(pyxel.frame_count/40)+1)/2
-        pyxel.dither(waves/2+0.32)
+        waves = (math.cos(pyxel.frame_count/50)+1)/2
+        pyxel.dither(waves/2+0.3125)
         draw_screen(48,0,0,0)
         for i in range(len(self.animation.slide)-1):
             pyxel.blt(
@@ -31,13 +31,15 @@ class App:
                 )
         pyxel.dither(1)
         
+        pyxel.blt(40,55,1,32,0,5*TILE_SIZE,3*TILE_SIZE,colkey=11,scale=2)
         pyxel.blt(
-            20,95,1,
+            40,95,1,
             self.animation.image1[0],
             self.animation.image1[1],
-            16,
+            40,
             8,
-            scale=2
+            scale=2,
+            colkey=11
         )
 
 
