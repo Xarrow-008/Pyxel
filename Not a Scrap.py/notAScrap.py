@@ -52,7 +52,7 @@ class App:
         if self.game_state == 'bunker':
             for y in range(HEIGHT):
                 for x in range(WIDTH):
-                    if in_perimeter(self.camera.x//TILE_SIZE - 1,self.camera.y//TILE_SIZE - 1, x, y, CAM_WIDTH//TILE_SIZE + 2):
+                    if in_camera(x,y,self.camera.x,self.camera.y):
                         block = self.world.world_map[y][x]
                         world_item_draw(pyxel,x,y,block)
             
@@ -73,14 +73,15 @@ class App:
 
     def draw_entities(self):
         for entity in loadedEntities:
-            pyxel.blt(entity.x,
-                      entity.y,
-                      0,
-                      entity.image[0],
-                      entity.image[1],
-                      entity.width,
-                      entity.height,
-                      colkey=11)
+            if in_camera(entity.x,entity.y,self.camera.x,self.camera.y):
+                pyxel.blt(entity.x,
+                        entity.y,
+                        0,
+                        entity.image[0],
+                        entity.image[1],
+                        entity.width,
+                        entity.height,
+                        colkey=11)
     
     def draw_player(self):
         pyxel.blt(
@@ -315,10 +316,12 @@ class World:
     def __init__(self,tilemap,roombuild,game_state):
         self.tilemap = tilemap
         self.roombuild = roombuild
-        self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
+        self.world_map = [[(0,1) for j in range(WIDTH)] for i in range(HEIGHT)]
         self.nb_rooms = 20
+        self.effects = []
             
         if game_state == 'bunker':
+            self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
             self.player_init_posX = 812/TILE_SIZE
             self.player_init_posY = 45/TILE_SIZE
             self.roombuild.random_rooms_place(self.world_map,20)
@@ -337,15 +340,15 @@ class World:
                     y = room['chest'][1]
                     self.world_map[y][x] = (4,0)
 
-            self.effects = []
+
         elif game_state == 'ship':
-            self.player_init_posX = 56/TILE_SIZE
-            self.player_init_posY = 60/TILE_SIZE
-            rect_place(self.world_map,4,6,6,1,WorldItem.INVISIBLE)
-            rect_place(self.world_map,10,4,1,5,WorldItem.INVISIBLE)
-            rect_place(self.world_map,3,4,1,5,WorldItem.INVISIBLE)
-            rect_place(self.world_map,4,4,6,1,WorldItem.INVISIBLE)
-            rect_place(self.world_map,4,9,6,1,WorldItem.INVISIBLE)
+            self.world_map = [[(0,1) for j in range(WIDTH)] for i in range(HEIGHT)]
+            self.player_init_posX = 60/TILE_SIZE
+            self.player_init_posY = 56/TILE_SIZE
+            rect_place(self.world_map,4,6,7,1,WorldItem.INVISIBLE)
+            rect_place(self.world_map,3,6,1,6,WorldItem.INVISIBLE)
+            rect_place(self.world_map,11,6,1,6,WorldItem.INVISIBLE)
+            rect_place(self.world_map,4,11,7,1,WorldItem.INVISIBLE)
 
 class RoomBuild:
     def __init__(self, name, startX, startY):
@@ -567,6 +570,7 @@ class Player:
 
         self.ownedItems = []
         self.justKilled = False
+        self.no_text = False
 
         self.camera = camera
         self.lever_pulled = False
@@ -613,18 +617,18 @@ class Player:
             self.gun["ammo"] = self.gun["max_ammo"]
         
     def update_in_ship(self):
-        self.no_text = True
         if pyxel.btnp(pyxel.KEY_A):
-            print(self.x,self.y)
+            print(self.x//TILE_SIZE,self.y//TILE_SIZE)
         
         self.posXmouse = self.camera.x+pyxel.mouse_x
         self.poxYmouse = self.camera.y+pyxel.mouse_y
         if not self.isDashing and not self.stuck:
             self.movement()
-            self.slash()
             self.dash()
         else:
             self.dashMovement()
+            
+        self.dashFrame += 1
         self.change_PickupText()
         self.preventOOB()
         self.lever_gestion()
@@ -1488,6 +1492,9 @@ def find_room(x,y,rooms):
 
 pickUpsOnGround = []
 activeBoosts = []
+
+def in_camera(x,y, camx, camy):
+    return in_perimeter((camx + CAM_WIDTH//2)//TILE_SIZE,(camy + CAM_HEIGHT//2)//TILE_SIZE, x, y, CAM_WIDTH//(TILE_SIZE*2) + 1)
 
 def collision(x1, y1, x2, y2, size1, size2):
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
