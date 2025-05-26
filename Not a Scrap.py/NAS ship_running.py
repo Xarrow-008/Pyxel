@@ -10,10 +10,13 @@ class App:
 
         self.animation = Animation()
 
+        pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
     def update(self):
         self.animation.loop(6,10,32,24,[0,1])
         self.animation.slide_anim(10,3,FLOORS)
+        if on_tick(60):
+            print(pyxel.mouse_x,pyxel.mouse_y)
     def draw(self):
         pyxel.cls(0)
         waves = (math.cos(pyxel.frame_count/50)+1)/2

@@ -20,7 +20,7 @@ class App:
         pyxel.playm(0, loop=True)
 
         self.camera = Camera()
-        self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
+        self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship')
         self.itemList = ItemList()
         self.player = Player(self.world, self.camera,self.itemList)
         self.effects = ScreenEffect(self.player)
@@ -30,7 +30,7 @@ class App:
         self.ship_hold_time = 120*120
         self.group_alive = False
         self.game_start = 0
-        self.game_state = 'bunker'
+        self.game_state = 'ship'
         self.rooms = self.world.roombuild.rooms
 
         
@@ -67,6 +67,8 @@ class App:
         if self.game_state == 'ship':
             self.draw_ship_outside()
             self.draw_ship()
+            self.draw_player()
+            self.draw_help()
     def draw_entities(self):
         for entity in loadedEntities:
             pyxel.blt(entity.x,
@@ -108,7 +110,6 @@ class App:
         if self.effects.redscreen:
             pyxel.dither(self.effects.dither)
             draw_screen(
-                pyxel,
                 0,
                 16,
                 self.camera.x,
@@ -128,9 +129,54 @@ class App:
             pyxel.text(self.camera.x+1, self.camera.y+113, pickup_text[1], 7)
             pyxel.text(self.camera.x+1, self.camera.y+119, pickup_text[2], 7)
 
+    def draw_ship_outside(self):
+        pyxel.cls(0)
+        waves = (math.cos(pyxel.frame_count/50)+1)/2
+        pyxel.dither(waves/2+0.3125)
+        draw_screen(16,16,0,-32)
+        for i in range(len(self.anim.slide)):
+            pyxel.dither(waves/2+0.3125)
+            pyxel.blt(
+                self.anim.slide_pos + i*8,
+                105,
+                0,
+                self.anim.slide[i][0]*8,
+                self.anim.slide[i][1]*8,
+                8,
+                8
+                )
+            pyxel.dither(1)
+            pyxel.blt(
+                self.anim.slide_pos + i*8,
+                112,
+                0,
+                WorldItem.WALL[0],
+                WorldItem.WALL[1],
+                8,
+                8
+                )
+            pyxel.blt(
+                self.anim.slide_pos + i*8,
+                120,
+                0,
+                WorldItem.WALL[0],
+                WorldItem.WALL[1],
+                8,
+                8
+                )
+        pyxel.dither(1)
+    
     def draw_ship(self):
-        pyxel.blt(CAM_WIDTH//2 - TILE_SIZE,TILE_SIZE*2,1,72,0,5*TILE_SIZE,4*TILE_SIZE,colkey=11,scale=2)
-
+        pyxel.blt(40,55,1,32,0,5*TILE_SIZE,3*TILE_SIZE,colkey=11,scale=2)
+        pyxel.blt(
+            40,95,1,
+            self.anim.image1[0],
+            self.anim.image1[1],
+            40,
+            8,
+            scale=2,
+            colkey=11
+        )
 
     def enemies_spawn_in_rooms(self):
         margin_spawn = 3
@@ -159,7 +205,11 @@ class App:
 
     def update_in_ship(self):
         self.anim.loop(6,10,32,24,[0,1])
-        self.animation.slide_anim(10,3,WorldItem.UPWORLD_FLOOR)
+        self.anim.slide_anim(10,3,WorldItem.UPWORLD_FLOOR)
+        self.player.update_in_ship()
+        if self.player.lever_pulled:
+            self.game_state = 'bunker'
+            self.restartGame()
 
     def update_in_bunker(self):
         self.update_effects()
@@ -213,7 +263,7 @@ class App:
         pickUpsOnGround = []
 
         self.camera.__init__()
-        self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10))
+        self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'bunker')
         self.itemList.__init__()
         self.player.__init__(self.world, self.camera,self.itemList)
         self.effects.__init__(self.player)
@@ -260,31 +310,40 @@ class WorldItem:
     UPWORLD_FLOOR = [(3,0),(2,1),(3,1)]
 
 class World:
-    def __init__(self,tilemap,roombuild):
+    def __init__(self,tilemap,roombuild,game_state):
         self.tilemap = tilemap
         self.roombuild = roombuild
         self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
-        self.player_init_posX = 812/TILE_SIZE
-        self.player_init_posY = 45/TILE_SIZE
         self.nb_rooms = 20
-        
-        self.roombuild.random_rooms_place(self.world_map,20)
-        self.world_map = self.roombuild.world_map
-        rect_place(self.world_map,0,0,WIDTH,9,(2,0))
-        for i in range(WIDTH):
-            self.world_map[9][i] = WorldItem.UPWORLD_FLOOR[random.randint(0,len(WorldItem.UPWORLD_FLOOR)-1)]
-        rect_place(self.world_map,0,0,1,10,WorldItem.WALL)
-        rect_place(self.world_map,WIDTH-1,0,1,10,WorldItem.WALL)
-        self.roombuild.spaceship_walls_place()
-        self.furniture = Furniture(self.roombuild.rooms)
+            
+        if game_state == 'bunker':
+            self.player_init_posX = 812/TILE_SIZE
+            self.player_init_posY = 45/TILE_SIZE
+            self.roombuild.random_rooms_place(self.world_map,20)
+            self.world_map = self.roombuild.world_map
+            rect_place(self.world_map,0,0,WIDTH,9,(2,0))
+            for i in range(WIDTH):
+                self.world_map[9][i] = WorldItem.UPWORLD_FLOOR[random.randint(0,len(WorldItem.UPWORLD_FLOOR)-1)]
+            rect_place(self.world_map,0,0,1,10,WorldItem.WALL)
+            rect_place(self.world_map,WIDTH-1,0,1,10,WorldItem.WALL)
+            self.roombuild.spaceship_walls_place()
+            self.furniture = Furniture(self.roombuild.rooms)
 
-        for room in self.roombuild.rooms:
-            if 'chest' in room.keys():
-                x = room['chest'][0]
-                y = room['chest'][1]
-                self.world_map[y][x] = (4,0)
+            for room in self.roombuild.rooms:
+                if 'chest' in room.keys():
+                    x = room['chest'][0]
+                    y = room['chest'][1]
+                    self.world_map[y][x] = (4,0)
 
-        self.effects = []
+            self.effects = []
+        elif game_state == 'ship':
+            self.player_init_posX = 56/TILE_SIZE
+            self.player_init_posY = 60/TILE_SIZE
+            rect_place(self.world_map,4,6,6,1,WorldItem.INVISIBLE)
+            rect_place(self.world_map,10,4,1,5,WorldItem.INVISIBLE)
+            rect_place(self.world_map,3,4,1,5,WorldItem.INVISIBLE)
+            rect_place(self.world_map,4,4,6,1,WorldItem.INVISIBLE)
+            rect_place(self.world_map,4,9,6,1,WorldItem.INVISIBLE)
 
 class RoomBuild:
     def __init__(self, name, startX, startY):
@@ -384,9 +443,9 @@ class RoomBuild:
                 print('collision',flush=True)
 
     def spaceship_walls_place(self):
-        rect_place(self.world_map,105,4,1,5,WorldItem.WALL)
-        rect_place(self.world_map,98,4,1,5,WorldItem.WALL)
-        rect_place(self.world_map,99,4,6,1,WorldItem.WALL)
+        rect_place(self.world_map,105,4,1,5,WorldItem.INVISIBLE)
+        rect_place(self.world_map,98,4,1,5,WorldItem.INVISIBLE)
+        rect_place(self.world_map,99,4,6,1,WorldItem.INVISIBLE)
         rect_place(self.world_map,103,9,2,1,WorldItem.WALL)
         rect_place(self.world_map,99,9,2,1,WorldItem.WALL)
 
@@ -438,9 +497,9 @@ class Physics:
             else:
                 next_X_2 = WorldItem.GROUND
             
-            if (next_X_1!=WorldItem.WALL or not collision(new_x, y, new_X*TILE_SIZE, Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_X_2!=WorldItem.WALL or not collision(new_x, y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
+            if (next_X_1 not in WorldItem.WALLS or not collision(new_x, y, new_X*TILE_SIZE, Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in WorldItem.WALLS or not collision(new_x, y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
                 x = new_x
-            elif (next_X_1==WorldItem.WALL or next_X_2==WorldItem.WALL) and new_x+width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+            elif (next_X_1 in WorldItem.WALLS or next_X_2 in WorldItem.WALLS) and new_x+width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
                 self.collision_happened = True
                 x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
         
@@ -455,9 +514,9 @@ class Physics:
             else:
                 next_Y_2 = WorldItem.GROUND
             
-            if (next_Y_1!=WorldItem.WALL or not collision(x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2!=WorldItem.WALL or not collision(x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
+            if (next_Y_1 not in WorldItem.WALLS or not collision(x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 not in WorldItem.WALLS or not collision(x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
                 y = new_y
-            elif (next_Y_1==WorldItem.WALL or next_Y_2==WorldItem.WALL) and new_y+height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+            elif (next_Y_1 in WorldItem.WALLS or next_Y_2 in WorldItem.WALLS) and new_y+height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
                 self.collision_happened = True
                 y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
@@ -508,6 +567,8 @@ class Player:
         self.justKilled = False
 
         self.camera = camera
+        self.lever_pulled = False
+
 
     def update(self):
         self.no_text = True
@@ -549,6 +610,30 @@ class Player:
         if self.gun["ammo"] > self.gun["max_ammo"]:
             self.gun["ammo"] = self.gun["max_ammo"]
         
+    def update_in_ship(self):
+        self.no_text = True
+        if pyxel.btnp(pyxel.KEY_A):
+            print(self.x,self.y)
+        
+        self.posXmouse = self.camera.x+pyxel.mouse_x
+        self.poxYmouse = self.camera.y+pyxel.mouse_y
+        if not self.isDashing and not self.stuck:
+            self.movement()
+            self.slash()
+            self.dash()
+        else:
+            self.dashMovement()
+        self.change_PickupText()
+        self.preventOOB()
+        self.lever_gestion()
+
+    def lever_gestion(self):
+        global pickup_text
+        self.lever_pulled = False
+        pickup_text = ['[F] to stop at a bunker', '', '']
+        self.no_text = False
+        if pyxel.btnp(pyxel.KEY_F):
+            self.lever_pulled = True
 
     def movement(self):
         if pyxel.btn(pyxel.KEY_Q):
@@ -1304,7 +1389,7 @@ class Camera:
         self.x, self.y = round(self.x),round(self.y)
 
 
-def draw_screen(pyxel, u, v,camx,camy):
+def draw_screen(u, v,camx,camy):
     for y in range(CAM_HEIGHT//2):
         for x in range(CAM_WIDTH//2):
             pyxel.blt(

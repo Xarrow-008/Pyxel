@@ -54,17 +54,16 @@ class Golf:
                 colkey= 15,
             )
             pyxel.blt(
-                0,
-                0,
+                self.ball.x-4 + self.ball.current_cos*8,
+                self.ball.y+2 + self.ball.current_sin*8,
                 0,
                 0,
                 72,
                 T_SIZE,
-                T_SIZE,
+                1,
                 colkey= 15,
-                rotate= (math.acos(self.ball.cos) * pyxel.sgn(self.ball.vertical))*180*180/math.pi/math.pi
+                rotate= (math.acos(self.ball.current_cos) * pyxel.sgn(self.ball.vertical))*180/math.pi
             )
-
 class Blocks:
 
     WALL_FULL = (0,1)
