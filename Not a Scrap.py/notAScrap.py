@@ -52,8 +52,9 @@ class App:
         if self.game_state == 'bunker':
             for y in range(HEIGHT):
                 for x in range(WIDTH):
-                    block = self.world.world_map[y][x]
-                    world_item_draw(pyxel,x,y,block)
+                    if in_perimeter(self.camera.x//TILE_SIZE - 1,self.camera.y//TILE_SIZE - 1, x, y, CAM_WIDTH//TILE_SIZE + 2):
+                        block = self.world.world_map[y][x]
+                        world_item_draw(pyxel,x,y,block)
             
             pyxel.blt(WIDTH*TILE_SIZE//2 - TILE_SIZE//2,4*TILE_SIZE,1,72,0,5*TILE_SIZE,4*TILE_SIZE,colkey=11,scale=2)
 
@@ -69,6 +70,7 @@ class App:
             self.draw_ship()
             self.draw_player()
             self.draw_help()
+
     def draw_entities(self):
         for entity in loadedEntities:
             pyxel.blt(entity.x,
@@ -626,11 +628,11 @@ class Player:
         self.change_PickupText()
         self.preventOOB()
         self.lever_gestion()
+        self.change_PickupText()
 
     def lever_gestion(self):
-        global pickup_text
         self.lever_pulled = False
-        pickup_text = ['[F] to stop at a bunker', '', '']
+        self.pickup_text = ['[F] to stop at a bunker', '', '']
         self.no_text = False
         if pyxel.btnp(pyxel.KEY_F):
             self.lever_pulled = True
