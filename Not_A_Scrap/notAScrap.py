@@ -731,7 +731,7 @@ class Player:
         if 'chest' in self.room.keys():
             if in_perimeter(self.x,self.y,self.room['chest'][0]*TILE_SIZE,self.room['chest'][1]*TILE_SIZE,TILE_SIZE*1.5):
                 if self.no_text:
-                    self.pickup_text = ['hold [F] to open', 'chest', 'get item or weapon']
+                    self.pickup_text = ['Hold [F] to open', 'Chest', 'Get item or weapon']
                     self.no_text = False
 
                 if pyxel.btn(pyxel.KEY_F):
