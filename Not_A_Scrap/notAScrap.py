@@ -1380,7 +1380,7 @@ class ItemList:
 
         self.BULLET_COUNT_PASSIVE = {"name":"placeholder", "description":"Double bullets", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2]]}
         self.LUCK_PASSIVE = {"name":"placeholder", "description":"Increased chance of getting items", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 15]]}
-        self.PIERCING_DAMAGE_PASSIVE = {"name":"placeholder", "description":"Piercing enemies increase damage", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
+        self.PIERCING_DAMAGE_PASSIVE = {"name":"placeholder", "description":"Luck increase", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
 
 class Effect:
