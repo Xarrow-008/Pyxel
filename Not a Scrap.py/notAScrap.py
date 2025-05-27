@@ -10,7 +10,6 @@ CAM_HEIGHT = 16*8
 FPS = 120
 
 loadedEntities = []
-pickup_text = ["N/A"]
 
 class App:
     def __init__(self):
@@ -22,7 +21,8 @@ class App:
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship')
         self.itemList = ItemList()
-        self.player = Player(self.world, self.camera,self.itemList)
+        self.text = Text()
+        self.player = Player(self.world, self.camera,self.itemList,self.text)
         self.effects = ScreenEffect(self.player)
         self.anim = Animation()
 
@@ -31,6 +31,7 @@ class App:
         self.group_alive = False
         self.game_start = 0
         self.game_state = 'ship'
+        self.timer_bar = 32
         self.rooms = self.world.roombuild.rooms
 
         
@@ -64,6 +65,7 @@ class App:
             self.draw_screen_effects()
             self.draw_stats()
             self.draw_help()
+            self.draw_timer_bar()
 
         if self.game_state == 'ship':
             self.draw_ship_outside()
@@ -73,7 +75,7 @@ class App:
 
     def draw_entities(self):
         for entity in loadedEntities:
-            if in_camera(entity.x,entity.y,self.camera.x,self.camera.y):
+            if in_camera(entity.x//TILE_SIZE,entity.y//TILE_SIZE,self.camera.x,self.camera.y):
                 pyxel.blt(entity.x,
                         entity.y,
                         0,
@@ -119,6 +121,12 @@ class App:
                 self.camera.y,)
         pyxel.dither(1)
 
+    def draw_timer_bar(self):
+        pyxel.blt(self.camera.x + 96,self.camera.y,1,0,32,32,4)
+        pyxel.blt(self.camera.x + 96,self.camera.y,1,0,36,32,4)
+        if self.timer_bar>0:
+            pyxel.blt(self.camera.x + 96,self.camera.y,1,0,40,self.timer_bar+1,4)
+
     def draw_stats(self):
         pyxel.text(self.camera.x+1, self.camera.y+1, "Health:"+str(self.player.health)+"/"+str(self.player.max_health),8)
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
@@ -127,10 +135,10 @@ class App:
             pyxel.text(self.camera.x+1, self.camera.y+19, "[R] to reload", 7)
 
     def draw_help(self):
-        if pickup_text != ["N/A"]:
-            pyxel.text(self.camera.x+1, self.camera.y+107, pickup_text[0], 7)
-            pyxel.text(self.camera.x+1, self.camera.y+113, pickup_text[1], 7)
-            pyxel.text(self.camera.x+1, self.camera.y+119, pickup_text[2], 7)
+        if self.text.description != ["N/A"]:
+            pyxel.text(self.camera.x+1, self.camera.y+107, self.text.description[0], 7)
+            pyxel.text(self.camera.x+1, self.camera.y+113, self.text.description[1], 7)
+            pyxel.text(self.camera.x+1, self.camera.y+119, self.text.description[2], 7)
 
     def draw_ship_outside(self):
         pyxel.cls(0)
@@ -207,6 +215,7 @@ class App:
             Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList,always_loaded)
 
     def update_in_ship(self):
+        self.camera.x,self.camera.y = 0, 0
         self.anim.loop(6,10,32,24,[0,1])
         self.anim.slide_anim(10,3,WorldItem.UPWORLD_FLOOR)
         self.player.update_in_ship()
@@ -232,6 +241,8 @@ class App:
                 else:
                     self.spawn_enemies_at(self.group.room['X'],self.group.room['Y'],self.group.dic_enemies,True)
                     self.group_alive = False
+            if on_cooldown(self.game_start,self.ship_hold_time):
+                self.timer_bar =  (self.ship_hold_time-pyxel.frame_count+self.game_start) * 32 // self.ship_hold_time
 
             self.camera.update(self.player)
             pyxel.camera(self.camera.x,self.camera.y)
@@ -240,7 +251,7 @@ class App:
             if not self.player.alive:
                 self.restartGame()
             else:
-                if pyxel.frame_count - self.game_start == self.ship_hold_time:
+                if pyxel.frame_count - self.game_start >= self.ship_hold_time and not self.ship_broken:
                     self.ship_broken = True
                     self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':10})
                     self.group_alive = True
@@ -268,14 +279,13 @@ class App:
         self.camera.__init__()
         self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'bunker')
         self.itemList.__init__()
-        self.player.__init__(self.world, self.camera,self.itemList)
+        self.player.__init__(self.world, self.camera,self.itemList,self.text)
         self.effects.__init__(self.player)
         self.player.speed = 0.25
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
         self.ship_hold_time = 120*120
         self.group_alive = False
-        self.game_start = pyxel.frame_count
         self.game_state = 'bunker'
         self.rooms = self.world.roombuild.rooms
         pyxel.stop()
@@ -528,7 +538,7 @@ class Physics:
         return x,y
 
 class Player:
-    def __init__(self, world, camera,itemList):
+    def __init__(self, world, camera,itemList,text):
         self.alive = True
         self.x = world.player_init_posX*TILE_SIZE
         self.y = world.player_init_posY*TILE_SIZE
@@ -571,6 +581,7 @@ class Player:
         self.ownedItems = []
         self.justKilled = False
         self.no_text = False
+        self.text = text
 
         self.camera = camera
         self.lever_pulled = False
@@ -631,8 +642,11 @@ class Player:
         self.dashFrame += 1
         self.change_PickupText()
         self.preventOOB()
-        self.lever_gestion()
-        self.change_PickupText()
+        if in_perimeter(self.x,self.y,56,58,10):
+            self.lever_gestion()
+            self.change_PickupText()
+        else:
+            self.pickup_text = ['N/A']
 
     def lever_gestion(self):
         self.lever_pulled = False
@@ -709,7 +723,6 @@ class Player:
                 Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", self.gun["explode_radius"])
 
     def chest_gestion(self):
-        global pickup_text
         if 'chest' in self.room.keys():
             if in_perimeter(self.x,self.y,self.room['chest'][0]*TILE_SIZE,self.room['chest'][1]*TILE_SIZE,TILE_SIZE*1.5):
                 if self.no_text:
@@ -729,7 +742,6 @@ class Player:
                         self.room.pop('chest_opening')
                         self.stuck = False
                 else:
-                    pickup_text = ["N/A"]
                     self.stuck = False
                     self.room['chest_opening'] = 0
 
@@ -811,11 +823,10 @@ class Player:
                 self.no_text = False
 
     def change_PickupText(self):
-        global pickup_text
         if not self.no_text:
-            pickup_text = self.pickup_text
+            self.text.description = self.pickup_text
         else:
-            pickup_text = ["N/A"]
+            self.text.description = ["N/A"]
 
     def check_death(self):
         if self.health<=0:
@@ -944,7 +955,7 @@ class Player:
                             Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
 class EnemyTemplates:
-    BASE = {"health":50, "speed":0.3, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
+    BASE = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE}
 
 class Enemy:
     def __init__(self, x, y, template, player, world,itemList,always_loaded=False):
@@ -1394,6 +1405,9 @@ class Camera:
         
         self.x, self.y = round(self.x),round(self.y)
 
+class Text:
+    def __init__(self):
+        self.description = ['N/A']
 
 def draw_screen(u, v,camx,camy):
     for y in range(CAM_HEIGHT//2):
