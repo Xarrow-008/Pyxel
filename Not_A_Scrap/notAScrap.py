@@ -603,14 +603,15 @@ class Player:
 
         self.posXmouse = self.camera.x+pyxel.mouse_x
         self.poxYmouse = self.camera.y+pyxel.mouse_y
-        if not self.isDashing and not self.stuck:
-            self.movement()
-            self.fireWeapon()
-            self.slash()
-            self.reloadWeapon()
-            self.dash()
-        else:
-            self.dashMovement()
+        if not self.stuck:
+            if not self.isDashing:
+                self.movement()
+                self.fireWeapon()
+                self.slash()
+                self.reloadWeapon()
+                self.dash()
+            else:
+                self.dashMovement()
         
         self.hitDetection()
         self.attackFrame += 1
@@ -799,6 +800,11 @@ class Player:
             self.isDashing = False
             self.dashFrame = 0
             self.triggerOnDashItems()
+            if on_tick(10):
+                self.image = [6,2]
+            elif on_tick(10,1):
+                print('second image')
+                self.image = [6,3]
 
     def hitDetection(self):
         if self.isHit and self.hitFrame >= self.hitLength:
@@ -1429,8 +1435,8 @@ def check_entity(loadedEntities, key, value):
             return True
     return False
     
-def on_tick(tickrate=60):
-    return pyxel.frame_count % tickrate == 0
+def on_tick(tickrate=60,delay=0):
+    return (pyxel.frame_count % tickrate)-delay == 0
 
 def on_cooldown(frame,cooldown):
     return (pyxel.frame_count - frame) < cooldown
