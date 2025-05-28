@@ -1068,11 +1068,18 @@ class Enemy:
         self.hitByDash = False
 
         self.canLunge = template["can_lunge"]
-        self.attack = template["attack"]
-        self.spawn_frame = 0
+        self.attack_type = template["attack"]
+        self.spawnFrame = 0
         self.spawner = template["spawner"]
 
         self.type = "enemy"
+        self.has_items = template["has_items"]
+
+        if template["has_items"]:
+            gun_random = random.randint(1,100)
+                for gun in Guns.Gun_list:
+                    if gun_random in gun["rate"]:
+                        self.gun_equipped = gun
 
         loadedEntities.append(self)
 
@@ -1138,10 +1145,23 @@ class Enemy:
             if self.isAttacking and self.attackFrame >= self.attack_freeze:
                 self.attackFrame = 0
                 self.isAttacking = False
-                if self.attack == "slash":
+                if self.attack_type == "slash":
                     self.slash()
-                elif self.attack == "bullet":
-                    Bullet(self.x+self.width/2, self.y+self.height/2, TILE_SIZE, TILE_SIZE, [self.cos, self.sin], self.attack_speed, self.range, 0, self.world, self.player, [0,6*TILE_SIZE], "enemy", 0)
+                elif self.attack_type == "bullet":
+                    if self.has_items:
+                        for i in range(self.gun_equipped["bullet_count"])
+                            angle = math.acos(self.cos)*pyxel.sgn(self.sin)
+                            lowest_angle = angle - self.gun["spread"]*(math.pi/180)
+                            highest_angle = angle + self.gun["spread"]*(math.pi/180)
+                            angle = random.uniform(lowest_angle, highest_angle)
+                            cos = math.cos(angle)
+                            sin = math.sin(angle)
+                        else:
+                            cos = 0
+                            sin = 0
+                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun_equipped["damage"], self.gun_equipped["bullet_speed"], self.gun_equipped["range"], self.gun_equipped["piercing"], self.world, self.player, (0,6*TILE_SIZE), "enemy", self.gun_equipped["explode_radius"])
+                    else:
+                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [self.cos, self.sin], self.damage, self.attack_speed, self.range, 0, self.world, self.player, [0,6*TILE_SIZE], "enemy", 0)
 
     def slash(self):
         self.world.effects.append({'x':self.x+self.cos*TILE_SIZE,'y':self.y+self.sin*TILE_SIZE,'image':[7,6],'scale':1,'time':pyxel.frame_count})
@@ -1163,7 +1183,7 @@ class Enemy:
                 self.hit_player = False
             if self.isLunging==2:
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.lungeVector)
-                if self.attack == "lunge":
+                if self.attack_type == "lunge":
                     if collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and not self.hit_player:
                         self.player.health -= self.damage
                         self.hit_player = True
@@ -1174,6 +1194,7 @@ class Enemy:
     def spawn_hatchlings(self):
         if self.spawner and self.spawnFrame > 5*FPS:
             Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
+            self.spawnFrame = 0
 
     def getImage(self):
         if abs(self.horizontal)>abs(self.vertical):
@@ -1193,30 +1214,33 @@ class Enemy:
             if self.image[0]<16:
                 self.image[0] +=16
 
+    def randomItem(self):
+        item_rarity = random.randint(1,20)
+        if item_rarity == 20:
+            item_random = random.randint(0, len(self.itemList.legendary_list)-1)
+            item = self.itemList.legendary_list[item_random]
+        elif item_rarity>15 and item_rarity<20:
+            item_random = random.randint(0, len(self.itemList.uncommon_list)-1)
+            item = self.itemList.uncommon_list[item_random]
+        else:
+            item_random = random.randint(0, len(self.itemList.common_list)-1)
+            item = self.itemList.common_list[item_random]
+            
+                
+
     def death(self):
         if self.health <= 0:
 
-            for i in range(3):
-                Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
+            if self.spawner :
+                for i in range(3):
+                    Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
 
             item_chance = 10 + self.player.luck
             gun_chance = 12
 
             pickup = random.randint(1,100)
             if pickup <= item_chance:
-                item_rarity = random.randint(1,20)
-                if item_rarity == 20:
-                    item_random = random.randint(0, len(self.itemList.legendary_list)-1)
-                    item = self.itemList.legendary_list[item_random]
-                    PickUp(self.x, self.y, "item", item, self.player)
-                elif item_rarity>15 and item_rarity<20:
-                    item_random = random.randint(0, len(self.itemList.uncommon_list)-1)
-                    item = self.itemList.uncommon_list[item_random]
-                    PickUp(self.x, self.y, "item", item, self.player)
-                else:
-                    item_random = random.randint(0, len(self.itemList.common_list)-1)
-                    item = self.itemList.common_list[item_random]
-                    PickUp(self.x, self.y, "item", item, self.player)
+                PickUp(self.x, self.y, "item", self.randomItem(), self.player)
 
             elif pickup > 100-gun_chance:
                 gun_random = random.randint(1,100)
