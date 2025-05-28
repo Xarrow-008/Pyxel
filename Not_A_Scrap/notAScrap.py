@@ -74,8 +74,6 @@ class App:
     def draw_entities(self):
         for entity in loadedEntities:
             if in_camera(entity.x//TILE_SIZE,entity.y//TILE_SIZE,self.camera.x,self.camera.y):
-                if entity.type == 'enemy':
-                    print(entity.image)
                 pyxel.blt(entity.x,
                         entity.y,
                         0,
@@ -210,7 +208,6 @@ class App:
                 Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.SPIDER,self.player,self.world,self.itemList)
         Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.TURRET,self.player,self.world,self.itemList)
         Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.STALKER,self.player,self.world,self.itemList)
-        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.BULWARK,self.player,self.world,self.itemList)
         Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.HIVE_QUEEN,self.player,self.world,self.itemList)
 
     def spawn_enemies_at(self,x,y,dic,always_loaded=False):
@@ -1025,15 +1022,15 @@ class Player: #Everything relating to the player and its control
                         if not boost_already_active:
                             Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
-class EnemyTemplates: #All the stats of the various enemies
-    SPIDER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
-    BULWARK = {"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[8*TILE_SIZE,5*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
-    STALKER = {"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":80, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":[12*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False}
-    TUMOR = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
-    TURRET = {"health":50, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False}
-    INFECTED_SCRAPPER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "attack":"bullet", "spawner":False, "has_items":True}
-    HIVE_QUEEN = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[7*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False}
-    HATCHLING = {"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
+class EnemyTemplates:
+    SPIDER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
+    BULWARK = {"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
+    STALKER = {"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":80, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False}
+    TUMOR = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
+    TURRET = {"health":50, "speed":0, "damage":5, "range":1*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":1.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False}
+    INFECTED_SCRAPPER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "attack":"bullet", "spawner":False, "has_items":True}
+    HIVE_QUEEN = {"health":50, "speed":0.08, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False}
+    HATCHLING = {"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
     
 class Enemy:
     def __init__(self, x, y, template, player, world,itemList,always_loaded=False): #Creates a new enemy, with all its stats
@@ -1072,7 +1069,9 @@ class Enemy:
         self.itemList = itemList
 
         self.base_image = template["image"]
-        self.image = template["image"]
+        self.image = [template["image"][0], template["image"][1]]
+        self.facing = [0,0]
+        self.img_change = [0,0]
         self.width = template["width"]
         self.height = template["height"]
 
@@ -1109,11 +1108,12 @@ class Enemy:
 
         self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
         
-        if self.hitStun:
-            self.hitStunFunction()
-        else:
-            if self.loaded or self.always_loaded:
-                self.image[0], self.image[1] = self.base_image[0], self.base_image[1]
+        self.img_change = [0,0]
+
+        if self.loaded or self.always_loaded:
+            if self.hitStun:
+                self.hitStunFunction()
+            else:
                 self.pathing()
                 self.moveInPathing()
                 self.enemies_pusharound()
@@ -1123,15 +1123,14 @@ class Enemy:
                 self.lungeFrame += 1
                 self.attackFrame += 1
                 self.spawnFrame += 1
-                #self.getImage()
+                self.getFacing()
                 self.death()
+
+            self.image[0], self.image[1] = self.base_image[0] + self.facing[0] + self.img_change[0], self.base_image[1] + self.facing[1] + self.img_change[1]
     
 
-    def hitStunFunction(self): #Make the enemy take knockback annd change appearance after taking damage
-        if self.image[0]<16:
-            self.image[0] += 32
-        elif self.image[0]<32:
-            self.image[0] += 16
+    def hitStunFunction(self):
+        self.img_change[0] = 16
         if self.hitFrame<=10 and self.takesKnockback:
             self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-self.cos*self.knockback, -self.sin*self.knockback])
         if self.hitFrame >= 24:
@@ -1203,6 +1202,8 @@ class Enemy:
                 if self.attack_type == "lunge": #Makes the enemy damage the player when colliding
                     if collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and not self.hit_player:
                         self.player.health -= self.damage
+                        self.player.isHit = True
+                        self.player.hitFrame = 0
                         self.hit_player = True
                 if self.lungeFrame >= self.lunge_length:
                     self.isLunging=0
@@ -1213,23 +1214,22 @@ class Enemy:
             Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
             self.spawnFrame = 0
 
-    def getImage(self):
+    def getFacing(self):
         if abs(self.horizontal)>abs(self.vertical):
-            self.image[1] = 32
+            self.facing[1] = 0
             if self.horizontal>0:
-                self.image[0] = 0
+                self.facing[0] = 0
             else:
-                self.image[0] = 8
+                self.facing[0] = 8
         else:
-            self.image[1] = 40
+            self.facing[1] = 8
             if self.vertical>0:
-                self.image[0] = 0
+                self.facing[0] = 0
             else:
-                self.image[0] = 8
+                self.facing[0] = 8
 
         if self.isLunging == 1:
-            if self.image[0]<16:
-                self.image[0] +=16
+                self.img_change[0] = 32
 
     def randomItem(self): #Returns a random item, depending on its rarity
         item_rarity = random.randint(1,20)
