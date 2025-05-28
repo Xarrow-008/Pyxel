@@ -21,8 +21,8 @@ class App:
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship')
         self.itemList = ItemList()
-        self.text = Text()
-        self.player = Player(self.world, self.camera,self.itemList,self.text)
+        self.info = Info()
+        self.player = Player(self.world, self.camera,self.itemList,self.info)
         self.effects = ScreenEffect(self.player)
         self.anim = Animation()
 
@@ -131,14 +131,15 @@ class App:
         pyxel.text(self.camera.x+1, self.camera.y+1, "Health:"+str(self.player.health)+"/"+str(self.player.max_health),8)
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
         pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["ammo"])+"/"+str(self.player.gun["max_ammo"]),7)
+        pyxel.text(self.camera.x+96, self.camera.y+8, "Fuel:"+str(self.player.fuel),7)
         if self.player.gun["ammo"] < self.player.gun["max_ammo"]:
             pyxel.text(self.camera.x+1, self.camera.y+19, "[R] to reload", 7)
 
     def draw_help(self):
-        if self.text.description != ["N/A"]:
-            pyxel.text(self.camera.x+1, self.camera.y+107, self.text.description[0], 7)
-            pyxel.text(self.camera.x+1, self.camera.y+113, self.text.description[1], 7)
-            pyxel.text(self.camera.x+1, self.camera.y+119, self.text.description[2], 7)
+        if self.info.description != ["N/A"]:
+            pyxel.text(self.camera.x+1, self.camera.y+107, self.info.description[0], 7)
+            pyxel.text(self.camera.x+1, self.camera.y+113, self.info.description[1], 7)
+            pyxel.text(self.camera.x+1, self.camera.y+119, self.info.description[2], 7)
 
     def draw_ship_outside(self):
         pyxel.cls(0)
@@ -215,7 +216,7 @@ class App:
             Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList,always_loaded)
 
     def update_in_ship(self):
-        self.camera.x,self.camera.y = 0, 0
+        self.camera.x,self.camera.y = 0,0
         self.anim.loop(6,10,32,24,[0,1])
         self.anim.slide_anim(10,3,WorldItem.UPWORLD_FLOOR)
         self.player.update_in_ship()
@@ -255,7 +256,7 @@ class App:
                     self.ship_broken = True
                     self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':10})
                     self.group_alive = True
-                self.check_win()
+        self.check_win()
 
     def update_effects(self):
         for slash in self.world.effects:
@@ -263,25 +264,32 @@ class App:
                 self.world.effects.remove(slash)
 
     def check_win(self):
-        enemycounter = 0
-        for entity in loadedEntities:
-            if entity.type == 'enemy':
-                enemycounter += 1
-        if enemycounter == 0:
-            self.restartGame()
+        if in_perimeter(self.player.x,self.player.y,814,40,10):
+            if self.player.fuel >= 5:
+                self.info.description = ['[F] to escape','the explosion','']
+                if pyxel.btnp(pyxel.KEY_F):
+                    self.game_state = 'ship'
+                    self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship')
+                    self.player.x = 60
+                    self.player.y = 70
+                    pyxel.camera(0,0)
+                    self.camera.x,self.camera.y = 0,0
+            else:
+                self.info.description = ['Needs 5 fuel to start','','']
 
     def restartGame(self):
         global pickUpsOnGround
         global loadedEntities
+        global activeBoosts
         loadedEntities = []
         pickUpsOnGround = []
+        activeBoosts = []
 
         self.camera.__init__()
         self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'bunker')
         self.itemList.__init__()
-        self.player.__init__(self.world, self.camera,self.itemList,self.text)
+        self.player.__init__(self.world, self.camera,self.itemList,self.info)
         self.effects.__init__(self.player)
-        self.player.speed = 0.25
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
         self.ship_hold_time = 120*120
@@ -538,7 +546,7 @@ class Physics:
         return x,y
 
 class Player:
-    def __init__(self, world, camera,itemList,text):
+    def __init__(self, world, camera,itemList,info):
         self.alive = True
         self.x = world.player_init_posX*TILE_SIZE
         self.y = world.player_init_posY*TILE_SIZE
@@ -585,7 +593,7 @@ class Player:
         self.ownedItems = []
         self.justKilled = False
         self.no_text = False
-        self.text = text
+        self.info = info
 
         self.camera = camera
         self.lever_pulled = False
@@ -597,7 +605,7 @@ class Player:
         self.no_text = True
 
         if pyxel.btnp(pyxel.KEY_A):
-            print(self.room['name'],self.room['X'], self.room['Y'], self.speed)
+            print(self.room['name'],self.room['X'], self.room['Y'], self.speed,self.x,self.y)
 
         self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
 
@@ -814,14 +822,13 @@ class Player:
             self.isDashing = False
             self.dashFrame = 0
             self.triggerOnDashItems()
-            if on_tick(10):
-                self.image = [6,2]
-            elif on_tick(10,1):
-                print('second image')
-                self.image = [6,3]
             for entity in loadedEntities:
                 if entity.type == "enemy" and entity.hitByDash:
                     entity.hitByDash = False
+        if pyxel.frame_count % self.dashLength >= self.dashLength//2-2:
+            self.image = [6,2]
+        else:
+            self.image = [7,2]
 
     def hitDetection(self):
         if self.isHit and self.hitFrame >= self.hitLength:
@@ -847,9 +854,9 @@ class Player:
 
     def change_PickupText(self):
         if not self.no_text:
-            self.text.description = self.pickup_text
+            self.info.description = self.pickup_text
         else:
-            self.text.description = ["N/A"]
+            self.info.description = ["N/A"]
 
     def check_death(self):
         if self.health<=0:
@@ -1225,7 +1232,7 @@ class Enemy:
                         PickUp(self.x, self.y, "weapon", gun, self.player)
 
             elif pickup > 100-gun_chance-5:
-                Pickup(self.x,self.y, 'fuel', ItemList.FUEL, self.player)
+                PickUp(self.x, self.y, "item", self.itemList.FUEL, self.player)
 
             self.player.triggerOnKillItems()
             loadedEntities.remove(self)
@@ -1416,7 +1423,7 @@ class ItemList:
         self.uncommon_list = [self.DASH_DAMAGE_PASSIVE, self.HEAL_RELOAD, self.DAMAGE_PASSIVE, self.MAX_AMMO_PASSIVE, self.FIRERATE_KILL]
 
         self.BULLET_COUNT_PASSIVE = {"name":"Extra Gun", "description":"Double bullets", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2]]}
-        self.LUCK_PASSIVE = {"name":"Compatibility plug / Clover Charm", "description":"Increased chance of getting items", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 15]]}
+        self.LUCK_PASSIVE = {"name":"Compatibility plug / Clover Charm", "description":"Increased chance of getting items", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 1]]}
         self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
 
@@ -1514,7 +1521,7 @@ class Camera:
         
         self.x, self.y = round(self.x),round(self.y)
 
-class Text:
+class Info:
     def __init__(self):
         self.description = ['N/A']
 
