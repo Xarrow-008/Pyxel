@@ -207,13 +207,13 @@ class App:
                         Y_pos = room['Y'] + random.randint(0,room['H']-1)
                         if not (check_entity(loadedEntities, 'x', X_pos) and check_entity(loadedEntities, 'y', Y_pos)):
                             occupied = False
-                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList)
+                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.SPIDER,self.player,self.world,self.itemList)
 
     def spawn_enemies_at(self,x,y,dic,always_loaded=False):
         print(x,y,'spawn')
         for i in range(dic['spider']):
             print('spon',end='',flush=True)
-            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.BASE,self.player,self.world,self.itemList,always_loaded)
+            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.SPIDER,self.player,self.world,self.itemList,always_loaded)
 
     def update_in_ship(self):
         self.camera.x,self.camera.y = 0,0
@@ -1075,8 +1075,8 @@ class Enemy:
         self.hitByDash = False
 
         self.canLunge = template["can_lunge"]
-        self.attack = template["attack"]
-        self.spawn_frame = 0
+        self.attack_type = template["attack"]
+        self.spawnFrame = 0
         self.spawner = template["spawner"]
 
         self.type = "enemy"
@@ -1181,6 +1181,7 @@ class Enemy:
     def spawn_hatchlings(self):
         if self.spawner and self.spawnFrame > 5*FPS:
             Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
+            self.spawnFrame = 0
 
     def getImage(self):
         if abs(self.horizontal)>abs(self.vertical):
