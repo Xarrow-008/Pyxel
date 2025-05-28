@@ -37,8 +37,6 @@ class App:
         
         pyxel.mouse(True)
 
-        self.enemies_spawn_in_rooms()
-
         pyxel.run(self.update,self.draw)
     
 
@@ -76,6 +74,8 @@ class App:
     def draw_entities(self):
         for entity in loadedEntities:
             if in_camera(entity.x//TILE_SIZE,entity.y//TILE_SIZE,self.camera.x,self.camera.y):
+                if entity.type == 'enemy':
+                    print(entity.image)
                 pyxel.blt(entity.x,
                         entity.y,
                         0,
@@ -208,6 +208,10 @@ class App:
                         if not (check_entity(loadedEntities, 'x', X_pos) and check_entity(loadedEntities, 'y', Y_pos)):
                             occupied = False
                 Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.SPIDER,self.player,self.world,self.itemList)
+        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.TURRET,self.player,self.world,self.itemList)
+        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.STALKER,self.player,self.world,self.itemList)
+        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.BULWARK,self.player,self.world,self.itemList)
+        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.HIVE_QUEEN,self.player,self.world,self.itemList)
 
     def spawn_enemies_at(self,x,y,dic,always_loaded=False):
         print(x,y,'spawn')
@@ -1018,12 +1022,12 @@ class Player:
 
 class EnemyTemplates:
     SPIDER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
-    BULWARK = {"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
-    STALKER = {"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":80, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False}
+    BULWARK = {"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[8*TILE_SIZE,5*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
+    STALKER = {"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":80, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":[12*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False}
     TUMOR = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
     TURRET = {"health":50, "speed":0, "damage":5, "range":1*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":1.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False}
     INFECTED_SCRAPPER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "attack":"bullet", "spawner":False, "has_items":True}
-    HIVE_QUEEN = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False}
+    HIVE_QUEEN = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[7*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False}
     HATCHLING = {"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
     
 class Enemy:
@@ -1062,6 +1066,7 @@ class Enemy:
         self.always_loaded = always_loaded
         self.itemList = itemList
 
+        self.base_image = template["image"]
         self.image = template["image"]
         self.width = template["width"]
         self.height = template["height"]
@@ -1084,9 +1089,9 @@ class Enemy:
 
         if template["has_items"]:
             gun_random = random.randint(1,100)
-                for gun in Guns.Gun_list:
-                    if gun_random in gun["rate"]:
-                        self.gun_equipped = gun
+            for gun in Guns.Gun_list:
+                if gun_random in gun["rate"]:
+                    self.gun_equipped = gun
 
         loadedEntities.append(self)
 
@@ -1103,7 +1108,7 @@ class Enemy:
             self.hitStunFunction()
         else:
             if self.loaded or self.always_loaded:
-                self.image = [0,32]
+                self.image[0], self.image[1] = self.base_image[0], self.base_image[1]
                 self.pathing()
                 self.moveInPathing()
                 self.enemies_pusharound()
@@ -1113,7 +1118,7 @@ class Enemy:
                 self.lungeFrame += 1
                 self.attackFrame += 1
                 self.spawnFrame += 1
-                self.getImage()
+                #self.getImage()
                 self.death()
     
 
@@ -1144,7 +1149,7 @@ class Enemy:
                     entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-cos, -sin])
 
     def attack(self):
-        if self.isLunging == 0 and self.room['name'] == self.player.room['name'] and self.attack in ["slash", "bullet"]:
+        if self.isLunging == 0 and self.room['name'] == self.player.room['name'] and self.attack_type in ["slash", "bullet"]:
             if self.norm <= self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
                 self.attackFrame = 0
                 self.isAttacking = True
@@ -1156,7 +1161,7 @@ class Enemy:
                     self.slash()
                 elif self.attack_type == "bullet":
                     if self.has_items:
-                        for i in range(self.gun_equipped["bullet_count"])
+                        for i in range(self.gun_equipped["bullet_count"]):
                             angle = math.acos(self.cos)*pyxel.sgn(self.sin)
                             lowest_angle = angle - self.gun["spread"]*(math.pi/180)
                             highest_angle = angle + self.gun["spread"]*(math.pi/180)
@@ -1232,6 +1237,7 @@ class Enemy:
         else:
             item_random = random.randint(0, len(self.itemList.common_list)-1)
             item = self.itemList.common_list[item_random]
+        return item
             
                 
 
