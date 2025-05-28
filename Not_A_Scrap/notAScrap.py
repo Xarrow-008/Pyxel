@@ -206,7 +206,7 @@ class App:
                         if not (check_entity(loadedEntities, 'x', X_pos) and check_entity(loadedEntities, 'y', Y_pos)):
                             occupied = False
                 Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.SPIDER,self.player,self.world,self.itemList)
-        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.TURRET,self.player,self.world,self.itemList)
+        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.INFECTED_SCRAPPER,self.player,self.world,self.itemList)
         Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.STALKER,self.player,self.world,self.itemList)
         Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.HIVE_QUEEN,self.player,self.world,self.itemList)
 
@@ -1028,7 +1028,7 @@ class EnemyTemplates:
     STALKER = {"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":80, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False}
     TUMOR = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
     TURRET = {"health":50, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False}
-    INFECTED_SCRAPPER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "attack":"bullet", "spawner":False, "has_items":True}
+    INFECTED_SCRAPPER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"bullet", "spawner":False, "has_items":True}
     HIVE_QUEEN = {"health":50, "speed":0.08, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False}
     HATCHLING = {"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
     
@@ -1095,7 +1095,7 @@ class Enemy:
             gun_random = random.randint(1,100)
             for gun in Guns.Gun_list:
                 if gun_random in gun["rate"]:
-                    self.gun_equipped = gun
+                    self.gun = gun
 
         loadedEntities.append(self) #As long as this enemy exists in this list, its alive
 
@@ -1165,17 +1165,18 @@ class Enemy:
                     self.slash()
                 elif self.attack_type == "bullet":
                     if self.has_items:
-                        for i in range(self.gun_equipped["bullet_count"]):
-                            angle = math.acos(self.cos)*pyxel.sgn(self.sin)
-                            lowest_angle = angle - self.gun["spread"]*(math.pi/180)
-                            highest_angle = angle + self.gun["spread"]*(math.pi/180)
-                            angle = random.uniform(lowest_angle, highest_angle)
-                            cos = math.cos(angle)
-                            sin = math.sin(angle)
-                        else:
-                            cos = 0
-                            sin = 0
-                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun_equipped["damage"], self.gun_equipped["bullet_speed"], self.gun_equipped["range"], self.gun_equipped["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.gun_equipped["explode_radius"])
+                        for i in range(self.gun["bullet_count"]):
+                            if self.norm != 0:
+                                angle = math.acos(self.cos)*pyxel.sgn(self.sin)
+                                lowest_angle = angle - self.gun["spread"]*(math.pi/180)
+                                highest_angle = angle + self.gun["spread"]*(math.pi/180)
+                                angle = random.uniform(lowest_angle, highest_angle)
+                                cos = math.cos(angle)
+                                sin = math.sin(angle)
+                            else:
+                                cos = 0
+                                sin = 0
+                            Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.gun["explode_radius"])
                     else:
                         Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [self.cos, self.sin], self.damage, self.attack_speed, self.range, 0, self.world, self.player, [1*TILE_SIZE,6*TILE_SIZE], "enemy", 0)
 
