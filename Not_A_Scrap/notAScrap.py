@@ -1371,16 +1371,16 @@ class ItemList:
         self.SPEED_DASH = {"name":"Reactor Boost", "description":"On dash : speed boost", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120]]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
         
-        self.DASH_DAMAGE_PASSIVE = {"name":"placeholder", "description":"Dash deals damage", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["dash_damage", "addition", 10]]}
-        self.HEAL_RELOAD = {"name":"placeholder", "description":"On reload : Heal", "image":[0,0], "trigger":"onReload", "effect":"stat_p", "function":[["health", "addition", 2]]}
-        self.DAMAGE_PASSIVE = {"name":"placeholder", "description":"Damage increase", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["damage", "addition", 5]]}
-        self.MAX_AMMO_PASSIVE = {"name":"placeholder", "description":"Max ammo increase", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["max_ammo", "multiplication", 1.1]]}
-        self.FIRERATE_KILL = {"name":"placeholder", "description":"On kill : Firerate boost", "image":[0,0], "trigger":"onKill", "effect":"boost_g", "function":[["gun_cooldown", "multiplication", 0.8]]}
+        self.DASH_DAMAGE_PASSIVE = {"name":"Crowd Burner", "description":"Dash deals damage", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["dash_damage", "addition", 10]]}
+        self.HEAL_RELOAD = {"name":"Core stabilization", "description":"On reload : Heal", "image":[0,0], "trigger":"onReload", "effect":"stat_p", "function":[["health", "addition", 2]]}
+        self.DAMAGE_PASSIVE = {"name":"Burning Bullets", "description":"Damage increase", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["damage", "addition", 5]]}
+        self.MAX_AMMO_PASSIVE = {"name":"Arm attachment", "description":"Max ammo increase", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["max_ammo", "multiplication", 1.1]]}
+        self.FIRERATE_KILL = {"name":"Overheat", "description":"On kill : Firerate boost", "image":[0,0], "trigger":"onKill", "effect":"boost_g", "function":[["gun_cooldown", "multiplication", 0.8]]}
         self.uncommon_list = [self.DASH_DAMAGE_PASSIVE, self.HEAL_RELOAD, self.DAMAGE_PASSIVE, self.MAX_AMMO_PASSIVE, self.FIRERATE_KILL]
 
-        self.BULLET_COUNT_PASSIVE = {"name":"placeholder", "description":"Double bullets", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2]]}
-        self.LUCK_PASSIVE = {"name":"placeholder", "description":"Increased chance of getting items", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 15]]}
-        self.PIERCING_DAMAGE_PASSIVE = {"name":"placeholder", "description":"Luck increase", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
+        self.BULLET_COUNT_PASSIVE = {"name":"Extra Gun", "description":"Double bullets", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2]]}
+        self.LUCK_PASSIVE = {"name":"Compatibility plug", "description":"Increased chance of getting items", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 15]]}
+        self.PIERCING_DAMAGE_PASSIVE = {"name":"Clover Charm", "description":"Luck increase", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
 
 class Effect:
