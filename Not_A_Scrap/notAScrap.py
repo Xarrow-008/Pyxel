@@ -590,6 +590,8 @@ class Player:
         self.camera = camera
         self.lever_pulled = False
 
+        self.fuel = 0
+
 
     def update(self):
         self.no_text = True
@@ -888,6 +890,8 @@ class Player:
                 self.max_health += value
             elif operation == "multiplication":
                 self.max_health *= value
+        elif stat == 'fuel' and operation == 'addition':
+            self.fuel += value
         elif stat == "speed":
             if operation == "addition":
                 self.speed += value
@@ -1190,6 +1194,9 @@ class Enemy:
                     if gun_random in gun["rate"]:
                         PickUp(self.x, self.y, "weapon", gun, self.player)
 
+            elif pickup > 100-gun_chance-5:
+                Pickup(self.x,self.y, 'fuel', ItemList.FUEL, self.player)
+
             self.player.triggerOnKillItems()
             loadedEntities.remove(self)
     
@@ -1379,9 +1386,12 @@ class ItemList:
         self.uncommon_list = [self.DASH_DAMAGE_PASSIVE, self.HEAL_RELOAD, self.DAMAGE_PASSIVE, self.MAX_AMMO_PASSIVE, self.FIRERATE_KILL]
 
         self.BULLET_COUNT_PASSIVE = {"name":"Extra Gun", "description":"Double bullets", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2]]}
-        self.LUCK_PASSIVE = {"name":"Compatibility plug", "description":"Increased chance of getting items", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 15]]}
-        self.PIERCING_DAMAGE_PASSIVE = {"name":"Clover Charm", "description":"Luck increase", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
+        self.LUCK_PASSIVE = {"name":"Compatibility plug / Clover Charm", "description":"Increased chance of getting items", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 15]]}
+        self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
+
+        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[0,10*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["fuel", "addition", 1]]}
+
 
 class Effect:
     def __init__(self, length, image, durations, x, y, width, height):
@@ -1477,6 +1487,7 @@ class Camera:
 class Text:
     def __init__(self):
         self.description = ['N/A']
+
 
 def draw_screen(u, v,camx,camy):
     for y in range(CAM_HEIGHT//2):
@@ -1581,4 +1592,7 @@ def in_camera(x,y, camx, camy):
 
 def collision(x1, y1, x2, y2, size1, size2):
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
+
+
+
 App()
