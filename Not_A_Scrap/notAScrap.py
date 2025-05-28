@@ -504,15 +504,17 @@ class Furniture:
             X_chest = random.randint(room['X'],room['X']+room['W']-1)
             Y_chest = random.randint(room['Y'],room['Y']+room['H']-1)
 
-class Physics:
+class Physics: #This is used to have a common move function
     def __init__(self, world):
         self.world = world
         self.momentum = 0
         self.collision_happened = False
 
-    def move(self, x, y, width, height, vector):
+    def move(self, x, y, width, height, vector): #We give a movement vector, and information relating to the thing moving, and we get the new coordinates
         X = int(x//TILE_SIZE)
         Y = int(y//TILE_SIZE)
+
+        #We handle horizontal and vertical movement separatly to make problem solving easier
 
         new_x = x + vector[0]*self.momentum
 
@@ -523,14 +525,17 @@ class Physics:
                 next_X_2 = self.world.world_map[Y+1][new_X]
             else:
                 next_X_2 = WorldItem.GROUND
-            
+            #If there's enough space for the entity to move, it moves unimpeded
             if (next_X_1 not in WorldItem.WALLS or not collision(new_x, y, new_X*TILE_SIZE, Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in WorldItem.WALLS or not collision(new_x, y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
                 x = new_x
+            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
             elif (next_X_1 in WorldItem.WALLS or next_X_2 in WorldItem.WALLS) and new_x+width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
                 self.collision_happened = True
                 x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
         
         X = int(x//TILE_SIZE)
+
+        #We calculate vertical movement in the same way we do horizontal movement
 
         new_y = y + vector[1]*self.momentum
         new_Y = Y+pyxel.sgn(vector[1])
@@ -549,7 +554,7 @@ class Physics:
 
         return x,y
 
-class Player:
+class Player: #Everything relating to the player and its control
     def __init__(self, world, camera,itemList,info):
         self.alive = True
         self.x = world.player_init_posX*TILE_SIZE
@@ -605,7 +610,7 @@ class Player:
         self.fuel = 0
 
 
-    def update(self):
+    def update(self): #All the things we run every frame to make the player work
         self.no_text = True
 
         if pyxel.btnp(pyxel.KEY_A):
@@ -615,7 +620,7 @@ class Player:
 
         self.loadedEntitiesInRange = []
 
-        for entity in loadedEntities:
+        for entity in loadedEntities: #Only load the entities in the camera
             if in_perimeter(self.camera.x+CAM_WIDTH//2,self.camera.y+CAM_HEIGHT//2,entity.x,entity.y,CAM_WIDTH*3//4):
                 self.loadedEntitiesInRange.append(entity)
 
@@ -646,7 +651,7 @@ class Player:
         if self.gun["ammo"] > self.gun["max_ammo"]:
             self.gun["ammo"] = self.gun["max_ammo"]
         
-    def update_in_ship(self):
+    def update_in_ship(self): #All the things we run every frame while the player is in the ship
         if pyxel.btnp(pyxel.KEY_A):
             print(self.x//TILE_SIZE,self.y//TILE_SIZE)
         
@@ -674,7 +679,7 @@ class Player:
         if pyxel.btnp(pyxel.KEY_F):
             self.lever_pulled = True
 
-    def movement(self):
+    def movement(self): #Handle ZQSD inputs and translate them into movement
         if pyxel.btn(pyxel.KEY_Q):
             self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-1,0])
             self.facing[0] = -1
@@ -717,7 +722,7 @@ class Player:
         else:
             self.physics.momentum /= self.speedFallOff
 
-    def fireWeapon(self):
+    def fireWeapon(self): #Fire the player's gun when they right-click
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.attackFrame>=self.gun["cooldown"] and self.gun["ammo"]>0:
             pyxel.play(2,60)
             pyxel.play(3,61)
@@ -778,7 +783,7 @@ class Player:
                 if gun_random in gun["rate"]:
                     PickUp(x*TILE_SIZE, y*TILE_SIZE, "weapon", gun, self)
 
-    def reloadWeapon(self):
+    def reloadWeapon(self): #Makes the player reload its weapon when it reaches 0 or presses R
         if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"] and self.gun["ammo"]!=0:
             self.gun["ammo"] = 0
             self.attackFrame = 0
@@ -806,14 +811,14 @@ class Player:
                     entity.hitStun = True
                     entity.knockback = 2
 
-    def dash(self):
+    def dash(self): #Start the dash when the player presses space
         if (pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_SHIFT)) and self.dashFrame >= self.dashCooldown:
             self.isDashing = True
             self.dashFrame = 0
             self.physics.momentum = self.speed*2.5
             self.image = [6,2]
 
-    def dashMovement(self):
+    def dashMovement(self): #Does the movement while the player is dashing
         self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.facing)
         if self.dashDamage > 0:
             for entity in loadedEntities:
@@ -834,12 +839,12 @@ class Player:
         else:
             self.image = [7,2]
 
-    def hitDetection(self):
+    def hitDetection(self): #Checks if the player got hit this frame
         if self.isHit and self.hitFrame >= self.hitLength:
                 self.isHit = False
                 self.hitFrame = 0
 
-    def preventOOB(self):
+    def preventOOB(self): #Prevents the player going out of bounds
         if self.x<0:
             self.x = 0
         if self.y<0:
@@ -849,8 +854,8 @@ class Player:
         if self.y > HEIGHT*TILE_SIZE:
             self.y = (HEIGHT-1)*TILE_SIZE
 
-    def description_text(self):
-        for i in range(len(pickUpsOnGround)-1, -1, -1): #from oldest to most recent 
+    def description_text(self): #Checks for all pickups and gets the correct text if the player is standing on them
+        for i in range(len(pickUpsOnGround)-1, -1, -1): #from most recent to oldest
             pickup = pickUpsOnGround[i]
             if collision(self.x, self.y, pickup.x, pickup.y, [self.width, self.height], [pickup.width, pickup.height]):
                 self.pickup_text = ["[E] to pickup", pickup.object["name"], pickup.object["description"]]
@@ -862,17 +867,17 @@ class Player:
         else:
             self.info.description = ["N/A"]
 
-    def check_death(self):
+    def check_death(self): #Does what the name implies
         if self.health<=0:
             self.alive = False
 
-    def getItem(self, item):
+    def getItem(self, item): #Adds an item to the player inventory, and triggers the effect of passive items
         self.ownedItems.append(item)
         if item["trigger"] == "passive" and (item["effect"] == "stat_p" or item["effect"] == "stat_g"):
             for change in item["function"]:
                 self.increaseStat(change[0], change[1], change[2])
 
-    def changeWeapon(self, gun):
+    def changeWeapon(self, gun): #Allows the player to change guns, randomize its values slightly, and then reapplies item effects for it to work 
         self.gun = dic_copy(gun)
         for key in self.gun.keys():
             if key not in ["name", "description", "image", "rate", "bullet_count"]:
@@ -890,7 +895,7 @@ class Player:
         self.gun["max_ammo"] = math.ceil(self.gun["max_ammo"])
         self.gun["ammo"] = self.gun["max_ammo"]
 
-    def increaseStat(self, stat, operation, value):
+    def increaseStat(self, stat, operation, value): #I despise this function, but it just does what the name implies
         if stat == "health":
             if operation == "addition":
                 self.health += value
@@ -984,7 +989,7 @@ class Player:
             elif operation == "multiplication":
                 self.pierceDamage *= value
         
-    def triggerOnKillItems(self):
+    def triggerOnKillItems(self): #Self-explanatory
         for item in self.ownedItems:
             if item["trigger"] == "onKill":
                 if item["effect"] == "stat_p" or item["effect"] == "stat_g":
@@ -994,7 +999,7 @@ class Player:
                     for change in item["function"]:
                         Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
-    def triggerOnReloadItems(self):
+    def triggerOnReloadItems(self): #Self-explanatory
         for item in self.ownedItems:
             if item["trigger"] == "onReload":
                 if item["effect"] == "stat_p" or item["effect"] == "stat_g":
@@ -1004,7 +1009,7 @@ class Player:
                     for change in item["function"]:
                         Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
         
-    def triggerOnDashItems(self):
+    def triggerOnDashItems(self): #Self-explanatory
         for item in self.ownedItems:
             if item["trigger"] == "onDash":
                 if item["effect"] == "stat_p" or item["effect"] == "stat_g":
@@ -1020,7 +1025,7 @@ class Player:
                         if not boost_already_active:
                             Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
-class EnemyTemplates:
+class EnemyTemplates: #All the stats of the various enemies
     SPIDER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
     BULWARK = {"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[8*TILE_SIZE,5*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
     STALKER = {"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":80, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":[12*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False}
@@ -1031,7 +1036,7 @@ class EnemyTemplates:
     HATCHLING = {"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
     
 class Enemy:
-    def __init__(self, x, y, template, player, world,itemList,always_loaded=False):
+    def __init__(self, x, y, template, player, world,itemList,always_loaded=False): #Creates a new enemy, with all its stats
         self.x = x
         self.y = y
         self.player = player
@@ -1093,9 +1098,9 @@ class Enemy:
                 if gun_random in gun["rate"]:
                     self.gun_equipped = gun
 
-        loadedEntities.append(self)
+        loadedEntities.append(self) #As long as this enemy exists in this list, its alive
 
-    def update(self):
+    def update(self): #All the things we need to do every frame to make the enemy work
         
         if self in self.player.loadedEntitiesInRange:
             self.loaded = True
@@ -1122,7 +1127,7 @@ class Enemy:
                 self.death()
     
 
-    def hitStunFunction(self):
+    def hitStunFunction(self): #Make the enemy take knockback annd change appearance after taking damage
         if self.image[0]<16:
             self.image[0] += 32
         elif self.image[0]<32:
@@ -1139,7 +1144,7 @@ class Enemy:
             if self.norm < 100 and self.norm > 5:
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [self.cos, self.sin])
     
-    def enemies_pusharound(self):
+    def enemies_pusharound(self): #Prevent enemies from overlapping by making them push each other
         for entity in self.player.loadedEntitiesInRange:
             cos = random.randint(-200,200)/100
             sin = math.sqrt((2-cos)**2) * (random.randint(0,1)*2-1)
@@ -1148,7 +1153,7 @@ class Enemy:
                     self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
                     entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-cos, -sin])
 
-    def attack(self):
+    def attack(self): #Makes the enemies slash or attack 
         if self.isLunging == 0 and self.room['name'] == self.player.room['name'] and self.attack_type in ["slash", "bullet"]:
             if self.norm <= self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
                 self.attackFrame = 0
@@ -1182,7 +1187,7 @@ class Enemy:
             self.player.isHit = True
             self.player.hitFrame = 0
 
-    def lunge(self):
+    def lunge(self): #Allows the enemy to lunge at the player
         if not self.isAttacking and self.canLunge:
             if self.norm<=self.lunge_range and self.norm>self.range and self.lungeFrame >= self.lunge_cooldown and self.isLunging==0:
                 self.lungeFrame = 0
@@ -1195,7 +1200,7 @@ class Enemy:
                 self.hit_player = False
             if self.isLunging==2:
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.lungeVector)
-                if self.attack_type == "lunge":
+                if self.attack_type == "lunge": #Makes the enemy damage the player when colliding
                     if collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and not self.hit_player:
                         self.player.health -= self.damage
                         self.hit_player = True
@@ -1203,7 +1208,7 @@ class Enemy:
                     self.isLunging=0
                     self.physics.momentum = self.speed
 
-    def spawn_hatchlings(self):
+    def spawn_hatchlings(self): #Allows enemies to spawn hatchlings
         if self.spawner and self.spawnFrame > 5*FPS:
             Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
             self.spawnFrame = 0
@@ -1226,7 +1231,7 @@ class Enemy:
             if self.image[0]<16:
                 self.image[0] +=16
 
-    def randomItem(self):
+    def randomItem(self): #Returns a random item, depending on its rarity
         item_rarity = random.randint(1,20)
         if item_rarity == 20:
             item_random = random.randint(0, len(self.itemList.legendary_list)-1)
@@ -1241,7 +1246,7 @@ class Enemy:
             
                 
 
-    def death(self):
+    def death(self): #Runs alls the things that happen when the enemy dies
         if self.health <= 0:
 
             if self.spawner :
@@ -1341,7 +1346,7 @@ class EnemyGroup:
                 print(self.room['X'],self.room['Y'],flush=True)
                 self.room = self.rooms[self.room['name']+1]
 
-class Guns:
+class Guns: #Contains all the different guns the player can get
     NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
     PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
     SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
@@ -1351,7 +1356,7 @@ class Guns:
     GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
-class Bullet:
+class Bullet: #Creates a bullet that can collide and deal damage
     def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, explode_radius):
         self.x = x
         self.y = y
@@ -1369,14 +1374,14 @@ class Bullet:
         self.explode_radius = explode_radius
         self.piercing = piercing
         self.type = "bullet"
-        loadedEntities.append(self)
+        loadedEntities.append(self) #As long as the bullet is a part of this list, it exists
 
-    def update(self):
+    def update(self): #All the things we need to run every frame
         self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.vector)
         self.check_hit()
         self.bullet_destroyed()
     
-    def check_hit(self):
+    def check_hit(self): #Checks if its hit an enemy (if created by the player) or the player (if created by an enemy) and deals damage
         for entity in loadedEntities:
             if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
                 entity.health -= self.damage
@@ -1393,7 +1398,7 @@ class Bullet:
             self.player.hitFrame = 0
         self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
     
-    def bullet_destroyed(self):
+    def bullet_destroyed(self): #Checks if the bullet should destroy itself
         if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
             if self.explode_radius > 0:
                 Effect(5,[1*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6, 4:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
@@ -1408,7 +1413,7 @@ class Bullet:
                             entity.knockback = 2
             loadedEntities.remove(self)
 
-class PickUp:
+class PickUp: #Creates an object on the ground the player can pickup
     def __init__(self, x, y, type, object, player):
         self.x = x
         self.y = y
@@ -1421,7 +1426,7 @@ class PickUp:
         loadedEntities.append(self)
         pickUpsOnGround.append(self)
 
-    def update(self):
+    def update(self): #Checks if the player picked up the object
         if collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]):
             if pyxel.btnp(pyxel.KEY_E):
                 if self.type == "weapon":
@@ -1431,7 +1436,7 @@ class PickUp:
                 loadedEntities.remove(self)
                 pickUpsOnGround.remove(self)
 
-class ItemList:
+class ItemList: #Lists every item and its properties
     def __init__(self):
         self.SPEED_PASSIVE = {"name":"Jet speedup", "description":"Movement speed increase", "image":[1*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["speed", "addition", 0.05]]}
         self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Health increase", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
@@ -1460,7 +1465,7 @@ class ItemList:
         self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[0,10*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["fuel", "addition", 1]]}
 
 
-class Effect:
+class Effect: #Used to generate collision-less effects like explosions
     def __init__(self, length, image, durations, x, y, width, height):
         self.length = length
         self.image = image
@@ -1476,7 +1481,7 @@ class Effect:
         
         loadedEntities.append(self)
     
-    def update(self):
+    def update(self): #Used for animating the effect
         if self.frame == self.durations[self.state]:
             self.image[0] += TILE_SIZE
             self.state += 1
@@ -1502,7 +1507,7 @@ class ScreenEffect:
                 self.dither=0
                 self.redscreen = False
 
-class Boost:
+class Boost: #Gives a temporary stat boost to the player
     def __init__(self, stat, operation, value, duration, target, player, creator):
         self.stat = stat
         self.operation = operation
@@ -1512,10 +1517,10 @@ class Boost:
         self.player = player
         self.target = target
         self.player.increaseStat(self.stat, self.operation, self.value)
-        activeBoosts.append(self)
+        activeBoosts.append(self) #The boost is active as long as its a part of this list
         self.creator = creator
 
-    def update(self):
+    def update(self): #Once the boost is over, we reverse its effect
         if self.frame >= self.duration:
             if self.operation == "addition":
                 self.player.increaseStat(self.stat, self.operation, -self.value)
@@ -1657,7 +1662,7 @@ activeBoosts = []
 def in_camera(x,y, camx, camy):
     return in_perimeter((camx + CAM_WIDTH//2)//TILE_SIZE,(camy + CAM_HEIGHT//2)//TILE_SIZE, x, y, CAM_WIDTH//(TILE_SIZE*2) + 1)
 
-def collision(x1, y1, x2, y2, size1, size2):
+def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
 
 
