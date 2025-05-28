@@ -1010,14 +1010,14 @@ class Player:
                             Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
 class EnemyTemplates:
-    SPIDER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True}
-    BULWARK = {"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False}
-    STALKER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True}
-    TUMOR = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True}
-    TURRET = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True}
-    INFECTED_SCRAPPER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True}
-    HIVE_QUEEN = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True}
-    HATCHLING = {"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True}
+    SPIDER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
+    BULWARK = {"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
+    STALKER = {"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":80, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False}
+    TUMOR = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
+    TURRET = {"health":50, "speed":0, "damage":5, "range":1*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":1.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False}
+    INFECTED_SCRAPPER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "attack":"bullet", "spawner":False, "has_items":True}
+    HIVE_QUEEN = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False}
+    HATCHLING = {"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":[1*TILE_SIZE,4*TILE_SIZE], "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
     
 class Enemy:
     def __init__(self, x, y, template, player, world,itemList,always_loaded=False):
@@ -1067,6 +1067,10 @@ class Enemy:
         self.knockback = 0
         self.hitByDash = False
 
+        self.canLunge = template["can_lunge"]
+        self.attack = template["attack"]
+        self.spawn_frame = 0
+        self.spawner = template["spawner"]
 
         self.type = "enemy"
 
@@ -1091,8 +1095,10 @@ class Enemy:
                 self.enemies_pusharound()
                 self.attack()
                 self.lunge()
+                self.spawn_hatchlings()
                 self.lungeFrame += 1
                 self.attackFrame += 1
+                self.spawnFrame += 1
                 self.getImage()
                 self.death()
     
@@ -1124,7 +1130,7 @@ class Enemy:
                     entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-cos, -sin])
 
     def attack(self):
-        if self.isLunging == 0 and self.room['name'] == self.player.room['name']:
+        if self.isLunging == 0 and self.room['name'] == self.player.room['name'] and self.attack in ["slash", "bullet"]:
             if self.norm <= self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
                 self.attackFrame = 0
                 self.isAttacking = True
@@ -1132,7 +1138,10 @@ class Enemy:
             if self.isAttacking and self.attackFrame >= self.attack_freeze:
                 self.attackFrame = 0
                 self.isAttacking = False
-                self.slash()
+                if self.attack == "slash":
+                    self.slash()
+                elif self.attack == "bullet":
+                    Bullet(self.x+self.width/2, self.y+self.height/2, TILE_SIZE, TILE_SIZE, [self.cos, self.sin], self.attack_speed, self.range, 0, self.world, self.player, [0,6*TILE_SIZE], "enemy", 0)
 
     def slash(self):
         self.world.effects.append({'x':self.x+self.cos*TILE_SIZE,'y':self.y+self.sin*TILE_SIZE,'image':[7,6],'scale':1,'time':pyxel.frame_count})
@@ -1142,7 +1151,7 @@ class Enemy:
             self.player.hitFrame = 0
 
     def lunge(self):
-        if not self.isAttacking:
+        if not self.isAttacking and self.canLunge:
             if self.norm<=self.lunge_range and self.norm>self.range and self.lungeFrame >= self.lunge_cooldown and self.isLunging==0:
                 self.lungeFrame = 0
                 self.isLunging = 1
@@ -1151,11 +1160,20 @@ class Enemy:
                 self.lungeFrame = 0
                 self.isLunging = 2
                 self.physics.momentum = self.lunge_speed
+                self.hit_player = False
             if self.isLunging==2:
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.lungeVector)
+                if self.attack == "lunge":
+                    if collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and not self.hit_player:
+                        self.player.health -= self.damage
+                        self.hit_player = True
                 if self.lungeFrame >= self.lunge_length:
                     self.isLunging=0
                     self.physics.momentum = self.speed
+
+    def spawn_hatchlings(self):
+        if self.spawner and self.spawnFrame > 5*FPS:
+            Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
 
     def getImage(self):
         if abs(self.horizontal)>abs(self.vertical):
@@ -1177,6 +1195,9 @@ class Enemy:
 
     def death(self):
         if self.health <= 0:
+
+            for i in range(3):
+                Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
 
             item_chance = 10 + self.player.luck
             gun_chance = 12
