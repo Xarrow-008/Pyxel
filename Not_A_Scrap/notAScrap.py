@@ -205,16 +205,18 @@ class App:
                         Y_pos = room['Y'] + random.randint(0,room['H']-1)
                         if not (check_entity(loadedEntities, 'x', X_pos) and check_entity(loadedEntities, 'y', Y_pos)):
                             occupied = False
-                Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,EnemyTemplates.SPIDER,self.player,self.world,self.itemList)
-        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.INFECTED_SCRAPPER,self.player,self.world,self.itemList)
-        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.STALKER,self.player,self.world,self.itemList)
-        Enemy(self.world.roombuild.rooms[5]['X']*TILE_SIZE,self.world.roombuild.rooms[5]['Y']*TILE_SIZE,EnemyTemplates.HIVE_QUEEN,self.player,self.world,self.itemList)
+                random_enemy = random.randint(0,99)
+                for enemy in EnemyTemplates.ENEMY_LIST:
+                    if random_enemy in enemy['spawning_chance']:
+                        Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,enemy,self.player,self.world,self.itemList)
+
 
     def spawn_enemies_at(self,x,y,dic,always_loaded=False):
         print(x,y,'spawn')
-        for i in range(dic['spider']):
-            print('spon',end='',flush=True)
-            Enemy(x*TILE_SIZE,y*TILE_SIZE,EnemyTemplates.SPIDER,self.player,self.world,self.itemList,always_loaded)
+        for enemy in EnemyTemplates.ENEMY_LIST:
+            if enemy['name'] in dic.keys():
+                for i in range(dic[enemy['name']]):
+                    Enemy(x*TILE_SIZE,y*TILE_SIZE,enemy,self.player,self.world,self.itemList,always_loaded)
 
     def update_in_ship(self):
         self.camera.x,self.camera.y = 0,0
@@ -255,7 +257,7 @@ class App:
             else:
                 if pyxel.frame_count - self.game_start >= self.ship_hold_time and not self.ship_broken:
                     self.ship_broken = True
-                    self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':10})
+                    self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':7,'hive_queen':1,'stalker':3,'bulwark':1})
                     self.group_alive = True
         self.check_win()
 
@@ -903,8 +905,6 @@ class Player: #Everything relating to the player and its control
                 self.max_health += value
             elif operation == "multiplication":
                 self.max_health *= value
-        elif stat == 'fuel' and operation == 'addition':
-            self.fuel += value
         elif stat == "speed":
             if operation == "addition":
                 self.speed += value
@@ -1023,15 +1023,16 @@ class Player: #Everything relating to the player and its control
                             Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
 class EnemyTemplates:
-    SPIDER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
-    BULWARK = {"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
-    STALKER = {"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":80, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False}
-    TUMOR = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
-    TURRET = {"health":50, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False}
-    INFECTED_SCRAPPER = {"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True}
-    HIVE_QUEEN = {"health":70, "speed":0.08, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False}
-    HATCHLING = {"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False}
+    SPIDER = {'name':'spider',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(0,45)]}
+    BULWARK = {'name':'bulwark',"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(65,75)]}
+    STALKER = {'name':'stalker',"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
+    TUMOR = {'name':'tumor',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(75,82)]}
+    TURRET = {'name':'turret',"health":50, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
+    INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
+    HIVE_QUEEN = {'name':'hive_queen',"health":70, "speed":0.08, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":2*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False, 'spawning_chance':[x for x in range(92,99)]}
+    HATCHLING = {'name':'hatchling',"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[]}
     
+    ENEMY_LIST = [SPIDER,BULWARK,STALKER,TUMOR,TURRET,INFECTED_SCRAPPER,HIVE_QUEEN,HATCHLING]
 class Enemy:
     def __init__(self, x, y, template, player, world,itemList,always_loaded=False): #Creates a new enemy, with all its stats
         self.x = x
@@ -1211,8 +1212,9 @@ class Enemy:
                     self.physics.momentum = self.speed
 
     def spawn_hatchlings(self): #Allows enemies to spawn hatchlings
-        if self.spawner and self.spawnFrame > 5*FPS:
-            Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
+        if self.spawner and self.spawnFrame > 3*FPS:
+            for i in range(2):
+                Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
             self.spawnFrame = 0
 
     def getFacing(self):
@@ -1251,7 +1253,7 @@ class Enemy:
         if self.health <= 0:
 
             if self.spawner :
-                for i in range(3):
+                for i in range(5):
                     Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
 
             item_chance = 10 + self.player.luck
@@ -1434,6 +1436,8 @@ class PickUp: #Creates an object on the ground the player can pickup
                     self.player.changeWeapon(self.object)
                 if self.type == "item":
                     self.player.getItem(self.object)
+                if self.object['name'] == 'Fuel':
+                    self.player.fuel += 1
                 loadedEntities.remove(self)
                 pickUpsOnGround.remove(self)
 
@@ -1463,7 +1467,7 @@ class ItemList: #Lists every item and its properties
         self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
 
-        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[0,10*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["fuel", "addition", 1]]}
+        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[0,10*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["N/A", "N/A", 0]]}
 
 
 class Effect: #Used to generate collision-less effects like explosions
