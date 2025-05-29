@@ -210,7 +210,6 @@ class App:
                     if random_enemy in enemy['spawning_chance']:
                         Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,enemy,self.player,self.world,self.itemList)
 
-
     def spawn_enemies_at(self,x,y,dic,always_loaded=False):
         print(x,y,'spawn')
         for enemy in EnemyTemplates.ENEMY_LIST:
@@ -271,6 +270,7 @@ class App:
             if self.player.fuel >= 5:
                 self.info.description = ['[F] to escape','the explosion','']
                 if pyxel.btnp(pyxel.KEY_F):
+                    self.fuel += -5
                     self.game_state = 'ship'
                     self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship')
                     self.player.x = 60
@@ -291,7 +291,10 @@ class App:
         self.camera.__init__()
         self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'bunker')
         self.itemList.__init__()
-        self.player.__init__(self.world, self.camera,self.itemList,self.info)
+        if self.player.alive:
+            self.player.reset(self.world)
+        else:
+            self.player.__init__(self.world, self.camera,self.itemList,self.info)
         self.effects.__init__(self.player)
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
@@ -556,21 +559,18 @@ class Physics: #This is used to have a common move function
 class Player: #Everything relating to the player and its control
     def __init__(self, world, camera,itemList,info):
         self.alive = True
-        self.x = world.player_init_posX*TILE_SIZE
-        self.y = world.player_init_posY*TILE_SIZE
-        self.image = (1,3)
         self.width = TILE_SIZE
         self.height = TILE_SIZE
-        self.world = world
-        self.rooms = self.world.roombuild.rooms
-        self.room = self.rooms[0]
-
         self.physics = Physics(world)
-        self.speed = 0.25
-        self.speedFallOff = 4
+        self.camera = camera
+        self.info = info
+
+        self.image = (1,3)
         self.facing = [1,0]
         self.last_facing = [1,0]
 
+        self.speed = 0.25
+        self.speedFallOff = 4
         self.isDashing = False
         self.dashCooldown = 40
         self.dashLength = 20
@@ -578,37 +578,40 @@ class Player: #Everything relating to the player and its control
         self.dashStrength = self.speed*2.5
         self.dashDamage = 0
         
-        self.damage = 10
-        self.slash_cooldown = 0.5*120
         self.stuck = False
         self.open_time = 240
         self.itemList = itemList
-        self.pickup_text = ["N/A"]
-
-        self.health = 50
-        self.max_health = 50
-        self.last_health = self.health
-        self.hitFrame = 0
-        self.hitLength = 120
-        self.isHit = False
-
-        self.pierceDamage = 1
-        self.luck = 0
 
         self.gun = dic_copy(Guns.PISTOL)
         self.attackFrame = 0
+        self.damage = 10
+        self.slash_cooldown = 0.5*120
+        self.pierceDamage = 1
 
         self.ownedItems = []
         self.justKilled = False
-        self.no_text = False
-        self.info = info
-
-        self.camera = camera
-        self.lever_pulled = False
 
         self.fuel = 0
+        self.reset(world)
 
+    def reset(self,world):
+        self.world = world
+        self.x = world.player_init_posX*TILE_SIZE
+        self.y = world.player_init_posY*TILE_SIZE
+        self.rooms = self.world.roombuild.rooms
+        self.room = self.rooms[0]
 
+        self.lever_pulled = False
+        self.no_text = False
+        self.luck = 0
+
+        self.health = 50
+        self.max_health = 50
+        self.hitFrame = 0
+        self.hitLength = 120
+        self.isHit = False
+        self.pickup_text = ["N/A"]
+        
     def update(self): #All the things we run every frame to make the player work
         self.no_text = True
 
@@ -1033,6 +1036,7 @@ class EnemyTemplates:
     HATCHLING = {'name':'hatchling',"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[]}
     
     ENEMY_LIST = [SPIDER,BULWARK,STALKER,TUMOR,TURRET,INFECTED_SCRAPPER,HIVE_QUEEN,HATCHLING]
+
 class Enemy:
     def __init__(self, x, y, template, player, world,itemList,always_loaded=False): #Creates a new enemy, with all its stats
         self.x = x
@@ -1469,7 +1473,6 @@ class ItemList: #Lists every item and its properties
 
         self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[0,10*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["N/A", "N/A", 0]]}
 
-
 class Effect: #Used to generate collision-less effects like explosions
     def __init__(self, length, image, durations, x, y, width, height):
         self.length = length
@@ -1565,7 +1568,6 @@ class Info:
     def __init__(self):
         self.description = ['N/A']
 
-
 def draw_screen(u, v,camx,camy):
     for y in range(CAM_HEIGHT//2):
         for x in range(CAM_WIDTH//2):
@@ -1579,7 +1581,6 @@ def draw_screen(u, v,camx,camy):
                 16
             )
 
-
 def check_entity(loadedEntities, key, value):
     for entity in loadedEntities:
         if getattr(entity,key) == value:
@@ -1591,7 +1592,6 @@ def on_tick(tickrate=60,delay=0):
 
 def on_cooldown(frame,cooldown):
     return (pyxel.frame_count - frame) < cooldown
-
 
 def distance(x1,y1,x2,y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
@@ -1646,6 +1646,7 @@ def world_item_draw(pyxel,x,y,block):
         TILE_SIZE,
         TILE_SIZE
     )
+
 def list_dic_find(list,value,key):
     for dic in list:
         if dic[key] == value:
