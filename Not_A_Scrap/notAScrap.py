@@ -1102,6 +1102,7 @@ class Enemy:
 
         self.type = "enemy"
         self.has_items = template["has_items"]
+        self.name = template["name"]
         self.pathing()
 
         if template["has_items"]:
@@ -1128,6 +1129,7 @@ class Enemy:
             self.attack()
             self.lunge()
             self.spawn_hatchlings()
+            self.kamikaze()
             self.lungeFrame += 1
             self.attackFrame += 1
             self.spawnFrame += 1
@@ -1229,10 +1231,17 @@ class Enemy:
             self.spawnFrame = 0
 
     def kamikaze(self): #Allows enemy to blow itself up
-        if self.attack == "collision" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]):
+        if self.attack_type == "collision" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]):
             self.health = 0
             self.player.health -= self.damage
+            self.player.isHit = True
+            self.player.hitFrame = 0
             Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
+            for entity in loadedEntities:
+                if entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]):
+                    entity.health -= self.damage
+                    entity.hitStun = True
+                    entity.knockback = 20
 
 
     def getFacing(self):
@@ -1274,21 +1283,30 @@ class Enemy:
                 for i in range(5):
                     Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
 
-            item_chance = 10 + self.player.luck
-            gun_chance = 12
+            if self.attack_type == "collision":
+                Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
+                for entity in loadedEntities:
+                    if entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]):
+                        entity.health -= self.damage
+                        entity.hitStun = True
+                        entity.knockback = 20
 
-            pickup = random.randint(1,100)
-            if pickup <= item_chance:
-                PickUp(self.x, self.y, "item", self.randomItem(), self.player)
+            if self.name != "hatchling":
+                item_chance = 10 + self.player.luck
+                gun_chance = 12
 
-            elif pickup > 100-gun_chance:
-                gun_random = random.randint(1,100)
-                for gun in Guns.Gun_list:
-                    if gun_random in gun["rate"]:
-                        PickUp(self.x, self.y, "weapon", gun, self.player)
+                pickup = random.randint(1,100)
+                if pickup <= item_chance:
+                    PickUp(self.x, self.y, "item", self.randomItem(), self.player)
 
-            elif pickup > 100-gun_chance-5:
-                PickUp(self.x, self.y, "item", self.itemList.FUEL, self.player)
+                elif pickup > 100-gun_chance:
+                    gun_random = random.randint(1,100)
+                    for gun in Guns.Gun_list:
+                        if gun_random in gun["rate"]:
+                            PickUp(self.x, self.y, "weapon", gun, self.player)
+
+                elif pickup > 100-gun_chance-5:
+                    PickUp(self.x, self.y, "item", self.itemList.FUEL, self.player)
 
             self.player.triggerOnKillItems()
             loadedEntities.remove(self)
