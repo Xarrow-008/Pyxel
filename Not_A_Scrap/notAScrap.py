@@ -28,10 +28,11 @@ class App:
 
         self.ship_broken =  False
         self.ship_hold_time = 120*120
+        self.explosion_time = 40*120
         self.group_alive = False
         self.game_start = 0
         self.game_state = 'ship'
-        self.timer_bar = 32
+        self.enemy_bar = 32
         self.rooms = self.world.roombuild.rooms
 
         
@@ -122,8 +123,8 @@ class App:
     def draw_timer_bar(self):
         pyxel.blt(self.camera.x + 96,self.camera.y,1,0,32,32,4)
         pyxel.blt(self.camera.x + 96,self.camera.y,1,0,36,32,4)
-        if self.timer_bar>0:
-            pyxel.blt(self.camera.x + 96,self.camera.y,1,0,40,self.timer_bar+1,4)
+        if self.enemy_bar>0:
+            pyxel.blt(self.camera.x + 96,self.camera.y,1,0,40,self.enemy_bar+1,4)
 
     def draw_stats(self):
         pyxel.text(self.camera.x+1, self.camera.y+1, "Health:"+str(self.player.health)+"/"+str(self.player.max_health),8)
@@ -245,7 +246,10 @@ class App:
                     self.spawn_enemies_at(self.group.room['X'],self.group.room['Y'],self.group.dic_enemies,True)
                     self.group_alive = False
             if on_cooldown(self.game_start,self.ship_hold_time):
-                self.timer_bar =  (self.ship_hold_time-pyxel.frame_count+self.game_start) * 32 // self.ship_hold_time
+                self.enemy_bar =  (self.ship_hold_time-pyxel.frame_count+self.game_start) * 32 // self.ship_hold_time
+            elif on_cooldown(self.ship_hold_time,self.explosion_time):
+                self.explosion_bar =  (self.ship_hold_time+self.explosion_time-pyxel.frame_count+self.game_start) * 32 // self.ship_hold_time+self.explosion_time
+
 
             self.camera.update(self.player)
             pyxel.camera(self.camera.x,self.camera.y)
@@ -299,6 +303,7 @@ class App:
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
         self.ship_hold_time = 120*120
+        self.explosion_time = 40*120
         self.group_alive = False
         self.game_state = 'bunker'
         self.rooms = self.world.roombuild.rooms
@@ -586,6 +591,7 @@ class Player: #Everything relating to the player and its control
         self.attackFrame = 0
         self.damage = 10
         self.slash_cooldown = 0.5*120
+        self.slashFrame = 0
         self.pierceDamage = 1
 
         self.ownedItems = []
@@ -642,6 +648,7 @@ class Player: #Everything relating to the player and its control
         self.attackFrame += 1
         self.dashFrame += 1
         self.hitFrame += 1
+        self.slashFrame +=1
         self.preventOOB()
         self.chest_gestion()
         self.description_text()
@@ -795,8 +802,8 @@ class Player: #Everything relating to the player and its control
             self.triggerOnReloadItems()
             
     def slash(self):
-        if (pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT) or pyxel.btn(pyxel.KEY_C)) and self.attackFrame>=self.slash_cooldown:
-            self.attackFrame = 0
+        if (pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT) or pyxel.btn(pyxel.KEY_C)) and self.slashFrame>=self.slash_cooldown:
+            self.slashFrame = 0
             horizontal = self.posXmouse - (self.x+self.width/2)
             vertical = self.poxYmouse - (self.y+self.height/2)
             norm = math.sqrt(horizontal**2+vertical**2)
@@ -1032,7 +1039,7 @@ class EnemyTemplates:
     TUMOR = {'name':'tumor',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(75,82)]}
     TURRET = {'name':'turret',"health":50, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
     INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
-    HIVE_QUEEN = {'name':'hive_queen',"health":70, "speed":0.08, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":2*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False, 'spawning_chance':[x for x in range(92,99)]}
+    HIVE_QUEEN = {'name':'hive_queen',"health":70, "speed":0.15, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":2*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False, 'spawning_chance':[x for x in range(92,99)]}
     HATCHLING = {'name':'hatchling',"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[]}
     
     ENEMY_LIST = [SPIDER,BULWARK,STALKER,TUMOR,TURRET,INFECTED_SCRAPPER,HIVE_QUEEN,HATCHLING]
@@ -1095,6 +1102,7 @@ class Enemy:
 
         self.type = "enemy"
         self.has_items = template["has_items"]
+        self.pathing()
 
         if template["has_items"]:
             gun_random = random.randint(1,100)
@@ -1116,28 +1124,27 @@ class Enemy:
         self.img_change = [0,0]
 
         if self.loaded or self.always_loaded:
+            self.enemies_pusharound()
+            self.attack()
+            self.lunge()
+            self.spawn_hatchlings()
+            self.lungeFrame += 1
+            self.attackFrame += 1
+            self.spawnFrame += 1
+            self.getFacing()
+            self.death()
+            
             if self.hitStun:
                 self.hitStunFunction()
             else:
                 self.pathing()
                 self.moveInPathing()
-                self.enemies_pusharound()
-                self.attack()
-                self.lunge()
-                self.spawn_hatchlings()
-                self.lungeFrame += 1
-                self.attackFrame += 1
-                self.spawnFrame += 1
-                self.getFacing()
-                self.death()
 
             self.image[0], self.image[1] = self.base_image[0] + self.facing[0] + self.img_change[0], self.base_image[1] + self.facing[1] + self.img_change[1]
     
 
     def hitStunFunction(self):
         self.img_change[0] = 16
-        if self.hitFrame<=10 and self.takesKnockback:
-            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-self.cos*self.knockback, -self.sin*self.knockback])
         if self.hitFrame >= 24:
             self.hitStun = False
             self.hitFrame = 0
@@ -1218,7 +1225,7 @@ class Enemy:
     def spawn_hatchlings(self): #Allows enemies to spawn hatchlings
         if self.spawner and self.spawnFrame > 3*FPS:
             for i in range(2):
-                Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
+                Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList,True)
             self.spawnFrame = 0
 
     def getFacing(self):
@@ -1393,7 +1400,9 @@ class Bullet: #Creates a bullet that can collide and deal damage
             if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
                 entity.health -= self.damage
                 entity.hitStun = True
-                entity.knockback = 0.5
+                entity.knockback = 20
+                if entity.hitFrame<=10 and entity.takesKnockback and (entity.isLunging != 2 or entity.isLunging != 1):
+                    entity.x, entity.y = entity.physics.move(entity.x, entity.y, entity.width, entity.height, [-entity.cos*entity.knockback, -entity.sin*entity.knockback])
                 if self.piercing != 0:
                     entity.pierced.append(self)
                     self.damage *= self.player.pierceDamage
