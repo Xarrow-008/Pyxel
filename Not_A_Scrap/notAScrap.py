@@ -270,7 +270,7 @@ class App:
             if self.player.fuel >= 5:
                 self.info.description = ['[F] to escape','the explosion','']
                 if pyxel.btnp(pyxel.KEY_F):
-                    self.fuel += -5
+                    self.player.fuel += -5
                     self.game_state = 'ship'
                     self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship')
                     self.player.x = 60
@@ -1459,19 +1459,19 @@ class ItemList: #Lists every item and its properties
         self.SPEED_DASH = {"name":"Reactor Boost", "description":"On dash : speed boost", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120]]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
         
-        self.DASH_DAMAGE_PASSIVE = {"name":"Crowd Burner", "description":"Dash deals damage", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["dash_damage", "addition", 10]]}
-        self.HEAL_RELOAD = {"name":"Core stabilization", "description":"On reload : Heal", "image":[0,0], "trigger":"onReload", "effect":"stat_p", "function":[["health", "addition", 2]]}
-        self.DAMAGE_PASSIVE = {"name":"Burning Bullets", "description":"Damage increase", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["damage", "addition", 5]]}
-        self.MAX_AMMO_PASSIVE = {"name":"Arm attachment", "description":"Max ammo increase", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["max_ammo", "multiplication", 1.1]]}
-        self.FIRERATE_KILL = {"name":"Overheat", "description":"On kill : Firerate boost", "image":[0,0], "trigger":"onKill", "effect":"boost_g", "function":[["gun_cooldown", "multiplication", 0.8]]}
+        self.DASH_DAMAGE_PASSIVE = {"name":"Crowd Burner", "description":"Dash deals damage", "image":[6*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["dash_damage", "addition", 10]]}
+        self.HEAL_RELOAD = {"name":"Core stabilization", "description":"On reload : Heal", "image":[7*TILE_SIZE,8*TILE_SIZE], "trigger":"onReload", "effect":"stat_p", "function":[["health", "addition", 2]]}
+        self.DAMAGE_PASSIVE = {"name":"Burning Bullets", "description":"Damage increase", "image":[7*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["damage", "addition", 5]]}
+        self.MAX_AMMO_PASSIVE = {"name":"Arm attachment", "description":"Max ammo increase", "image":[8*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["max_ammo", "multiplication", 1.1]]}
+        self.FIRERATE_KILL = {"name":"Overheat", "description":"On kill : Firerate boost", "image":[8*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_g", "function":[["gun_cooldown", "multiplication", 0.8]]}
         self.uncommon_list = [self.DASH_DAMAGE_PASSIVE, self.HEAL_RELOAD, self.DAMAGE_PASSIVE, self.MAX_AMMO_PASSIVE, self.FIRERATE_KILL]
 
-        self.BULLET_COUNT_PASSIVE = {"name":"Extra Gun", "description":"Double bullets", "image":[0,0], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2]]}
-        self.LUCK_PASSIVE = {"name":"Compatibility plug / Clover Charm", "description":"Increased chance of getting items", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 1]]}
-        self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[0,0], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
+        self.BULLET_COUNT_PASSIVE = {"name":"Extra Gun", "description":"Double bullets", "image":[6*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2]]}
+        self.LUCK_PASSIVE = {"name":"Compatibility plug / Clover Charm", "description":"Increased chance of getting items", "image":[9*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 1]]}
+        self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[9*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
 
-        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[0,10*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["N/A", "N/A", 0]]}
+        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[5*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["N/A", "N/A", 0]]}
 
 class Effect: #Used to generate collision-less effects like explosions
     def __init__(self, length, image, durations, x, y, width, height):
