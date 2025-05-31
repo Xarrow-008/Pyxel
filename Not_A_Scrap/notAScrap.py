@@ -1225,7 +1225,7 @@ class Enemy:
                     self.physics.momentum = self.speed
 
     def spawn_hatchlings(self): #Allows enemies to spawn hatchlings
-        if self.spawner and self.spawnFrame > 3*FPS:
+        if self.spawner and self.spawnFrame > 5*FPS:
             for i in range(2):
                 Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList,True)
             self.spawnFrame = 0
