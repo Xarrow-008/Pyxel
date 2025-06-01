@@ -1225,7 +1225,7 @@ class Enemy:
                     self.physics.momentum = self.speed
 
     def spawn_hatchlings(self): #Allows enemies to spawn hatchlings
-        if self.spawner and self.spawnFrame > 5*FPS:
+        if self.spawner and self.spawnFrame > 3*FPS:
             for i in range(2):
                 Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList,True)
             self.spawnFrame = 0
@@ -1236,6 +1236,12 @@ class Enemy:
             self.player.health -= self.damage
             self.player.isHit = True
             self.player.hitFrame = 0
+            Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
+            for entity in loadedEntities:
+                if entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]):
+                    entity.health -= self.damage
+                    entity.hitStun = True
+                    entity.knockback = 20
 
 
     def getFacing(self):
@@ -1278,12 +1284,12 @@ class Enemy:
                     Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
 
             if self.attack_type == "collision":
-                Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:9, 1:9, 2:9, 3:9}, self.x, self.y, TILE_SIZE, TILE_SIZE)
+                Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
                 for entity in loadedEntities:
-                    if entity.type == "enemy" and distance(self.x+self.width/2, self.y+self.height/2, entity.x+entity.width/2, entity.y+entity.height/2)<=2*TILE_SIZE:
+                    if entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]):
                         entity.health -= self.damage
                         entity.hitStun = True
-                        entity.knockback = 40
+                        entity.knockback = 20
 
             if self.name != "hatchling":
                 item_chance = 10 + self.player.luck
