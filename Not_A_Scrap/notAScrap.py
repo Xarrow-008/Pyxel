@@ -1425,8 +1425,8 @@ class Bullet: #Creates a bullet that can collide and deal damage
             if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
                 entity.health -= self.damage
                 entity.hitStun = True
-                entity.knockback = 20
-                if entity.hitFrame<=10 and entity.takesKnockback and (entity.isLunging != 2 or entity.isLunging != 1):
+                entity.knockback = 10
+                if entity.hitFrame<=10 and entity.takesKnockback and (entity.isLunging != 2 and entity.isLunging != 1):
                     entity.x, entity.y = entity.physics.move(entity.x, entity.y, entity.width, entity.height, [-entity.cos*entity.knockback, -entity.sin*entity.knockback])
                 if self.piercing != 0:
                     entity.pierced.append(self)
