@@ -28,12 +28,14 @@ class App:
 
         self.ship_broken =  False
         self.ship_hold_time = 120*120
-        self.explosion_time = 40*120
+        self.explosion_time = 60*120
         self.group_alive = False
         self.game_start = 0
         self.game_state = 'ship'
         self.enemy_bar = 32
+        self.explosion_bar = 32
         self.rooms = self.world.roombuild.rooms
+        self.difficulty = 1
 
         
         pyxel.mouse(True)
@@ -112,17 +114,26 @@ class App:
 
     def draw_screen_effects(self):
         if self.effects.redscreen:
-            pyxel.dither(self.effects.dither)
+            pyxel.dither(self.effects.red_dither)
             draw_screen(
                 0,
                 16,
                 self.camera.x,
-                self.camera.y,)
+                self.camera.y)
+        if self.game_state == 'bunker' and self.effects.explo_screen:
+            pyxel.dither(self.effects.explo_dither)
+            draw_screen(
+                0,
+                48,
+                self.camera.x,
+                self.camera.y
+            )
+            
         pyxel.dither(1)
 
     def draw_timer_bar(self):
         pyxel.blt(self.camera.x + 96,self.camera.y,1,0,32,32,4)
-        pyxel.blt(self.camera.x + 96,self.camera.y,1,0,36,32,4)
+        pyxel.blt(self.camera.x + 96,self.camera.y,1,0,36,self.explosion_bar+1,4)
         if self.enemy_bar>0:
             pyxel.blt(self.camera.x + 96,self.camera.y,1,0,40,self.enemy_bar+1,4)
 
@@ -209,14 +220,14 @@ class App:
                 random_enemy = random.randint(0,99)
                 for enemy in EnemyTemplates.ENEMY_LIST:
                     if random_enemy in enemy['spawning_chance']:
-                        Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,enemy,self.player,self.world,self.itemList)
+                        Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,enemy,self.player,self.world,self.itemList,self.difficulty)
 
     def spawn_enemies_at(self,x,y,dic,always_loaded=False):
-        print(x,y,'spawn')
+        print(x,y,'spawned n')
         for enemy in EnemyTemplates.ENEMY_LIST:
             if enemy['name'] in dic.keys():
                 for i in range(dic[enemy['name']]):
-                    Enemy(x*TILE_SIZE,y*TILE_SIZE,enemy,self.player,self.world,self.itemList,always_loaded)
+                    Enemy(x*TILE_SIZE,y*TILE_SIZE,enemy,self.player,self.world,self.itemList,self.difficulty,always_loaded)
 
     def update_in_ship(self):
         self.camera.x,self.camera.y = 0,0
@@ -248,7 +259,15 @@ class App:
             if on_cooldown(self.game_start,self.ship_hold_time):
                 self.enemy_bar =  (self.ship_hold_time-pyxel.frame_count+self.game_start) * 32 // self.ship_hold_time
             elif on_cooldown(self.ship_hold_time,self.explosion_time):
-                self.explosion_bar =  (self.ship_hold_time+self.explosion_time-pyxel.frame_count+self.game_start) * 32 // self.ship_hold_time+self.explosion_time
+                self.explosion_bar =  (self.game_start+self.ship_hold_time+self.explosion_time-pyxel.frame_count) * 32 // self.explosion_time
+            else:
+                if not self.effects.explo_screen:
+                    self.effects.explo_frame = pyxel.frame_count
+                self.effects.explo_screen = True
+
+            if self.effects.explo_screen and not on_cooldown(self.effects.explo_frame,120):
+                self.player.alive = False
+                self.effects.explo_screen = False
 
 
             self.camera.update(self.player)
@@ -303,9 +322,12 @@ class App:
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
         self.ship_hold_time = 120*120
-        self.explosion_time = 40*120
+        self.explosion_time = 60*120
         self.group_alive = False
         self.game_state = 'bunker'
+        self.timer_bar = 32
+        self.explosion_bar = 32
+        self.difficulty += 1
         self.rooms = self.world.roombuild.rooms
         pyxel.stop()
 
@@ -1040,29 +1062,30 @@ class EnemyTemplates:
     TURRET = {'name':'turret',"health":50, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
     INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
     HIVE_QUEEN = {'name':'hive_queen',"health":70, "speed":0.15, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":2*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False, 'spawning_chance':[x for x in range(92,99)]}
-    HATCHLING = {'name':'hatchling',"health":20, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[]}
+    HATCHLING = {'name':'hatchling',"health":10, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[]}
     
     ENEMY_LIST = [SPIDER,BULWARK,STALKER,TUMOR,TURRET,INFECTED_SCRAPPER,HIVE_QUEEN,HATCHLING]
 
 class Enemy:
-    def __init__(self, x, y, template, player, world,itemList,always_loaded=False): #Creates a new enemy, with all its stats
+    def __init__(self, x, y, template, player, world,itemList,difficulty,always_loaded=False): #Creates a new enemy, with all its stats
         self.x = x
         self.y = y
         self.player = player
         self.world = world
         self.physics = Physics(world)
+        self.difficulty = difficulty
         self.rooms = self.world.roombuild.rooms
         self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
 
-        self.health = template["health"]
+        self.health = template["health"] + random.randint(self.difficulty*3-15,self.difficulty*3-5)
         self.speed = template["speed"]
         self.physics.momentum = self.speed
         self.cos = 0
         self.sin = 0
 
         self.isAttacking = False
-        self.damage = template["damage"]
-        self.range = template["range"]
+        self.damage = template["damage"] + random.randint(self.difficulty*2-10,self.difficulty*2)
+        self.range = template["range"] 
         self.attack_freeze = template["attack_freeze"]
         self.attack_cooldown = template["attack_cooldown"]
         self.attack_speed = template["attack_speed"]
@@ -1168,7 +1191,7 @@ class Enemy:
 
     def attack(self): #Makes the enemies slash or attack 
         if self.isLunging == 0 and self.room['name'] == self.player.room['name'] and self.attack_type in ["slash", "bullet"]:
-            if self.norm <= self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
+            if math.sqrt((self.player.x - self.x)**2+(self.player.y - self.y)**2) <= self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
                 self.attackFrame = 0
                 self.isAttacking = True
                 self.attackVector = [self.cos, self.sin]
@@ -1227,7 +1250,7 @@ class Enemy:
     def spawn_hatchlings(self): #Allows enemies to spawn hatchlings
         if self.spawner and self.spawnFrame > 3*FPS:
             for i in range(2):
-                Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList,True)
+                Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList, self.difficulty,True)
             self.spawnFrame = 0
 
     def kamikaze(self): #Allows enemy to blow itself up
@@ -1236,13 +1259,6 @@ class Enemy:
             self.player.health -= self.damage
             self.player.isHit = True
             self.player.hitFrame = 0
-            Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
-            for entity in loadedEntities:
-                if entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]):
-                    entity.health -= self.damage
-                    entity.hitStun = True
-                    entity.knockback = 20
-
 
     def getFacing(self):
         if abs(self.horizontal)>abs(self.vertical):
@@ -1272,21 +1288,19 @@ class Enemy:
         else:
             item_random = random.randint(0, len(self.itemList.common_list)-1)
             item = self.itemList.common_list[item_random]
-        return item
-            
-                
+        return item     
 
     def death(self): #Runs alls the things that happen when the enemy dies
         if self.health <= 0:
 
             if self.spawner :
                 for i in range(5):
-                    Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList)
+                    Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList, self.difficulty)
 
             if self.attack_type == "collision":
-                Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:6, 1:6, 2:6, 3:6}, self.x, self.y, TILE_SIZE, TILE_SIZE)
+                Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:9, 1:9, 2:9, 3:9}, self.x, self.y, TILE_SIZE, TILE_SIZE)
                 for entity in loadedEntities:
-                    if entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]):
+                    if entity.type == "enemy" and distance(self.x+self.width/2, self.y+self.height/2, entity.x+entity.width/2, entity.y+entity.height/2)<=2*TILE_SIZE:
                         entity.health -= self.damage
                         entity.hitStun = True
                         entity.knockback = 20
@@ -1382,7 +1396,7 @@ class EnemyGroup:
     def update(self):
         if on_tick(120*2):
             if self.room['name']+1 <= len(self.rooms):
-                print(self.room['X'],self.room['Y'],flush=True)
+                print(self.room['X'],self.room['Y'],'UPROOM',flush=True)
                 self.room = self.rooms[self.room['name']+1]
 
 class Guns: #Contains all the different guns the player can get
@@ -1536,18 +1550,24 @@ class ScreenEffect:
     def __init__(self,player):
         self.player = player
         self.redscreen = False
-        self.redscreen_alpha = 0
-        self.dither = 0
+        self.red_dither = 0
+
+        self.explo_screen = False
+        self.explo_dither = 0
+        self.explo_frame = -140
+
     def update(self):
         if self.player.isHit:
             self.redscreen = True
             if self.player.hitLength > self.player.hitFrame:
-                self.dither = (self.player.hitLength - self.player.hitFrame)/self.player.hitLength - 0.5
-                if self.dither<0:
-                    self.dither = 0
+                self.red_dither = (self.player.hitLength - self.player.hitFrame)/self.player.hitLength - 0.5
+                if self.red_dither<0:
+                    self.red_dither = 0
             else:
-                self.dither=0
+                self.red_dither = 0
                 self.redscreen = False
+        if self.explo_screen:
+            self.explo_dither = (pyxel.frame_count - self.explo_frame)/180
 
 class Boost: #Gives a temporary stat boost to the player
     def __init__(self, stat, operation, value, duration, target, player, creator):
