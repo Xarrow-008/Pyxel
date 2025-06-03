@@ -16,7 +16,6 @@ class App:
         os.system('cls')
         pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=FPS)
         pyxel.load('../notAScrap.pyxres')
-        pyxel.playm(0, loop=True)
 
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship')
@@ -282,6 +281,7 @@ class App:
                     self.ship_broken = True
                     self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':7,'hive_queen':1,'stalker':3,'bulwark':1})
                     self.group_alive = True
+                    pyxel.playm(1, loop=True)
                 
                 if pyxel.frame_count - self.game_start >= self.ship_hold_time + self.explosion_time:
                     self.info.description = ['','Return to SHIP','Explosion incoming']
@@ -330,6 +330,7 @@ class App:
             self.player.__init__(self.world, self.camera,self.itemList,self.info)
             self.difficulty = -1
         
+        pyxel.playm(0, loop=True)
         self.effects.__init__(self.player)
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
