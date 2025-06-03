@@ -263,7 +263,7 @@ class App:
                     
 
             if self.ship_broken:
-                if on_cooldown(self.ship_hold_time,self.explosion_time):
+                if on_cooldown(self.ship_hold_time+self.game_start,self.explosion_time):
                     self.explosion_bar =  (self.game_start+self.ship_hold_time+self.explosion_time-pyxel.frame_count) * 32 // self.explosion_time
 
             if self.effects.explo_screen and not on_cooldown(self.effects.explo_frame,120):
@@ -326,6 +326,8 @@ class App:
             self.difficulty += 1
         else:
             self.player.__init__(self.world, self.camera,self.itemList,self.info)
+            self.difficulty = -1
+        
         self.effects.__init__(self.player)
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
@@ -397,6 +399,11 @@ class World:
                     x = room['chest'][0]
                     y = room['chest'][1]
                     self.world_map[y][x] = (4,0)
+                    
+                if 'recycler' in room.keys():
+                    x = room['recycler'][0]
+                    y = room['recycler'][1]
+                    self.world_map[y][x] = (8,0)
 
 
         elif game_state == 'ship':
@@ -516,15 +523,15 @@ class Furniture:
     def __init__(self,rooms):
         self.rooms = rooms
         chests = []
-        for i in range(10):
+        for i in range(10): #puts 10 chests in all the rooms, stored in the list as the number of the room its going to be in
             room_chest = random.randint(1,len(self.rooms)-1)
             if room_chest in chests:
-                for j in range(5):
+                for attempt in range(5): #attemps 5 times to put the chest in a different room
                     if room_chest in chests:
-                        if room_chest<len(self.rooms)-1:
+                        if room_chest<len(self.rooms)-1: #1 room further if there is a room after
                             room_chest += 1
                         else:
-                            room_chest = random.randint(1,len(self.rooms)//2+3)
+                            room_chest = random.randint(1,len(self.rooms)//2+3)#else randomly in the first half of the rooms 
             chests.append(room_chest)
         
         for index in chests:
@@ -534,11 +541,31 @@ class Furniture:
             self.rooms[index]['chest'] = (X_pos,Y_pos)
             self.rooms[index]['chest_opening'] = 0
                 
-
-        for room in rooms:
-            nb_chest = random.randint(0,2)//2
-            X_chest = random.randint(room['X'],room['X']+room['W']-1)
-            Y_chest = random.randint(room['Y'],room['Y']+room['H']-1)
+        
+        recyclers = []
+        for i in range(10):
+            room_recycler = random.randint(5,len(self.rooms)-1)
+            if room_recycler in recyclers:
+                for attempt in range(5):
+                    if room_recycler in recyclers:
+                        if room_recycler<len(self.rooms)-1:
+                            room_recycler += 1
+                        else:
+                            room_recycler = random.randint(1,len(self.rooms)//2+5)
+            recyclers.append(room_recycler)
+        
+        for index in recyclers:
+            room = self.rooms[index]
+            X_pos = random.randint(room['X'],room['X']+room['W']-1)
+            Y_pos = random.randint(room['Y'],room['Y']+room['H']-1)
+            if 'chest' in self.rooms[index].keys():
+                for attempt in range(5):
+                    print((X_pos,Y_pos),self.rooms[index]['chest'])
+                    if (X_pos,Y_pos) == self.rooms[index]['chest']:
+                        X_pos = random.randint(room['X'],room['X']+room['W']-1)
+                        Y_pos = random.randint(room['Y'],room['Y']+room['H']-1)
+            self.rooms[index]['recycler'] = (X_pos,Y_pos)
+                
 
 class Physics: #This is used to have a common move function
     def __init__(self, world):
@@ -679,7 +706,7 @@ class Player: #Everything relating to the player and its control
         self.hitFrame += 1
         self.slashFrame +=1
         self.preventOOB()
-        self.chest_gestion()
+        self.furniture_gestion()
         self.description_text()
         self.change_PickupText()
         self.check_death()
@@ -784,7 +811,7 @@ class Player: #Everything relating to the player and its control
                     sin = 0
                 Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", self.gun["explode_radius"])
 
-    def chest_gestion(self):
+    def furniture_gestion(self):
         if 'chest' in self.room.keys():
             if in_perimeter(self.x,self.y,self.room['chest'][0]*TILE_SIZE,self.room['chest'][1]*TILE_SIZE,TILE_SIZE*1.5):
                 if self.no_text:
@@ -792,10 +819,14 @@ class Player: #Everything relating to the player and its control
                     self.no_text = False
 
                 if pyxel.btn(pyxel.KEY_F):
-                    print(self.room['chest_opening'])
                     self.stuck = True
                     self.physics.momentum /= self.speedFallOff
                     self.room['chest_opening'] += 1
+
+                    for i in range(3):
+                        if self.room['chest_opening'] >= self.open_time//3 * i:
+                            self.world.world_map[self.room['chest'][1]][self.room['chest'][0]] = (4+i%2,i//2) # very complex - [0,1,2] into -> [0,1,0] et [0,0,1] for image
+
 
                     if self.room['chest_opening'] >= self.open_time:
                         self.spawn_item(self.room['chest'][0],self.room['chest'][1])
@@ -806,6 +837,23 @@ class Player: #Everything relating to the player and its control
                 else:
                     self.stuck = False
                     self.room['chest_opening'] = 0
+                    self.world.world_map[self.room['chest'][1]][self.room['chest'][0]] = (4,0)
+
+        if 'recycler' in self.room.keys():
+            if in_perimeter(self.x,self.y,self.room['recycler'][0]*TILE_SIZE,self.room['recycler'][1]*TILE_SIZE,TILE_SIZE*1.5):
+                if self.no_text:
+                    self.pickup_text = ['[F] to use', 'Recycler', 'Transform random item into fuel']
+                    self.no_text = False
+                if pyxel.btn(pyxel.KEY_F):
+                    if len(self.ownedItems) > 0:
+                        self.fuel += 1
+                        self.world.world_map[self.room['recycler'][1]][self.room['recycler'][0]] = WorldItem.GROUND
+                        self.room.pop('recycler')
+                        self.ownedItems.pop(random.randint(0,len(self.ownedItems)-1))
+                    else:
+                        self.pickup_text = ['[F] to use', 'Recycler', '--NEEDS ITEM--']
+                        
+
 
     def spawn_item(self,x,y):
 
@@ -915,7 +963,8 @@ class Player: #Everything relating to the player and its control
             self.alive = False
 
     def getItem(self, item): #Adds an item to the player inventory, and triggers the effect of passive items
-        self.ownedItems.append(item)
+        if item['name']!='Fuel':
+            self.ownedItems.append(item)
         if item["trigger"] == "passive" and (item["effect"] == "stat_p" or item["effect"] == "stat_g"):
             for change in item["function"]:
                 self.increaseStat(change[0], change[1], change[2])
@@ -1074,13 +1123,13 @@ class Player: #Everything relating to the player and its control
                             Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
 class EnemyTemplates:
-    SPIDER = {'name':'spider',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(0,45)]}
-    BULWARK = {'name':'bulwark',"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(65,75)]}
-    STALKER = {'name':'stalker',"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
-    TUMOR = {'name':'tumor',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"collision", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(75,82)]}
-    TURRET = {'name':'turret',"health":50, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.3, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
-    INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.36, "damage":5, "range":7*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
-    HIVE_QUEEN = {'name':'hive_queen',"health":70, "speed":0.15, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":2*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False, 'spawning_chance':[x for x in range(92,99)]}
+    SPIDER = {'name':'spider',"health":40, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(0,45)]}
+    BULWARK = {'name':'bulwark',"health":100, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(65,75)]}
+    STALKER = {'name':'stalker',"health":40, "speed":0.1, "damage":10, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":2,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
+    TUMOR = {'name':'tumor',"health":20, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"collision", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(75,82)]}
+    TURRET = {'name':'turret',"health":40, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.3, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
+    INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.45, "damage":5, "range":7*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
+    HIVE_QUEEN = {'name':'hive_queen',"health":50, "speed":0.15, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":2*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False, 'spawning_chance':[x for x in range(92,99)]}
     HATCHLING = {'name':'hatchling',"health":10, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[]}
     
     ENEMY_LIST = [SPIDER,BULWARK,STALKER,TUMOR,TURRET,INFECTED_SCRAPPER,HIVE_QUEEN,HATCHLING]
@@ -1534,7 +1583,7 @@ class ItemList: #Lists every item and its properties
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
         
         self.DASH_DAMAGE_PASSIVE = {"name":"Crowd Burner", "description":"Dash deals damage", "image":[6*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["dash_damage", "addition", 10]]}
-        self.HEAL_RELOAD = {"name":"Core stabilization", "description":"On reload : Heal", "image":[7*TILE_SIZE,8*TILE_SIZE], "trigger":"onReload", "effect":"stat_p", "function":[["health", "addition", 2]]}
+        self.HEAL_RELOAD = {"name":"Core stabilization", "description":"On reload : Heal", "image":[7*TILE_SIZE,8*TILE_SIZE], "trigger":"onReload", "effect":"stat_p", "function":[["health", "addition", 5]]}
         self.DAMAGE_PASSIVE = {"name":"Burning Bullets", "description":"Damage increase", "image":[7*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["damage", "addition", 5]]}
         self.MAX_AMMO_PASSIVE = {"name":"Arm attachment", "description":"Max ammo increase", "image":[8*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["max_ammo", "multiplication", 1.1]]}
         self.FIRERATE_KILL = {"name":"Overheat", "description":"On kill : Firerate boost", "image":[8*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_g", "function":[["gun_cooldown", "multiplication", 0.8]]}
