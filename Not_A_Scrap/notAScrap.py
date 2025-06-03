@@ -1092,10 +1092,6 @@ class Enemy:
         self.scale = 1
 
         self.health = math.ceil(template["health"] * (1.25**self.difficulty))
-        print(template["health"])
-        print(self.difficulty)
-        print(1.25**self.difficulty)
-        print(self.health)
         self.speed = template["speed"]
         self.physics.momentum = self.speed
         self.cos = 0
