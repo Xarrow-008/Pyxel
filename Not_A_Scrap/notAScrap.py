@@ -64,14 +64,14 @@ class App:
             self.draw_effects()
             self.draw_screen_effects()
             self.draw_stats()
-            self.draw_help()
+            self.draw_description()
             self.draw_timer_bar()
 
         if self.game_state == 'ship':
             self.draw_ship_outside()
             self.draw_ship()
             self.draw_player()
-            self.draw_help()
+            self.draw_description()
 
     def draw_entities(self):
         for entity in loadedEntities:
@@ -145,7 +145,7 @@ class App:
         if self.player.gun["mag_ammo"] < self.player.gun["max_ammo"] and self.player.gun["reserve_ammo"]>0:
             pyxel.text(self.camera.x+1, self.camera.y+19, "[R] to reload", 7)
 
-    def draw_help(self):
+    def draw_description(self):
         if self.info.description != ["N/A"]:
             pyxel.text(self.camera.x+1, self.camera.y+107, self.info.description[0], 7)
             pyxel.text(self.camera.x+1, self.camera.y+113, self.info.description[1], 7)
@@ -283,12 +283,12 @@ class App:
                     self.group_alive = True
                     pyxel.playm(1, loop=True)
                 
-                if pyxel.frame_count - self.game_start >= self.ship_hold_time + self.explosion_time:
-                    self.info.description = ['','Return to SHIP','Explosion incoming']
-                    if not self.effects.explo_screen:
-                        if not self.effects.explo_screen:
-                            self.effects.explo_frame = pyxel.frame_count
-                        self.effects.explo_screen = True
+        if pyxel.frame_count - self.game_start >= self.ship_hold_time + self.explosion_time and self.player.alive:
+            self.info.description = ['','Return to SHIP','Explosion incoming']
+            if not self.effects.explo_screen:
+                if not self.effects.explo_screen:
+                    self.effects.explo_frame = pyxel.frame_count
+                self.effects.explo_screen = True
                 
         self.check_win()
 
@@ -566,7 +566,6 @@ class Furniture:
                         X_pos = random.randint(room['X'],room['X']+room['W']-1)
                         Y_pos = random.randint(room['Y'],room['Y']+room['H']-1)
             self.rooms[index]['recycler'] = (X_pos,Y_pos)
-                
 
 class Physics: #This is used to have a common move function
     def __init__(self, world):
@@ -811,62 +810,6 @@ class Player: #Everything relating to the player and its control
                     sin = 0
                 Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", self.gun["explode_radius"])
 
-    def furniture_gestion(self):
-        if 'chest' in self.room.keys():
-            if in_perimeter(self.x,self.y,self.room['chest'][0]*TILE_SIZE,self.room['chest'][1]*TILE_SIZE,TILE_SIZE*1.5):
-                if self.no_text:
-                    self.pickup_text = ['Hold [F] to open', 'Chest', 'Get item or weapon']
-                    self.no_text = False
-
-                if pyxel.btn(pyxel.KEY_F):
-                    self.stuck = True
-                    self.physics.momentum /= self.speedFallOff
-                    self.room['chest_opening'] += 1
-
-                    for i in range(3):
-                        if self.room['chest_opening'] >= self.open_time//3 * i:
-                            self.world.world_map[self.room['chest'][1]][self.room['chest'][0]] = (4+i%2,i//2) # very complex - [0,1,2] into -> [0,1,0] et [0,0,1] for image
-
-
-                    if self.room['chest_opening'] >= self.open_time:
-                        self.spawn_item(self.room['chest'][0],self.room['chest'][1])
-                        self.world.world_map[self.room['chest'][1]][self.room['chest'][0]] = WorldItem.GROUND
-                        self.room.pop('chest')
-                        self.room.pop('chest_opening')
-                        self.stuck = False
-                else:
-                    self.stuck = False
-                    self.room['chest_opening'] = 0
-                    self.world.world_map[self.room['chest'][1]][self.room['chest'][0]] = (4,0)
-
-        if 'recycler' in self.room.keys():
-            if in_perimeter(self.x,self.y,self.room['recycler'][0]*TILE_SIZE,self.room['recycler'][1]*TILE_SIZE,TILE_SIZE*1.5):
-                if self.no_text:
-                    self.pickup_text = ['[F] to use', 'Recycler', 'Transform random item into fuel']
-                    self.no_text = False
-                if pyxel.btn(pyxel.KEY_F):
-                    if len(self.ownedItems) > 0:
-                        self.fuel += 1
-                        self.world.world_map[self.room['recycler'][1]][self.room['recycler'][0]] = WorldItem.GROUND
-                        self.room.pop('recycler')
-                        self.ownedItems.pop(random.randint(0,len(self.ownedItems)-1))
-                    else:
-                        self.pickup_text = ['[F] to use', 'Recycler', '--NEEDS ITEM--']
-                        
-    def spawn_item(self,x,y):
-
-        pickup = random.randint(1,3)
-        if pickup == 1:
-            item_random = random.randint(0, len(self.itemList.common_list)-1)
-            item = self.itemList.common_list[item_random]
-            PickUp(x*TILE_SIZE, y*TILE_SIZE, "item", item, self)
-
-        elif pickup >= 2:
-            gun_random = random.randint(26,100)
-            for gun in Guns.Gun_list:
-                if gun_random in gun["rate"]:
-                    PickUp(x*TILE_SIZE, y*TILE_SIZE, "weapon", gun, self)
-
     def reloadWeapon(self): #Makes the player reload its weapon when it reaches 0 or presses R
         if pyxel.btnp(pyxel.KEY_R) and self.gun["mag_ammo"]<self.gun["max_ammo"] and self.gun["mag_ammo"]!=0:
             self.gun["mag_ammo"] = 0
@@ -943,6 +886,62 @@ class Player: #Everything relating to the player and its control
             self.x = (WIDTH-1)*TILE_SIZE
         if self.y > HEIGHT*TILE_SIZE:
             self.y = (HEIGHT-1)*TILE_SIZE
+
+    def furniture_gestion(self):
+        if 'chest' in self.room.keys():
+            if in_perimeter(self.x,self.y,self.room['chest'][0]*TILE_SIZE,self.room['chest'][1]*TILE_SIZE,TILE_SIZE*1.5):
+                if self.no_text:
+                    self.pickup_text = ['Hold [F] to open', 'Chest', 'Get item or weapon']
+                    self.no_text = False
+
+                if pyxel.btn(pyxel.KEY_F):
+                    self.stuck = True
+                    self.physics.momentum /= self.speedFallOff
+                    self.room['chest_opening'] += 1
+
+                    for i in range(3):
+                        if self.room['chest_opening'] >= self.open_time//3 * i:
+                            self.world.world_map[self.room['chest'][1]][self.room['chest'][0]] = (4+i%2,i//2) # very complex - [0,1,2] into -> [0,1,0] et [0,0,1] for image
+
+
+                    if self.room['chest_opening'] >= self.open_time:
+                        self.spawn_item(self.room['chest'][0],self.room['chest'][1])
+                        self.world.world_map[self.room['chest'][1]][self.room['chest'][0]] = WorldItem.GROUND
+                        self.room.pop('chest')
+                        self.room.pop('chest_opening')
+                        self.stuck = False
+                else:
+                    self.stuck = False
+                    self.room['chest_opening'] = 0
+                    self.world.world_map[self.room['chest'][1]][self.room['chest'][0]] = (4,0)
+
+        if 'recycler' in self.room.keys():
+            if in_perimeter(self.x,self.y,self.room['recycler'][0]*TILE_SIZE,self.room['recycler'][1]*TILE_SIZE,TILE_SIZE*1.5):
+                if self.no_text:
+                    self.pickup_text = ['[F] to use', 'Recycler', 'Transform random item into fuel']
+                    self.no_text = False
+                if pyxel.btn(pyxel.KEY_F):
+                    if len(self.ownedItems) > 0:
+                        PickUp(self.room['recycler'][0]*TILE_SIZE,self.room['recycler'][1]*TILE_SIZE, "item", self.itemList.FUEL, self)
+                        self.world.world_map[self.room['recycler'][1]][self.room['recycler'][0]] = WorldItem.GROUND
+                        self.room.pop('recycler')
+                        self.ownedItems.pop(random.randint(0,len(self.ownedItems)-1))
+                    else:
+                        self.pickup_text = ['[F] to use', 'Recycler', '--NEEDS ITEM--']
+                        
+    def spawn_item(self,x,y):
+
+        pickup = random.randint(1,2)
+        if pickup == 1:
+            item_random = random.randint(0, len(self.itemList.common_list)-1)
+            item = self.itemList.common_list[item_random]
+            PickUp(x*TILE_SIZE, y*TILE_SIZE, "item", item, self)
+
+        elif pickup == 2:
+            gun_random = random.randint(26,100)
+            for gun in Guns.Gun_list:
+                if gun_random in gun["rate"]:
+                    PickUp(x*TILE_SIZE, y*TILE_SIZE, "weapon", gun, self)
 
     def description_text(self): #Checks for all pickups and gets the correct text if the player is standing on them
         for i in range(len(pickUpsOnGround)-1, -1, -1): #from most recent to oldest
@@ -1124,8 +1123,8 @@ class Player: #Everything relating to the player and its control
 class EnemyTemplates:
     SPIDER = {'name':'spider',"health":40, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(0,45)]}
     BULWARK = {'name':'bulwark',"health":100, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(65,75)]}
-    STALKER = {'name':'stalker',"health":40, "speed":0.1, "damage":10, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
-    TUMOR = {'name':'tumor',"health":20, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"collision", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(75,82)]}
+    STALKER = {'name':'stalker',"health":40, "speed":0.1, "damage":10, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":60, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
+    TUMOR = {'name':'tumor',"health":20, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,4)*120//2, "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"collision", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(75,82)]}
     TURRET = {'name':'turret',"health":40, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.3, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
     INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.45, "damage":5, "range":7*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
     HIVE_QUEEN = {'name':'hive_queen',"health":50, "speed":0.15, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":2*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False, 'spawning_chance':[x for x in range(92,99)]}
@@ -1570,6 +1569,7 @@ class PickUp: #Creates an object on the ground the player can pickup
                     self.player.getItem(self.object)
                 if self.object['name'] == 'Fuel':
                     self.player.fuel += 1
+                    pyxel.play(2,46)
                 loadedEntities.remove(self)
                 pickUpsOnGround.remove(self)
 
@@ -1676,7 +1676,7 @@ class Camera:
     def __init__(self):
         self.x = (WIDTH//2-6)*TILE_SIZE
         self.y = 0
-        self.margin = 1/4
+        self.margin = 3/8
     
     def update(self,player):
         if player.x  < self.x + CAM_WIDTH * self.margin and self.x >0:
