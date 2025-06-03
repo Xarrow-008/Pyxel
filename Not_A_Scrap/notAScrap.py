@@ -283,10 +283,12 @@ class App:
                     self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':7,'hive_queen':1,'stalker':3,'bulwark':1})
                     self.group_alive = True
                 
-                if pyxel.frame_count - self.game_start >= self.ship_hold_time + self.explosion_time and not self.effects.explo_screen:
+                if pyxel.frame_count - self.game_start >= self.ship_hold_time + self.explosion_time:
+                    self.info.description = ['','Return to SHIP','Explosion incoming']
                     if not self.effects.explo_screen:
-                        self.effects.explo_frame = pyxel.frame_count
-                    self.effects.explo_screen = True
+                        if not self.effects.explo_screen:
+                            self.effects.explo_frame = pyxel.frame_count
+                        self.effects.explo_screen = True
                 
         self.check_win()
 
@@ -338,7 +340,6 @@ class App:
         self.timer_bar = 32
         self.explosion_bar = 32
         self.rooms = self.world.roombuild.rooms
-        pyxel.stop()
 
         pyxel.mouse(True)
         self.enemies_spawn_in_rooms()      
@@ -560,7 +561,6 @@ class Furniture:
             Y_pos = random.randint(room['Y'],room['Y']+room['H']-1)
             if 'chest' in self.rooms[index].keys():
                 for attempt in range(5):
-                    print((X_pos,Y_pos),self.rooms[index]['chest'])
                     if (X_pos,Y_pos) == self.rooms[index]['chest']:
                         X_pos = random.randint(room['X'],room['X']+room['W']-1)
                         Y_pos = random.randint(room['Y'],room['Y']+room['H']-1)
@@ -636,7 +636,7 @@ class Player: #Everything relating to the player and its control
         self.dashCooldown = 40
         self.dashLength = 20
         self.dashFrame = 0
-        self.dashStrength = self.speed*2.5
+        self.dashStrength = self.speed*3
         self.dashDamage = 0
         
         self.stuck = False
@@ -790,7 +790,6 @@ class Player: #Everything relating to the player and its control
     def fireWeapon(self): #Fire the player's gun when they right-click
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.attackFrame>=self.gun["cooldown"] and self.gun["mag_ammo"]>0:
             pyxel.play(2,60)
-            pyxel.play(3,61)
             self.attackFrame = 0
             self.gun["mag_ammo"] -= 1
             for i in range(self.gun["bullet_count"]):
@@ -853,8 +852,6 @@ class Player: #Everything relating to the player and its control
                     else:
                         self.pickup_text = ['[F] to use', 'Recycler', '--NEEDS ITEM--']
                         
-
-
     def spawn_item(self,x,y):
 
         pickup = random.randint(1,3)
@@ -886,6 +883,7 @@ class Player: #Everything relating to the player and its control
     def slash(self):
         if (pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT) or pyxel.btn(pyxel.KEY_C)) and self.slashFrame>=self.slash_cooldown:
             self.slashFrame = 0
+            pyxel.play(2,random.randint(47,49))
             horizontal = self.posXmouse - (self.x+self.width/2)
             vertical = self.poxYmouse - (self.y+self.height/2)
             norm = math.sqrt(horizontal**2+vertical**2)
@@ -906,7 +904,7 @@ class Player: #Everything relating to the player and its control
         if (pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_SHIFT)) and self.dashFrame >= self.dashCooldown:
             self.isDashing = True
             self.dashFrame = 0
-            self.physics.momentum = self.speed*2.5
+            self.physics.momentum = self.dashStrength
             self.image = [6,2]
 
     def dashMovement(self): #Does the movement while the player is dashing
@@ -1125,7 +1123,7 @@ class Player: #Everything relating to the player and its control
 class EnemyTemplates:
     SPIDER = {'name':'spider',"health":40, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(0,45)]}
     BULWARK = {'name':'bulwark',"health":100, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(65,75)]}
-    STALKER = {'name':'stalker',"health":40, "speed":0.1, "damage":10, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":2,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
+    STALKER = {'name':'stalker',"health":40, "speed":0.1, "damage":10, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
     TUMOR = {'name':'tumor',"health":20, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"collision", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(75,82)]}
     TURRET = {'name':'turret',"health":40, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.3, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
     INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.45, "damage":5, "range":7*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
@@ -1288,6 +1286,7 @@ class Enemy:
 
     def slash(self):
         self.world.effects.append({'x':self.x+self.cos*TILE_SIZE,'y':self.y+self.sin*TILE_SIZE,'image':[7,6],'scale':1,'time':pyxel.frame_count})
+        pyxel.play(3,54)
         if collision(self.x+self.cos*TILE_SIZE,self.y+self.sin*TILE_SIZE,self.player.x,self.player.y,(TILE_SIZE,TILE_SIZE),(TILE_SIZE,TILE_SIZE)): #pas assez de sin et cos
             self.player.health -= self.damage
             self.player.isHit = True
@@ -1299,11 +1298,14 @@ class Enemy:
                 self.lungeFrame = 0
                 self.isLunging = 1
                 self.lungeVector = [self.cos, self.sin]
+                if self.name == 'stalker':
+                    pyxel.play(3,50)
             if self.isLunging==1 and self.lungeFrame >= self.lunge_freeze:
                 self.lungeFrame = 0
                 self.isLunging = 2
                 self.physics.momentum = self.lunge_speed
                 self.hit_player = False
+                pyxel.play(3,random.randint(51,53))
             if self.isLunging==2:
                 self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.lungeVector)
                 if self.attack_type == "lunge": #Makes the enemy damage the player when colliding
@@ -1324,6 +1326,7 @@ class Enemy:
 
     def kamikaze(self): #Allows enemy to blow itself up
         if self.attack_type == "collision" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]):
+            pyxel.play(3,56)
             self.health = 0
             self.player.health -= self.damage
             self.player.isHit = True
@@ -1368,6 +1371,7 @@ class Enemy:
 
             if self.attack_type == "collision":
                 Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:9, 1:9, 2:9, 3:9}, self.x, self.y, TILE_SIZE, TILE_SIZE)
+                pyxel.play(3,56)
                 for entity in loadedEntities:
                     if entity.type == "enemy" and distance(self.x+self.width/2, self.y+self.height/2, entity.x+entity.width/2, entity.y+entity.height/2)<=2*TILE_SIZE:
                         entity.health -= self.damage
@@ -1472,7 +1476,7 @@ class EnemyGroup:
 class Guns: #Contains all the different guns the player can get
     NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
     PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "mag_ammo":16, "reserve_ammo":48, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
-    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "mag_ammo":5, "reserve_ammo":15, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
+    SHOTGUN = {"damage":12, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "mag_ammo":5, "reserve_ammo":15, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
     SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "mag_ammo":40, "reserve_ammo":120, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
     RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "mag_ammo":24, "reserve_ammo":48, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
     SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "mag_ammo":4, "reserve_ammo":12, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
