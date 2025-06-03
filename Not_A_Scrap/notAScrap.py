@@ -141,9 +141,9 @@ class App:
     def draw_stats(self):
         pyxel.text(self.camera.x+1, self.camera.y+1, "Health:"+str(self.player.health)+"/"+str(self.player.max_health),8)
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
-        pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["ammo"])+"/"+str(self.player.gun["max_ammo"]),7)
+        pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["mag_ammo"])+"/"+str(self.player.gun["max_ammo"])+" ("+str(self.player.gun["reserve_ammo"])+")",7)
         pyxel.text(self.camera.x+96, self.camera.y+8, "Fuel:"+str(self.player.fuel),7)
-        if self.player.gun["ammo"] < self.player.gun["max_ammo"]:
+        if self.player.gun["mag_ammo"] < self.player.gun["max_ammo"]:
             pyxel.text(self.camera.x+1, self.camera.y+19, "[R] to reload", 7)
 
     def draw_help(self):
@@ -680,8 +680,8 @@ class Player: #Everything relating to the player and its control
 
         if self.health > self.max_health:
             self.health = self.max_health
-        if self.gun["ammo"] > self.gun["max_ammo"]:
-            self.gun["ammo"] = self.gun["max_ammo"]
+        if self.gun["mag_ammo"] > self.gun["max_ammo"]:
+            self.gun["mag_ammo"] = self.gun["max_ammo"]
         
     def update_in_ship(self): #All the things we run every frame while the player is in the ship
         if pyxel.btnp(pyxel.KEY_A):
@@ -755,11 +755,11 @@ class Player: #Everything relating to the player and its control
             self.physics.momentum /= self.speedFallOff
 
     def fireWeapon(self): #Fire the player's gun when they right-click
-        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.attackFrame>=self.gun["cooldown"] and self.gun["ammo"]>0:
+        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.attackFrame>=self.gun["cooldown"] and self.gun["mag_ammo"]>0:
             pyxel.play(2,60)
             pyxel.play(3,61)
             self.attackFrame = 0
-            self.gun["ammo"] -= 1
+            self.gun["mag_ammo"] -= 1
             for i in range(self.gun["bullet_count"]):
                 horizontal = self.posXmouse - (self.x+self.width/2)
                 vertical = self.poxYmouse - (self.y+self.height/2)
@@ -816,12 +816,17 @@ class Player: #Everything relating to the player and its control
                     PickUp(x*TILE_SIZE, y*TILE_SIZE, "weapon", gun, self)
 
     def reloadWeapon(self): #Makes the player reload its weapon when it reaches 0 or presses R
-        if pyxel.btnp(pyxel.KEY_R) and self.gun["ammo"]<self.gun["max_ammo"] and self.gun["ammo"]!=0:
-            self.gun["ammo"] = 0
+        if pyxel.btnp(pyxel.KEY_R) and self.gun["mag_ammo"]<self.gun["max_ammo"] and self.gun["mag_ammo"]!=0:
+            self.gun["mag_ammo"] = 0
             self.attackFrame = 0
             
-        if self.gun["ammo"]==0 and self.attackFrame>=self.gun["reload"]:
-            self.gun["ammo"]=self.gun["max_ammo"]
+        if self.gun["mag_ammo"]==0 and self.attackFrame>=self.gun["reload"] and self.gun["reserve_ammo"]>0:
+            if self.gun["reserve_ammo"]>=self.gun["max_ammo"]:
+                self.gun["mag_ammo"]=self.gun["max_ammo"]
+                self.gun["reserve_ammo"] -= self.gun["max_ammo"]
+            else:
+                self.gun["mag_ammo"] = self.gun["reserve_ammo"]
+                self.gun["reserve_ammo"] = 0
             self.triggerOnReloadItems()
             
     def slash(self):
@@ -925,7 +930,8 @@ class Player: #Everything relating to the player and its control
                 self.increaseStat(boost.stat, boost.operation, boost.value)
         self.gun["piercing"] = math.ceil(self.gun["piercing"])
         self.gun["max_ammo"] = math.ceil(self.gun["max_ammo"])
-        self.gun["ammo"] = self.gun["max_ammo"]
+        self.gun["mag_ammo"] = self.gun["max_ammo"]
+        self.gun["reserve_ammo"] = math.ceil(self.gun["reserve_ammo"])
 
     def increaseStat(self, stat, operation, value): #I despise this function, but it just does what the name implies
         if stat == "health":
@@ -981,12 +987,18 @@ class Player: #Everything relating to the player and its control
             elif operation == "multiplication":
                 self.gun["max_ammo"] *= value
             self.gun["max_ammo"] = math.ceil(self.gun["max_ammo"])
-        elif stat == "ammo":
+        elif stat == "mag_ammo":
             if operation == "addition":
-                self.gun["ammo"] += value
+                self.gun["mag_ammo"] += value
             elif operation == "multiplication":
-                self.gun["ammo"] *= value
-            self.gun["ammo"] = math.ceil(self.gun["ammo"])
+                self.gun["mag_ammo"] *= value
+            self.gun["mag_ammo"] = math.ceil(self.gun["mag_ammo"])
+        elif stat == "reserve_ammo":
+            if operation == "addition":
+                self.gun["reserve_ammo"] += value
+            elif operation == "multiplication":
+                self.gun["reserve_ammo"] *= value
+            self.gun["reserve_ammo"] = math.ceil(self.gun["reserve_ammo"])
         elif stat == "reload":
             if operation == "addition":
                 self.gun["reload"] += value
@@ -1407,13 +1419,13 @@ class EnemyGroup:
                 self.room = self.rooms[self.room['name']+1]
 
 class Guns: #Contains all the different guns the player can get
-    NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
-    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "ammo":16, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
-    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "ammo":5, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
-    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "ammo":40, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
-    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "ammo":24, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "ammo":4, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
-    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
+    NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
+    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "mag_ammo":16, "reserve_ammo":48, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
+    SHOTGUN = {"damage":9, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "mag_ammo":5, "reserve_ammo":15, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
+    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "mag_ammo":40, "reserve_ammo":120, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
+    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "mag_ammo":24, "reserve_ammo":48, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "mag_ammo":4, "reserve_ammo":12, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
+    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "reserve_ammo":15, "mag_ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
 class Bullet: #Creates a bullet that can collide and deal damage
@@ -1513,7 +1525,7 @@ class ItemList: #Lists every item and its properties
         self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Pierce increase", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
         self.SPREAD_PASSIVE = {"name":"Focused Fire", "description":"Spread decrease", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
         self.HEAL_KILL = {"name":"Filth Blood", "description":"On kill : Heal", "image":[0*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_p", "function":[["health", "addition", 2]]}
-        self.AMMO_KILL = {"name":"Blood Bullets", "description":"On kill : Gain ammo", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_g", "function":[["ammo", "addition", 1]]}
+        self.AMMO_KILL = {"name":"Blood Bullets", "description":"On kill : Gain ammo", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_g", "function":[["mag_ammo", "addition", 1]]}
         self.SPEED_KILL = {"name":"Hot Blood", "description":"On kill : Speed boost", "image":[4*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_p", "function":[["speed", "addition", 0.05, 1*120]]}
         self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"On dash : Damage boost", "image":[3*TILE_SIZE,9*TILE_SIZE], "trigger":"onDash", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
         self.SPEED_DASH = {"name":"Reactor Boost", "description":"On dash : speed boost", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120]]}
