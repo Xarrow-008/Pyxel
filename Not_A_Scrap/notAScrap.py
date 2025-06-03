@@ -143,7 +143,7 @@ class App:
         pyxel.text(self.camera.x+1, self.camera.y+7, "Weapon:"+str(self.player.gun["name"]),7)
         pyxel.text(self.camera.x+1, self.camera.y+13, "Ammo:"+str(self.player.gun["mag_ammo"])+"/"+str(self.player.gun["max_ammo"])+" ("+str(self.player.gun["reserve_ammo"])+")",7)
         pyxel.text(self.camera.x+96, self.camera.y+8, "Fuel:"+str(self.player.fuel),7)
-        if self.player.gun["mag_ammo"] < self.player.gun["max_ammo"]:
+        if self.player.gun["mag_ammo"] < self.player.gun["max_ammo"] and self.player.gun["reserve_ammo"]>0:
             pyxel.text(self.camera.x+1, self.camera.y+19, "[R] to reload", 7)
 
     def draw_help(self):
