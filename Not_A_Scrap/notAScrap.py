@@ -35,7 +35,7 @@ class App:
         self.enemy_bar = 32
         self.explosion_bar = 32
         self.rooms = self.world.roombuild.rooms
-        self.difficulty = 1
+        self.difficulty = -1
 
         
         pyxel.mouse(True)
@@ -84,7 +84,8 @@ class App:
                         entity.image[1],
                         entity.width,
                         entity.height,
-                        colkey=11)
+                        colkey=11,
+                        scale=entity.scale)
     
     def draw_player(self):
         pyxel.blt(
@@ -316,6 +317,7 @@ class App:
         self.itemList.__init__()
         if self.player.alive:
             self.player.reset(self.world)
+            self.difficulty += 1
         else:
             self.player.__init__(self.world, self.camera,self.itemList,self.info)
         self.effects.__init__(self.player)
@@ -327,7 +329,6 @@ class App:
         self.game_state = 'bunker'
         self.timer_bar = 32
         self.explosion_bar = 32
-        self.difficulty += 1
         self.rooms = self.world.roombuild.rooms
         pyxel.stop()
 
@@ -1059,8 +1060,8 @@ class EnemyTemplates:
     BULWARK = {'name':'bulwark',"health":150, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(65,75)]}
     STALKER = {'name':'stalker',"health":50, "speed":0.1, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":3,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
     TUMOR = {'name':'tumor',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"collision", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(75,82)]}
-    TURRET = {'name':'turret',"health":50, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.5, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
-    INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
+    TURRET = {'name':'turret',"health":50, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.3, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
+    INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.36, "damage":5, "range":7*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
     HIVE_QUEEN = {'name':'hive_queen',"health":70, "speed":0.15, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":2*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False, 'spawning_chance':[x for x in range(92,99)]}
     HATCHLING = {'name':'hatchling',"health":10, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[]}
     
@@ -1076,15 +1077,20 @@ class Enemy:
         self.difficulty = difficulty
         self.rooms = self.world.roombuild.rooms
         self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
+        self.scale = 1
 
-        self.health = template["health"] + random.randint(self.difficulty*3-15,self.difficulty*3-5)
+        self.health = math.ceil(template["health"] * (1.25**self.difficulty))
+        print(template["health"])
+        print(self.difficulty)
+        print(1.25**self.difficulty)
+        print(self.health)
         self.speed = template["speed"]
         self.physics.momentum = self.speed
         self.cos = 0
         self.sin = 0
 
         self.isAttacking = False
-        self.damage = template["damage"] + random.randint(self.difficulty*2-10,self.difficulty*2)
+        self.damage = math.ceil(template["damage"] * (1.25**self.difficulty))
         self.range = template["range"] 
         self.attack_freeze = template["attack_freeze"]
         self.attack_cooldown = template["attack_cooldown"]
@@ -1213,7 +1219,7 @@ class Enemy:
                             else:
                                 cos = 0
                                 sin = 0
-                            Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.gun["explode_radius"])
+                            Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"]/2, self.gun["range"], self.gun["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.gun["explode_radius"])
                     else:
                         Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [self.cos, self.sin], self.damage, self.attack_speed, self.range, 0, self.world, self.player, [1*TILE_SIZE,6*TILE_SIZE], "enemy", 0)
 
@@ -1248,7 +1254,7 @@ class Enemy:
                     self.physics.momentum = self.speed
 
     def spawn_hatchlings(self): #Allows enemies to spawn hatchlings
-        if self.spawner and self.spawnFrame > 3*FPS:
+        if self.spawner and self.spawnFrame > 5*FPS:
             for i in range(2):
                 Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList, self.difficulty,True)
             self.spawnFrame = 0
@@ -1304,6 +1310,7 @@ class Enemy:
                         entity.health -= self.damage
                         entity.hitStun = True
                         entity.knockback = 20
+                        entity.x, entity.y = entity.physics.move(entity.x, entity.y, entity.width, entity.height, [-entity.cos*entity.knockback, -entity.sin*entity.knockback])
 
             if self.name != "hatchling":
                 item_chance = 10 + self.player.luck
@@ -1426,6 +1433,7 @@ class Bullet: #Creates a bullet that can collide and deal damage
         self.owner = owner
         self.explode_radius = explode_radius
         self.piercing = piercing
+        self.scale = 1
         self.type = "bullet"
         loadedEntities.append(self) #As long as the bullet is a part of this list, it exists
 
@@ -1439,7 +1447,10 @@ class Bullet: #Creates a bullet that can collide and deal damage
             if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
                 entity.health -= self.damage
                 entity.hitStun = True
-                entity.knockback = 10
+                if self.explode_radius == 0:
+                    entity.knockback = 10
+                else:
+                    entity.knockback = 20
                 if entity.hitFrame<=10 and entity.takesKnockback and (entity.isLunging != 2 and entity.isLunging != 1):
                     entity.x, entity.y = entity.physics.move(entity.x, entity.y, entity.width, entity.height, [-entity.cos*entity.knockback, -entity.sin*entity.knockback])
                 if self.piercing != 0:
@@ -1478,6 +1489,7 @@ class PickUp: #Creates an object on the ground the player can pickup
         self.type = type
         self.object = object
         self.player = player
+        self.scale = 1
         loadedEntities.append(self)
         pickUpsOnGround.append(self)
 
@@ -1531,6 +1543,7 @@ class Effect: #Used to generate collision-less effects like explosions
         self.width = width
         self.height = height
         self.type = "effect"
+        self.scale = 1.5
 
         self.state = 0
         self.frame = 0
