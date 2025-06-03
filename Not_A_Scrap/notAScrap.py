@@ -251,20 +251,20 @@ class App:
             for boost in activeBoosts:
                 boost.update()
  
+            if on_cooldown(self.game_start,self.ship_hold_time):
+                self.enemy_bar =  (self.ship_hold_time-pyxel.frame_count+self.game_start) * 32 // self.ship_hold_time
+                
             if not on_cooldown(self.game_start,self.ship_hold_time) and self.group_alive:
                 if self.group.room['name'] < self.player.room['name'] - 3:
                     self.group.update()
                 else:
                     self.spawn_enemies_at(self.group.room['X'],self.group.room['Y'],self.group.dic_enemies,True)
                     self.group_alive = False
-            if on_cooldown(self.game_start,self.ship_hold_time):
-                self.enemy_bar =  (self.ship_hold_time-pyxel.frame_count+self.game_start) * 32 // self.ship_hold_time
-            elif on_cooldown(self.ship_hold_time,self.explosion_time):
-                self.explosion_bar =  (self.game_start+self.ship_hold_time+self.explosion_time-pyxel.frame_count) * 32 // self.explosion_time
-            else:
-                if not self.effects.explo_screen:
-                    self.effects.explo_frame = pyxel.frame_count
-                self.effects.explo_screen = True
+                    
+
+            if self.ship_broken:
+                if on_cooldown(self.ship_hold_time,self.explosion_time):
+                    self.explosion_bar =  (self.game_start+self.ship_hold_time+self.explosion_time-pyxel.frame_count) * 32 // self.explosion_time
 
             if self.effects.explo_screen and not on_cooldown(self.effects.explo_frame,120):
                 self.player.alive = False
@@ -282,6 +282,12 @@ class App:
                     self.ship_broken = True
                     self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':7,'hive_queen':1,'stalker':3,'bulwark':1})
                     self.group_alive = True
+                
+                if pyxel.frame_count - self.game_start >= self.ship_hold_time + self.explosion_time and not self.effects.explo_screen:
+                    if not self.effects.explo_screen:
+                        self.effects.explo_frame = pyxel.frame_count
+                    self.effects.explo_screen = True
+                
         self.check_win()
 
     def update_effects(self):
