@@ -11,14 +11,14 @@ FPS = 120
 
 loadedEntities = []
 
-class App:
+class App: #Puts EVERYTHING together
     def __init__(self):
         os.system('cls')
         pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=FPS)
         pyxel.load('../notAScrap.pyxres')
 
         self.camera = Camera()
-        self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship')
+        self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship',-1)
         self.itemList = ItemList()
         self.info = Info()
         self.player = Player(self.world, self.camera,self.itemList,self.info)
@@ -223,7 +223,6 @@ class App:
                         Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,enemy,self.player,self.world,self.itemList,self.difficulty)
 
     def spawn_enemies_at(self,x,y,dic,always_loaded=False):
-        print(x,y,'spawned n')
         for enemy in EnemyTemplates.ENEMY_LIST:
             if enemy['name'] in dic.keys():
                 for i in range(dic[enemy['name']]):
@@ -282,9 +281,11 @@ class App:
                     self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':7,'hive_queen':1,'stalker':3,'bulwark':1})
                     self.group_alive = True
                     pyxel.playm(1, loop=True)
-                
-        if pyxel.frame_count - self.game_start >= self.ship_hold_time + self.explosion_time and self.player.alive:
+        
+        if pyxel.frame_count - self.game_start >= self.ship_hold_time:
             self.info.description = ['','Return to SHIP','Explosion incoming']
+
+        if pyxel.frame_count - self.game_start >= self.ship_hold_time + self.explosion_time and self.player.alive:
             if not self.effects.explo_screen:
                 if not self.effects.explo_screen:
                     self.effects.explo_frame = pyxel.frame_count
@@ -299,18 +300,18 @@ class App:
 
     def check_win(self):
         if in_perimeter(self.player.x,self.player.y,814,40,10):
-            if self.player.fuel >= 5:
+            if self.player.fuel >= 5+self.difficulty:
                 self.info.description = ['[F] to escape','the explosion','']
                 if pyxel.btnp(pyxel.KEY_F):
-                    self.player.fuel += -5
+                    self.player.fuel += -5-self.difficulty
                     self.game_state = 'ship'
-                    self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship')
+                    self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship',self.difficulty)
                     self.player.x = 60
                     self.player.y = 70
                     pyxel.camera(0,0)
                     self.camera.x,self.camera.y = 0,0
             else:
-                self.info.description = ['Needs 5 fuel to start','','']
+                self.info.description = ['Needs '+str(5+self.difficulty)+' fuel to start','','']
 
     def restartGame(self):
         global pickUpsOnGround
@@ -320,22 +321,26 @@ class App:
         pickUpsOnGround = []
         activeBoosts = []
 
-        self.camera.__init__()
-        self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'bunker')
-        self.itemList.__init__()
         if self.player.alive:
-            self.player.reset(self.world)
             self.difficulty += 1
         else:
-            self.player.__init__(self.world, self.camera,self.itemList,self.info)
             self.difficulty = -1
+
+        self.camera.__init__()
+        self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'bunker',self.difficulty)
+        self.itemList.__init__()
+
+        if self.player.alive:
+            self.player.reset(self.world)
+        else:
+            self.player.__init__(self.world, self.camera,self.itemList,self.info)
         
         pyxel.playm(0, loop=True)
         self.effects.__init__(self.player)
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
         self.ship_hold_time = 120*120
-        self.explosion_time = 60*120
+        self.explosion_time = 80*120
         self.group_alive = False
         self.game_state = 'bunker'
         self.timer_bar = 32
@@ -346,7 +351,7 @@ class App:
         self.enemies_spawn_in_rooms()      
 
 
-class Animation:
+class Animation: #makes moving things from the pyxres 
     def __init__(self):
         self.image1 = (0,0)
         self.slide  = [random.choice(WorldItem.UPWORLD_FLOOR) for i in range(CAM_WIDTH//TILE_SIZE+1)]
@@ -364,7 +369,7 @@ class Animation:
                 self.slide.append(random.choice(blocks_list))
                 self.slide_pos = 0
 
-class WorldItem:
+class WorldItem: # all blocks needed to make the world
     WALL = (0,0)
     GROUND = (0,1)
     CONNECT = (1,1)
@@ -374,19 +379,20 @@ class WorldItem:
     WALLS = [WALL,INVISIBLE]
     UPWORLD_FLOOR = [(3,0),(2,1),(3,1)]
 
-class World:
-    def __init__(self,tilemap,roombuild,game_state):
+class World: #puts together everything to make the world
+    def __init__(self,tilemap,roombuild,game_state,difficulty):
         self.tilemap = tilemap
         self.roombuild = roombuild
         self.world_map = [[(0,1) for j in range(WIDTH)] for i in range(HEIGHT)]
         self.nb_rooms = 20
+        self.difficulty = difficulty
         self.effects = []
             
         if game_state == 'bunker':
             self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
             self.player_init_posX = 812/TILE_SIZE
             self.player_init_posY = 45/TILE_SIZE
-            self.roombuild.random_rooms_place(self.world_map,20)
+            self.roombuild.random_rooms_place(self.world_map,self.nb_rooms+difficulty//2)
             self.world_map = self.roombuild.world_map
             rect_place(self.world_map,0,0,WIDTH,9,(2,0))
             for i in range(WIDTH):
@@ -417,7 +423,7 @@ class World:
             rect_place(self.world_map,11,6,1,6,WorldItem.INVISIBLE)
             rect_place(self.world_map,4,11,7,1,WorldItem.INVISIBLE)
 
-class RoomBuild:
+class RoomBuild: #creates random rooms different every time
     def __init__(self, name, startX, startY):
         self.rooms = [{'name':name,'X':startX,'Y':startY,'W':4,'H':4,'connect':(startX,startY),'direction':'down'}]
         self.world_map = []
@@ -521,7 +527,7 @@ class RoomBuild:
         rect_place(self.world_map,103,9,2,1,WorldItem.WALL)
         rect_place(self.world_map,99,9,2,1,WorldItem.WALL)
 
-class Furniture:
+class Furniture: #objects interactables to get items and fuel
     def __init__(self,rooms):
         self.rooms = rooms
         chests = []
@@ -677,9 +683,6 @@ class Player: #Everything relating to the player and its control
     def update(self): #All the things we run every frame to make the player work
         self.no_text = True
 
-        if pyxel.btnp(pyxel.KEY_A):
-            print(self.room['name'],self.room['X'], self.room['Y'], self.speed,self.x,self.y)
-
         self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
 
         self.loadedEntitiesInRange = []
@@ -717,8 +720,6 @@ class Player: #Everything relating to the player and its control
             self.gun["mag_ammo"] = self.gun["max_ammo"]
         
     def update_in_ship(self): #All the things we run every frame while the player is in the ship
-        if pyxel.btnp(pyxel.KEY_A):
-            print(self.x//TILE_SIZE,self.y//TILE_SIZE)
         
         self.posXmouse = self.camera.x+pyxel.mouse_x
         self.poxYmouse = self.camera.y+pyxel.mouse_y
@@ -1131,7 +1132,7 @@ class Player: #Everything relating to the player and its control
                         if not boost_already_active:
                             Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
 
-class EnemyTemplates:
+class EnemyTemplates: #all enemies and their stats to get easily
     SPIDER = {'name':'spider',"health":40, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(0,45)]}
     BULWARK = {'name':'bulwark',"health":100, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(65,75)]}
     STALKER = {'name':'stalker',"health":40, "speed":0.1, "damage":10, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":60, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
@@ -1143,7 +1144,7 @@ class EnemyTemplates:
     
     ENEMY_LIST = [SPIDER,BULWARK,STALKER,TUMOR,TURRET,INFECTED_SCRAPPER,HIVE_QUEEN,HATCHLING]
 
-class Enemy:
+class Enemy: #all the gestion of the atitude of the enemies
     def __init__(self, x, y, template, player, world,itemList,difficulty,always_loaded=False): #Creates a new enemy, with all its stats
         self.x = x
         self.y = y
@@ -1474,7 +1475,7 @@ class Enemy:
             self.cos = 0
             self.sin = 0
 
-class EnemyGroup:
+class EnemyGroup: #simulates a group of enemies to not load them directly (those who come from above)
     def __init__(self,rooms,room,dic_enemies={'spider':0}):
         self.rooms = rooms
         self.room = room
@@ -1483,17 +1484,16 @@ class EnemyGroup:
     def update(self):
         if on_tick(120*2):
             if self.room['name']+1 <= len(self.rooms):
-                print(self.room['X'],self.room['Y'],'UPROOM',flush=True)
                 self.room = self.rooms[self.room['name']+1]
 
 class Guns: #Contains all the different guns the player can get
     NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
-    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "mag_ammo":16, "reserve_ammo":48, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
-    SHOTGUN = {"damage":12, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "mag_ammo":5, "reserve_ammo":15, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
-    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "mag_ammo":40, "reserve_ammo":120, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
-    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "mag_ammo":24, "reserve_ammo":48, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "mag_ammo":4, "reserve_ammo":12, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
-    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "reserve_ammo":15, "mag_ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
+    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "mag_ammo":16, "reserve_ammo":60, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
+    SHOTGUN = {"damage":12, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "mag_ammo":5, "reserve_ammo":20, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
+    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "mag_ammo":40, "reserve_ammo":140, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
+    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "mag_ammo":24, "reserve_ammo":70, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "mag_ammo":4, "reserve_ammo":25, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
+    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "reserve_ammo":20, "mag_ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
 class Bullet: #Creates a bullet that can collide and deal damage
@@ -1640,7 +1640,7 @@ class Effect: #Used to generate collision-less effects like explosions
             loadedEntities.remove(self)
         self.frame += 1
 
-class ScreenEffect:
+class ScreenEffect: #effects that cover the whole screen
     def __init__(self,player):
         self.player = player
         self.redscreen = False
@@ -1685,7 +1685,7 @@ class Boost: #Gives a temporary stat boost to the player
             activeBoosts.remove(self)
         self.frame += 1
 
-class Camera:
+class Camera: #makes the camera move wth the player
     def __init__(self):
         self.x = (WIDTH//2-6)*TILE_SIZE
         self.y = 0
@@ -1712,11 +1712,11 @@ class Camera:
         
         self.x, self.y = round(self.x),round(self.y)
 
-class Info:
+class Info: #accessible by all, acts as a global kind of
     def __init__(self):
         self.description = ['N/A']
 
-def draw_screen(u, v,camx,camy):
+def draw_screen(u, v,camx,camy): #draws on the whole screen a pattern of 16 by 16 on the pyxres
     for y in range(CAM_HEIGHT//2):
         for x in range(CAM_WIDTH//2):
             pyxel.blt(
@@ -1729,25 +1729,25 @@ def draw_screen(u, v,camx,camy):
                 16
             )
 
-def check_entity(loadedEntities, key, value):
+def check_entity(loadedEntities, key, value): #unused
     for entity in loadedEntities:
         if getattr(entity,key) == value:
             return True
     return False
     
-def on_tick(tickrate=60,delay=0):
+def on_tick(tickrate=60,delay=0): #allows the computer to make operations only on certain times to not do averything 120 times a second
     return (pyxel.frame_count % tickrate)-delay == 0
 
-def on_cooldown(frame,cooldown):
+def on_cooldown(frame,cooldown): #checks if a timer is up or not
     return (pyxel.frame_count - frame) < cooldown
 
-def distance(x1,y1,x2,y2):
+def distance(x1,y1,x2,y2): #looks at distance with pythagorean theorem
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
-def in_perimeter(x1,y1,x2,y2,distance):
+def in_perimeter(x1,y1,x2,y2,distance): #makes a square and checks if coords are inside of it
     return (x1-x2<distance and x1-x2>-distance) and (y1-y2<distance and y1-y2>-distance)
 
-def tuple_list_sort(list): #NOT CHECKED
+def tuple_list_sort(list): #unused
     for i in range(len(list)-1):
         min=list[i][0]
         index=i
@@ -1759,32 +1759,32 @@ def tuple_list_sort(list): #NOT CHECKED
     return list
         
 
-def dic_copy(dico):
+def dic_copy(dico): #copy doesnt exist elsewhere i am in denial
     dicoC = {}
     for key in dico.keys():
         dicoC[key]=dico[key]
     return dicoC
 
 
-def list_copy(listP):
+def list_copy(listP): #same
     listC = []
     for i in range(len(listP)):
         listC.append(listP[i])
         return listC
 
-def rooms_collide(world, x, y, w, h): #verified+
+def rooms_collide(world, x, y, w, h): #checks if 2 rooms collide
     for in_y in range(h+2):
         for in_x in range(w+2):
             if world[y+in_y-1][x+in_x-1] == WorldItem.GROUND:
                 return True
     return False
 
-def rect_place(world_map, x, y, w, h, block): #verified+
+def rect_place(world_map, x, y, w, h, block): #places a rectangle of blocks in the world map
     for in_y in range(h):
         for in_x in range(w):
             world_map[y+in_y][x+in_x] = block
 
-def world_item_draw(pyxel,x,y,block):
+def world_item_draw(pyxel,x,y,block): #draw a singular block
     pyxel.blt(
         x*TILE_SIZE,
         y*TILE_SIZE,
@@ -1801,7 +1801,7 @@ def list_dic_find(list,value,key):
             return dic
     return None
 
-def find_room(x,y,rooms):
+def find_room(x,y,rooms): #can find in wich room the coordinates are
     rooms_distance = []
     for room in rooms:
         if (x >= room['X'] and x < room['X']+room['W'] and y >= room['Y'] and y < room['Y']+room['H']) or (x >= room['connect'][0] and x < room['connect'][0]+2 and y >= room['connect'][1] and y < room['connect'][1]+2):
@@ -1813,7 +1813,7 @@ def find_room(x,y,rooms):
 pickUpsOnGround = []
 activeBoosts = []
 
-def in_camera(x,y, camx, camy):
+def in_camera(x,y, camx, camy): #checks if coordinates are inside the camera view
     return in_perimeter((camx + CAM_WIDTH//2)//TILE_SIZE,(camy + CAM_HEIGHT//2)//TILE_SIZE, x, y, CAM_WIDTH//(TILE_SIZE*2) + 1)
 
 def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
