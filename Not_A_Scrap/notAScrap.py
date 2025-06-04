@@ -24,6 +24,7 @@ class App: #Puts EVERYTHING together
         self.player = Player(self.world, self.camera,self.itemList,self.info)
         self.effects = ScreenEffect(self.player)
         self.anim = Animation()
+        pyxel.playm(2,loop=True)
 
         self.ship_broken =  False
         self.ship_hold_time = 120*120
@@ -35,6 +36,7 @@ class App: #Puts EVERYTHING together
         self.explosion_bar = 32
         self.rooms = self.world.roombuild.rooms
         self.difficulty = -1
+
 
         
         pyxel.mouse(True)
@@ -306,6 +308,7 @@ class App: #Puts EVERYTHING together
                     self.player.fuel += -5-self.difficulty
                     self.game_state = 'ship'
                     self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship',self.difficulty)
+                    pyxel.playm(2,loop=True)
                     self.player.x = 60
                     self.player.y = 70
                     pyxel.camera(0,0)
@@ -329,13 +332,13 @@ class App: #Puts EVERYTHING together
         self.camera.__init__()
         self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'bunker',self.difficulty)
         self.itemList.__init__()
+        pyxel.playm(0, loop=True)
 
         if self.player.alive:
             self.player.reset(self.world)
         else:
             self.player.__init__(self.world, self.camera,self.itemList,self.info)
         
-        pyxel.playm(0, loop=True)
         self.effects.__init__(self.player)
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
@@ -497,28 +500,34 @@ class RoomBuild: #creates random rooms different every time
         self.last_placement = 'down'
         
     def fix_collide_rooms(self): #plupart des collisions arrivent a cause de newY trop haut 'dont work'
-        collided=False
+        collided=True
         for room in self.rooms:
-            if not collided:
+            if collided:
                 if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
                     collided=True
                     self.room_place_down()
+                    collided=False
 
         for room in self.rooms:
-            if not collided:
+            if collided:
                 if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                    collided=True
                     self.room_place_left()
-                    print('tried place left',flush=True)
+                    collided=False
 
         for room in self.rooms:
-            if not collided:
+            if collided:
                 if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                    collided=True
                     self.room_place_right()
-                    print('tried place right',flush=True)
+                    collided=False
+                
         for room in self.rooms:
-            if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
-                self.room_place_down()
-                print('collision',flush=True)
+            if collided:
+                if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                    collided=True
+                    self.room_place_down()
+                    collided=False
 
     def spaceship_walls_place(self):
         rect_place(self.world_map,105,4,1,5,WorldItem.INVISIBLE)
@@ -551,7 +560,7 @@ class Furniture: #objects interactables to get items and fuel
                 
         
         recyclers = []
-        for i in range(10):
+        for i in range(len(self.rooms)//2+3):
             room_recycler = random.randint(5,len(self.rooms)-1)
             if room_recycler in recyclers:
                 for attempt in range(5):
@@ -673,8 +682,8 @@ class Player: #Everything relating to the player and its control
         self.no_text = False
         self.luck = 0
 
-        self.health = 50
-        self.max_health = 50
+        self.health = 80
+        self.max_health = 80
         self.hitFrame = 0
         self.hitLength = 120
         self.isHit = False
@@ -1401,13 +1410,13 @@ class Enemy: #all the gestion of the atitude of the enemies
                 if pickup <= item_chance:
                     PickUp(self.x, self.y, "item", self.randomItem(), self.player)
 
-                elif pickup > 100-gun_chance:
+                if pickup > 100-gun_chance:
                     gun_random = random.randint(1,100)
                     for gun in Guns.Gun_list:
                         if gun_random in gun["rate"]:
                             PickUp(self.x, self.y, "weapon", gun, self.player)
 
-                elif pickup > 100-gun_chance-5:
+                if pickup > 100-gun_chance-10-self.player.luck and  pickup <= 100-gun_chance:
                     PickUp(self.x, self.y, "item", self.itemList.FUEL, self.player)
 
             self.player.triggerOnKillItems()
