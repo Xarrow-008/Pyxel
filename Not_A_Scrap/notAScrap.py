@@ -525,7 +525,7 @@ class Furniture:
     def __init__(self,rooms):
         self.rooms = rooms
         chests = []
-        for i in range(10): #puts 10 chests in all the rooms, stored in the list as the number of the room its going to be in
+        for i in range(len(self.rooms)//2): #puts 10 chests in all the rooms, stored in the list as the number of the room its going to be in
             room_chest = random.randint(1,len(self.rooms)-1)
             if room_chest in chests:
                 for attempt in range(5): #attemps 5 times to put the chest in a different room
@@ -920,12 +920,23 @@ class Player: #Everything relating to the player and its control
                 if self.no_text:
                     self.pickup_text = ['[F] to use', 'Recycler', 'Transform random item into fuel']
                     self.no_text = False
-                if pyxel.btn(pyxel.KEY_F):
+                if pyxel.btnp(pyxel.KEY_F):
                     if len(self.ownedItems) > 0:
-                        PickUp(self.room['recycler'][0]*TILE_SIZE,self.room['recycler'][1]*TILE_SIZE, "item", self.itemList.FUEL, self)
                         self.world.world_map[self.room['recycler'][1]][self.room['recycler'][0]] = WorldItem.GROUND
+                        randomItem = random.randint(0,len(self.ownedItems)-1)
+                        removedItem = self.ownedItems[randomItem]
+                        self.ownedItems.pop(randomItem)
+
+                        if removedItem in self.itemList.common_list:
+                            PickUp(self.room['recycler'][0]*TILE_SIZE,self.room['recycler'][1]*TILE_SIZE, "item", self.itemList.FUEL, self)
+                        elif removedItem in self.itemList.uncommon_list:
+                            for i in range(2):
+                                PickUp(self.room['recycler'][0]*TILE_SIZE+random.randint(-2,2),self.room['recycler'][1]*TILE_SIZE+random.randint(-2,2), "item", self.itemList.FUEL, self)
+                        elif removedItem in self.itemList.legendary_list:
+                            for i in range(3):
+                                PickUp(self.room['recycler'][0]*TILE_SIZE+random.randint(-2,2),self.room['recycler'][1]*TILE_SIZE+random.randint(-2,2), "item", self.itemList.FUEL, self)
+                            
                         self.room.pop('recycler')
-                        self.ownedItems.pop(random.randint(0,len(self.ownedItems)-1))
                     else:
                         self.pickup_text = ['[F] to use', 'Recycler', '--NEEDS ITEM--']
                         
@@ -1283,6 +1294,8 @@ class Enemy:
                             Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"]/2, self.gun["range"], self.gun["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.gun["explode_radius"])
                     else:
                         Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [self.cos, self.sin], self.damage, self.attack_speed, self.range, 0, self.world, self.player, [1*TILE_SIZE,6*TILE_SIZE], "enemy", 0)
+        if self.room['name'] != self.player.room['name']:
+            self.isAttacking = False
 
     def slash(self):
         self.world.effects.append({'x':self.x+self.cos*TILE_SIZE,'y':self.y+self.sin*TILE_SIZE,'image':[7,6],'scale':1,'time':pyxel.frame_count})
