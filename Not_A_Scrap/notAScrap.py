@@ -1,7 +1,7 @@
 import pyxel, os, random, math
 
-WIDTH = 200
-HEIGHT = 200
+WIDTH = 256
+HEIGHT = 256
 TILE_SIZE = 8
 
 CAM_WIDTH = 16*8
@@ -351,8 +351,7 @@ class App: #Puts EVERYTHING together
         self.rooms = self.world.roombuild.rooms
 
         pyxel.mouse(True)
-        self.enemies_spawn_in_rooms()      
-
+        self.enemies_spawn_in_rooms()
 
 class Animation: #makes moving things from the pyxres 
     def __init__(self):
@@ -393,7 +392,7 @@ class World: #puts together everything to make the world
             
         if game_state == 'bunker':
             self.world_map = [[(0,0) for j in range(WIDTH)] for i in range(HEIGHT)]
-            self.player_init_posX = 812/TILE_SIZE
+            self.player_init_posX = WIDTH//2 + 1.5
             self.player_init_posY = 45/TILE_SIZE
             self.roombuild.random_rooms_place(self.world_map,self.nb_rooms+difficulty//2)
             self.world_map = self.roombuild.world_map
@@ -456,13 +455,11 @@ class RoomBuild: #creates random rooms different every time
                 self.room_pos = random.randint(0,2)
                 if self.room_pos == 0 and self.x>self.max_size*2+1:
                     self.room_place_left()
-                    self.fix_collide_rooms()
                 else:
                     self.room_place_right()
 
                 if self.room_pos == 1 and self.x<WIDTH-self.max_size*2+1:
                     self.room_place_right()
-                    self.fix_collide_rooms()
                 else:
                     self.room_place_left()
 
@@ -472,69 +469,71 @@ class RoomBuild: #creates random rooms different every time
             else:
                 self.room_place_down()
             
+            self.fix_collide_rooms()
+            
             rect_place(world_map,self.newConnect[0],self.newConnect[1], 2, 2, WorldItem.CONNECT)
             rect_place(world_map, self.newX, self.newY, self.newW, self.newH, WorldItem.GROUND)
             self.rooms.append({'name':i+1,'X':self.newX,'Y':self.newY,'W':self.newW,'H':self.newH,'connect':(self.newConnect[0],self.newConnect[1]),'direction':self.last_placement})
-
+            
             self.x, self.y, self.w, self.h, self.connect = self.newX, self.newY, self.newW, self.newH, self.newConnect
         
         self.world_map = world_map
     
     def room_place_left(self):
-        self.newConnect[0] = self.x - 2
-        self.newConnect[1] = self.y + random.randint(0,self.h-2)
+        self.place_newConnect(self.x - 2, self.y + random.randint(0,self.h-2))
         self.newX = self.newConnect[0] - self.newW
         self.newY = self.newConnect[1] - random.randint(0,self.newH-2)
         self.last_placement = 'left'
     def room_place_right(self):
-        self.newConnect[0] = self.x + self.w
-        self.newConnect[1] = self.y + random.randint(0,self.h-2)
+        self.place_newConnect(self.x + self.w, self.y + random.randint(0,self.h-2))
         self.newX = self.newConnect[0] +2
         self.newY = self.newConnect[1] - random.randint(0,self.newH-2)
         self.last_placement = 'right'
     def room_place_down(self):
-        self.newConnect[0] = self.x + random.randint(1,self.w-2)
-        self.newConnect[1] = self.y + self.h
+        self.place_newConnect(self.x + random.randint(1,self.w-2), self.y + self.h)
         self.newX = self.newConnect[0] - random.randint(0,self.newW-2)
         self.newY = self.newConnect[1] +2
         self.last_placement = 'down'
-        
+    
+    def room_place_direction(self,direction):
+        if direction == 'down':
+            self.room_place_down()
+        elif direction == 'left':
+            self.room_place_left()
+        elif direction == 'right':
+            self.room_place_right()
+
+    def place_newConnect(self,x,y):
+        self.newConnect[0] = x
+        self.newConnect[1] = y
+
     def fix_collide_rooms(self): #plupart des collisions arrivent a cause de newY trop haut 'dont work'
-        collided=True
-        for room in self.rooms:
-            if collided:
-                if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
-                    collided=True
-                    self.room_place_down()
-                    collided=False
+        collided=False
 
+        if self.newY <= 10:
+            self.room_place_down()
+        
         for room in self.rooms:
-            if collided:
+            if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                direction = self.rooms[-2]['direction']
+                self.room_place_direction(direction)
+                if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
+                    direction = self.rooms[-1]['direction']
+                    self.room_place_direction(direction)
                 if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
                     collided=True
-                    self.room_place_left()
+                else:
                     collided=False
-
-        for room in self.rooms:
-            if collided:
-                if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
-                    collided=True
-                    self.room_place_right()
-                    collided=False
-                
-        for room in self.rooms:
-            if collided:
-                if collision(self.newX-1,self.newY-1,room['X'],room['Y'],(self.newW+2,self.newH+2),(room['W'],room['H'])):
-                    collided=True
-                    self.room_place_down()
-                    collided=False
+        
+        if collided:
+            self.room_place_down()
 
     def spaceship_walls_place(self):
-        rect_place(self.world_map,105,4,1,5,WorldItem.INVISIBLE)
-        rect_place(self.world_map,98,4,1,5,WorldItem.INVISIBLE)
-        rect_place(self.world_map,99,4,6,1,WorldItem.INVISIBLE)
-        rect_place(self.world_map,103,9,2,1,WorldItem.WALL)
-        rect_place(self.world_map,99,9,2,1,WorldItem.WALL)
+        rect_place(self.world_map,WIDTH//2+5,4,1,5,WorldItem.INVISIBLE)
+        rect_place(self.world_map,WIDTH//2-2,4,1,5,WorldItem.INVISIBLE)
+        rect_place(self.world_map,WIDTH//2-1,4,6,1,WorldItem.INVISIBLE)
+        rect_place(self.world_map,WIDTH//2+3,9,2,1,WorldItem.WALL)
+        rect_place(self.world_map,WIDTH//2-1,9,2,1,WorldItem.WALL)
 
 class Furniture: #objects interactables to get items and fuel
     def __init__(self,rooms):
@@ -690,6 +689,8 @@ class Player: #Everything relating to the player and its control
         self.pickup_text = ["N/A"]
         
     def update(self): #All the things we run every frame to make the player work
+        if pyxel.btnp(pyxel.KEY_A):
+            self.health = 0
         self.no_text = True
 
         self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
@@ -930,7 +931,7 @@ class Player: #Everything relating to the player and its control
                 if self.no_text:
                     self.pickup_text = ['[F] to use', 'Recycler', 'Transform random item into fuel']
                     self.no_text = False
-                if pyxel.btnp(pyxel.KEY_F):
+                if pyxel.btn(pyxel.KEY_F):
                     if len(self.ownedItems) > 0:
                         self.world.world_map[self.room['recycler'][1]][self.room['recycler'][0]] = WorldItem.GROUND
                         randomItem = random.randint(0,len(self.ownedItems)-1)

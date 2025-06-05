@@ -67,4 +67,4 @@ path = [1,2,5,6,8]
 
 rooms.append({"path":path, "name":path[-1]})
 
-print(rooms)
+print([0,1,2,3,4][-1])
