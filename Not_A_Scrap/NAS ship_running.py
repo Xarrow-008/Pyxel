@@ -9,15 +9,52 @@ class App:
         pyxel.load('../notAScrap.pyxres')
 
         self.animation = Animation()
+        self.showing = 'screen'
+        self.keyboard = 'zqsd'
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
     def update(self):
-        self.animation.loop(6,10,32,24,[0,1])
-        self.animation.slide_anim(10,3,FLOORS)
+        if self.showing == 'screen':
+            self.animation.loop(6,10,32,24,[0,1])
+            self.animation.slide_anim(10,3,FLOORS)
+        elif self.showing == 'menu':
+            if in_perimeter(64,48,pyxel.mouse_x,pyxel.mouse_y,14):
+                if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+                    self.keyboard = 'arrows'
+                    print('changed to arrows')
+            elif in_perimeter(48,80,pyxel.mouse_x,pyxel.mouse_y,14):
+                if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+                    self.keyboard = 'wasd'
+                    print('changed to wasd')
+
+            elif in_perimeter(80,80,pyxel.mouse_x,pyxel.mouse_y,14):
+                if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+                    self.keyboard = 'zqsd'
+                    print('changed to zqsd')
+
         if on_tick(60):
             print(pyxel.mouse_x,pyxel.mouse_y)
+        
+        if pyxel.btnp(pyxel.KEY_F):
+            if self.showing == 'screen':
+                self.showing = 'menu'
+            elif self.showing == 'menu':
+                self.showing = 'screen'
+        
+            
     def draw(self):
+        if self.showing == 'screen':
+            self.draw_ship()
+        elif self.showing == 'menu':
+            self.draw_menu()
+            self.draw_highlight()
+        self.draw_test()
+
+    def draw_test(self):
+        draw(0,0,0,0,96,16,16,scale=2)
+
+    def draw_ship(self):
         pyxel.cls(0)
         waves = (math.cos(pyxel.frame_count/50)+1)/2
         pyxel.dither(waves/2+0.3125)
@@ -45,6 +82,19 @@ class App:
             colkey=11
         )
 
+    def draw_menu(self):
+        pyxel.cls(0)
+        draw(0,0,1,112,0,16,16,scale=8)
+        pyxel.blt(48,48,1,128,0,32,32,scale=2,colkey=12)
+        
+    def draw_highlight(self):
+        if self.showing == 'menu':
+            if self.keyboard == 'arrows':
+                pyxel.blt(56,40,1,160,16,16,16,scale=2,colkey=12)
+            elif self.keyboard == 'wasd':
+                pyxel.blt(40,72,1,160,16,16,16,scale=2,colkey=12)
+            elif self.keyboard == 'zqsd':
+                pyxel.blt(72,72,1,160,16,16,16,scale=2,colkey=12)
 
 def draw_screen(u, v,camx,camy):
     for y in range(7):
@@ -79,5 +129,11 @@ class Animation:
         
 def on_tick(tickrate=60):
     return pyxel.frame_count % tickrate == 0
+
+def in_perimeter(x1,y1,x2,y2,distance): #makes a square and checks if coords are inside of it
+    return (x1-x2<distance and x1-x2>-distance) and (y1-y2<distance and y1-y2>-distance)
+
+def draw(x, y, img, u, v, w, h, colkey=None, rotate=None, scale=1):
+    pyxel.blt(x+w//2*(scale-1), y+h//2*(scale-1), img, u, v, w, h, colkey=colkey, rotate=rotate, scale=scale)
 
 App()
