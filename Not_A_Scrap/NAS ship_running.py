@@ -6,7 +6,7 @@ TILE_SIZE = 8
 class App:
     def __init__(self):
         pyxel.init(128,128,fps=120)
-        pyxel.load('../notAScrap.pyxres')
+        pyxel.load('../notAScrap_8by8.pyxres')
 
         self.animation = Animation()
         self.showing = 'screen'

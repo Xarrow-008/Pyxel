@@ -15,7 +15,7 @@ class App: #Puts EVERYTHING together
     def __init__(self):
         os.system('cls')
         pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=FPS)
-        pyxel.load('../notAScrap.pyxres')
+        pyxel.load('../notAScrap_8by8.pyxres')
 
         self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship',-1)
@@ -1602,7 +1602,7 @@ class ItemList: #Lists every item and its properties
         self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Health increase", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
         self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Range increase", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
         self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Pierce increase", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
-        self.SPREAD_PASSIVE = {"name":"Focused Fire", "description":"Spread decrease", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
+        self.SPREAD_PASSIVE = {"name":"Iron Sight", "description":"Spread decrease", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
         self.HEAL_KILL = {"name":"Filth Blood", "description":"On kill : Heal", "image":[0*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_p", "function":[["health", "addition", 2]]}
         self.AMMO_KILL = {"name":"Blood Bullets", "description":"On kill : Gain ammo", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_g", "function":[["mag_ammo", "addition", 1]]}
         self.SPEED_KILL = {"name":"Hot Blood", "description":"On kill : Speed boost", "image":[4*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_p", "function":[["speed", "addition", 0.05, 1*120]]}
