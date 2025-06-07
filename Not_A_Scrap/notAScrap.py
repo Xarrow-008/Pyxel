@@ -1055,7 +1055,7 @@ class Player: #Everything relating to the player and its control
         if item['name']!='Fuel':
             self.ownedItems.append(item)
             self.itemsPickedUp += 1
-        if item["trigger"] == "passive" and (item["effect"] == "stat_p" or item["effect"] == "stat_g"):
+        if item["trigger"] == "passive" and (item["effect"] == "stat"):
             for change in item["function"]:
                 self.increaseStat(change[0], change[1], change[2], change[3])
 
@@ -1067,11 +1067,12 @@ class Player: #Everything relating to the player and its control
                 highest_value = self.gun[key]*1.1
                 self.gun[key] = random.uniform(lowest_value, highest_value)
         for item in self.ownedItems:
-            if item["trigger"] == "passive" and item["effect"]=="stat_g":
+            if item["trigger"] == "passive" and item["effect"]=="stat":
                 for change in item["function"]:
-                    self.increaseStat(change[0], change[1], change[2], change[3])
+                    if change[3]:
+                        self.increaseStat(change[0], change[1], change[2], change[3])
         for boost in activeBoosts:
-            if boost.target == "boost_g":
+            if boost.gun:
                 self.increaseStat(boost.stat, boost.operation, boost.value, boost.gun)
         self.gun["piercing"] = math.ceil(self.gun["piercing"])
         self.gun["max_ammo"] = math.ceil(self.gun["max_ammo"])
@@ -1102,30 +1103,30 @@ class Player: #Everything relating to the player and its control
     def triggerOnKillItems(self): #Self-explanatory
         for item in self.ownedItems:
             if item["trigger"] == "onKill":
-                if item["effect"] == "stat_p" or item["effect"] == "stat_g":
+                if item["effect"] == "stat":
                     for change in item["function"]:
                         self.increaseStat(change[0], change[1], change[2], change[3])
-                elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
+                elif item["effect"] == "boost":
                     for change in item["function"]:
-                        Boost(change[0], change[1], change[2], change[3], change[4], item["effect"], self, item)
+                        Boost(change[0], change[1], change[2], change[3], change[4], self, item)
 
     def triggerOnReloadItems(self): #Self-explanatory
         for item in self.ownedItems:
             if item["trigger"] == "onReload":
-                if item["effect"] == "stat_p" or item["effect"] == "stat_g":
+                if item["effect"] == "stat":
                     for change in item["function"]:
                         self.increaseStat(change[0], change[1], change[2], change[3])
-                elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
+                elif item["effect"] == "boost":
                     for change in item["function"]:
-                        Boost(change[0], change[1], change[2], change[3], change[4], item["effect"], self, item)
+                        Boost(change[0], change[1], change[2], change[3], change[4], self, item)
         
     def triggerOnDashItems(self): #Self-explanatory
         for item in self.ownedItems:
             if item["trigger"] == "onDash":
-                if item["effect"] == "stat_p" or item["effect"] == "stat_g":
+                if item["effect"] == "stat":
                     for change in item["function"]:
                         self.increaseStat(change[0], change[1], change[2], change[3])
-                elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
+                elif item["effect"] == "boost":
                     for change in item["function"]:
                         boost_already_active = False
                         for boost in activeBoosts: #Si l'item est déja actif, on remet son timer à 0, sinon, on créé un boost
@@ -1133,7 +1134,7 @@ class Player: #Everything relating to the player and its control
                                 boost_already_active = True
                                 boost.frame = 0
                         if not boost_already_active:
-                            Boost(change[0], change[1], change[2], change[3], change[4], item["effect"], self, item)
+                            Boost(change[0], change[1], change[2], change[3], change[4], self, item)
 
 class EnemyTemplates: #all enemies and their stats to get easily
     SPIDER = {'name':'spider',"health":40, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(0,45)]}
@@ -1598,31 +1599,31 @@ class PickUp: #Creates an object on the ground the player can pickup
 
 class ItemList: #Lists every item and its properties
     def __init__(self):
-        self.SPEED_PASSIVE = {"name":"Jet speedup", "description":"Movement speed increase", "image":[1*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["speed", "addition", 0.05, False]]}
-        self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Health increase", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["max_health", "addition", 5, False], ["health", "addition", 5, False]]}
-        self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Range increase", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["range", "multiplication", 1.2, True]]}
-        self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Pierce increase", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["piercing", "addition", 1, True]]}
-        self.SPREAD_PASSIVE = {"name":"Iron Sight", "description":"Spread decrease", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["spread", "multiplication", 0.9, True]]}
-        self.HEAL_KILL = {"name":"Filth Blood", "description":"On kill : Heal", "image":[0*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_p", "function":[["health", "addition", 2, False]]}
-        self.AMMO_KILL = {"name":"Blood Bullets", "description":"On kill : Gain ammo", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_g", "function":[["mag_ammo", "addition", 1, True]]}
-        self.SPEED_KILL = {"name":"Hot Blood", "description":"On kill : Speed boost", "image":[4*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_p", "function":[["speed", "addition", 0.05, 1*120, False]]}
-        self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"On dash : Damage boost", "image":[3*TILE_SIZE,9*TILE_SIZE], "trigger":"onDash", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120, False], ["damage", "addition", 3, 1.5*120, True]]}
-        self.SPEED_DASH = {"name":"Reactor Boost", "description":"On dash : speed boost", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120, False], False]}
+        self.SPEED_PASSIVE = {"name":"Jet speedup", "description":"Movement speed increase", "image":[1*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["speed", "addition", 0.05, False]]}
+        self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Health increase", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["max_health", "addition", 5, False], ["health", "addition", 5, False]]}
+        self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Range increase", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["range", "multiplication", 1.2, True]]}
+        self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Pierce increase", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["piercing", "addition", 1, True]]}
+        self.SPREAD_PASSIVE = {"name":"Iron Sight", "description":"Spread decrease", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["spread", "multiplication", 0.9, True]]}
+        self.HEAL_KILL = {"name":"Filth Blood", "description":"On kill : Heal", "image":[0*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat", "function":[["health", "addition", 2, False]]}
+        self.AMMO_KILL = {"name":"Blood Bullets", "description":"On kill : Gain ammo", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat", "function":[["mag_ammo", "addition", 1, True]]}
+        self.SPEED_KILL = {"name":"Hot Blood", "description":"On kill : Speed boost", "image":[4*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost", "function":[["speed", "addition", 0.05, 1*120, False]]}
+        self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"On dash : Damage boost", "image":[3*TILE_SIZE,9*TILE_SIZE], "trigger":"onDash", "effect":"boost", "function":[["damage", "addition", 3, 1.5*120, False], ["damage", "addition", 3, 1.5*120, True]]}
+        self.SPEED_DASH = {"name":"Reactor Boost", "description":"On dash : speed boost", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "effect":"boost", "function":[["speed", "addition", 0.1, 1.5*120, False], False]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
         
-        self.DASH_DAMAGE_PASSIVE = {"name":"Crowd Burner", "description":"Dash deals damage", "image":[6*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["dashDamage", "addition", 10, False]]}
-        self.HEAL_RELOAD = {"name":"Core stabilization", "description":"On reload : Heal", "image":[7*TILE_SIZE,8*TILE_SIZE], "trigger":"onReload", "effect":"stat_p", "function":[["health", "addition", 5, False]]}
-        self.DAMAGE_PASSIVE = {"name":"Burning Bullets", "description":"Damage increase", "image":[7*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["damage", "addition", 5, True], ["damage", "addition", 5, False]]}
-        self.MAX_AMMO_PASSIVE = {"name":"Arm attachment", "description":"Max ammo increase", "image":[8*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["max_ammo", "multiplication", 1.1, True]]}
-        self.FIRERATE_KILL = {"name":"Overheat", "description":"On kill : Firerate boost", "image":[8*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_g", "function":[["cooldown", "multiplication", 0.8, 2*FPS, True]]}
+        self.DASH_DAMAGE_PASSIVE = {"name":"Crowd Burner", "description":"Dash deals damage", "image":[6*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["dashDamage", "addition", 10, False]]}
+        self.HEAL_RELOAD = {"name":"Core stabilization", "description":"On reload : Heal", "image":[7*TILE_SIZE,8*TILE_SIZE], "trigger":"onReload", "effect":"stat", "function":[["health", "addition", 5, False]]}
+        self.DAMAGE_PASSIVE = {"name":"Burning Bullets", "description":"Damage increase", "image":[7*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["damage", "addition", 5, True], ["damage", "addition", 5, False]]}
+        self.MAX_AMMO_PASSIVE = {"name":"Arm attachment", "description":"Max ammo increase", "image":[8*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["max_ammo", "multiplication", 1.1, True]]}
+        self.FIRERATE_KILL = {"name":"Overheat", "description":"On kill : Firerate boost", "image":[8*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost", "function":[["cooldown", "multiplication", 0.8, 2*FPS, True]]}
         self.uncommon_list = [self.DASH_DAMAGE_PASSIVE, self.HEAL_RELOAD, self.DAMAGE_PASSIVE, self.MAX_AMMO_PASSIVE, self.FIRERATE_KILL]
 
-        self.BULLET_COUNT_PASSIVE = {"name":"Extra Gun", "description":"Double bullets", "image":[6*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2, True]]}
-        self.LUCK_PASSIVE = {"name":"Compatibility plug / Clover Charm", "description":"Increased chance of getting items", "image":[9*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 1, False]]}
-        self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[9*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["pierceDamage", "multiplication", 1.5, False]]}
+        self.BULLET_COUNT_PASSIVE = {"name":"Extra Gun", "description":"Double bullets", "image":[6*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["bullet_count", "multiplication", 2, True]]}
+        self.LUCK_PASSIVE = {"name":"Compatibility plug / Clover Charm", "description":"Increased chance of getting items", "image":[9*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["luck", "addition", 1, False]]}
+        self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[9*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["pierceDamage", "multiplication", 1.5, False]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
 
-        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[5*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["fuel", "addition", 1, False]]}
+        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[5*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat", "function":[["fuel", "addition", 1, False]]}
 
 class Effect: #Used to generate collision-less effects like explosions
     def __init__(self, length, image, durations, x, y, width, height):
@@ -1674,7 +1675,7 @@ class ScreenEffect: #effects that cover the whole screen
             self.explo_dither = (pyxel.frame_count - self.explo_frame)/180
 
 class Boost: #Gives a temporary stat boost to the player
-    def __init__(self, stat, operation, value, duration, gun, target, player, creator):
+    def __init__(self, stat, operation, value, duration, gun, player, creator):
         self.stat = stat
         self.operation = operation
         self.value = value
@@ -1682,7 +1683,6 @@ class Boost: #Gives a temporary stat boost to the player
         self.gun = gun
         self.frame = 0
         self.player = player
-        self.target = target
         self.player.increaseStat(self.stat, self.operation, self.value, self.gun)
         activeBoosts.append(self) #The boost is active as long as its a part of this list
         self.creator = creator
