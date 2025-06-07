@@ -668,6 +668,8 @@ class Player: #Everything relating to the player and its control
         self.ownedItems = []
         self.justKilled = False
 
+        self.shotsFired = 0
+
         self.fuel = 0
         self.reset(world)
 
@@ -804,6 +806,7 @@ class Player: #Everything relating to the player and its control
             pyxel.play(2,60)
             self.attackFrame = 0
             self.gun["mag_ammo"] -= 1
+            self.shotsFired += 1
             for i in range(self.gun["bullet_count"]):
                 horizontal = self.posXmouse - (self.x+self.width/2)
                 vertical = self.poxYmouse - (self.y+self.height/2)
@@ -820,7 +823,7 @@ class Player: #Everything relating to the player and its control
                 else:
                     cos = 0
                     sin = 0
-                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", self.gun["explode_radius"])
+                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", self.gun["explode_radius"], self.shotsFired)
 
     def reloadWeapon(self): #Makes the player reload its weapon when it reaches 0 or presses R
         if pyxel.btnp(pyxel.KEY_R) and self.gun["mag_ammo"]<self.gun["max_ammo"] and self.gun["mag_ammo"]!=0:
@@ -1136,10 +1139,14 @@ class Enemy: #all the gestion of the atitude of the enemies
         self.spawnFrame = 0
         self.spawner = template["spawner"]
 
+        self.lastHitBy = "N/A"
+
         self.type = "enemy"
         self.has_items = template["has_items"]
         self.name = template["name"]
         self.pathing()
+
+        self.shotsFired = 0
 
         if template["has_items"]:
             gun_random = random.randint(1,100)
@@ -1214,6 +1221,7 @@ class Enemy: #all the gestion of the atitude of the enemies
                 if self.attack_type == "slash":
                     self.slash()
                 elif self.attack_type == "bullet":
+                    self.shotsFired += 1
                     if self.has_items:
                         for i in range(self.gun["bullet_count"]):
                             if self.norm != 0:
@@ -1226,9 +1234,9 @@ class Enemy: #all the gestion of the atitude of the enemies
                             else:
                                 cos = 0
                                 sin = 0
-                            Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"]/2, self.gun["range"], self.gun["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.gun["explode_radius"])
+                            Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"]/2, self.gun["range"], self.gun["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.gun["explode_radius"], self.shotsFired)
                     else:
-                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [self.cos, self.sin], self.damage, self.attack_speed, self.range, 0, self.world, self.player, [1*TILE_SIZE,6*TILE_SIZE], "enemy", 0)
+                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [self.cos, self.sin], self.damage, self.attack_speed, self.range, 0, self.world, self.player, [1*TILE_SIZE,6*TILE_SIZE], "enemy", 0, self.shotsFired)
         if self.room['name'] != self.player.room['name']:
             self.isAttacking = False
 
@@ -1431,7 +1439,7 @@ class Guns: #Contains all the different guns the player can get
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
 class Bullet: #Creates a bullet that can collide and deal damage
-    def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, explode_radius):
+    def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, explode_radius, shot):
         self.x = x
         self.y = y
         self.width = width
@@ -1449,6 +1457,7 @@ class Bullet: #Creates a bullet that can collide and deal damage
         self.piercing = piercing
         self.scale = 1
         self.type = "bullet"
+        self.shot = shot
         loadedEntities.append(self) #As long as the bullet is a part of this list, it exists
 
     def update(self): #All the things we need to run every frame
@@ -1458,9 +1467,10 @@ class Bullet: #Creates a bullet that can collide and deal damage
     
     def check_hit(self): #Checks if its hit an enemy (if created by the player) or the player (if created by an enemy) and deals damage
         for entity in loadedEntities:
-            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and not entity.hitStun:
+            if self.owner == "player" and entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and self not in entity.pierced and self.piercing>=0 and (not entity.hitStun or entity.lastHitBy == self.shot):
                 entity.health -= self.damage
                 entity.hitStun = True
+                entity.lastHitBy = self.shot
                 if self.explode_radius == 0:
                     entity.knockback = 10
                 else:
