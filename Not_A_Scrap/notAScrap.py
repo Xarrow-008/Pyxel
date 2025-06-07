@@ -1078,7 +1078,7 @@ class Player: #Everything relating to the player and its control
         self.gun["mag_ammo"] = self.gun["max_ammo"]
         self.gun["reserve_ammo"] = math.ceil(self.gun["reserve_ammo"])
 
-    def increaseStat(self, stat, operation, value, gun): #I despise this function, but it just does what the name implies
+    def increaseStat(self, stat, operation, value, gun): #Increases a stat by the stated operation and value
         if not gun:
             if operation == "addition":
                 setattr(self, stat, getattr(self, stat)+value)
@@ -1591,8 +1591,8 @@ class PickUp: #Creates an object on the ground the player can pickup
                     self.player.changeWeapon(self.object)
                 if self.type == "item":
                     self.player.getItem(self.object)
-                if self.object['name'] == 'Fuel':
-                    pyxel.play(2,46)
+                    if self.object['name'] == 'Fuel':
+                        pyxel.play(2,46)
                 loadedEntities.remove(self)
                 pickUpsOnGround.remove(self)
 
@@ -1622,7 +1622,7 @@ class ItemList: #Lists every item and its properties
         self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[9*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["pierceDamage", "multiplication", 1.5, False]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
 
-        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[5*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["fuel", "additive", 1, False]]}
+        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[5*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["fuel", "addition", 1, False]]}
 
 class Effect: #Used to generate collision-less effects like explosions
     def __init__(self, length, image, durations, x, y, width, height):
