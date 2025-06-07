@@ -250,6 +250,7 @@ class App: #Puts EVERYTHING together
             self.bunkers_explored = 0
             self.generateShip()
             self.player.alive = True
+            self.player = self.player.__init__()
 
     def update_in_ship(self):
         self.camera.x,self.camera.y = 0,0
