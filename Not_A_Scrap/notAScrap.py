@@ -35,13 +35,14 @@ class App: #Puts EVERYTHING together
     
 
     def update(self):
+        self.camera.update(self.player)
         if self.game_state == "start":
             self.update_in_start()
         elif self.game_state == 'bunker':
             self.update_in_bunker()
         elif self.game_state == 'ship':
             self.update_in_ship()
-        elif self.game_state == "dead":
+        elif self.game_state == "death":
             self.update_death()
     
     def draw(self):
@@ -72,15 +73,15 @@ class App: #Puts EVERYTHING together
             self.draw_player()
             self.draw_description()
 
-        elif self.game_state == "dead":
-            self.draw_death_screen()
+        elif self.game_state == "death":
+            self.draw_death()
     
     def draw_start_screen(self):
-        pyxel.text(0,0, "Press [Enter] to start the game", 1)
+        pyxel.text(self.camera.x, self.camera.y, "Press [Enter] to start the game", 1)
 
-    def draw_death_screen(self):
-        pyxel.text(0,0, "You died, press enter to try again", 1)
-        pyxel.text(0,20, "Press escape to quit the game", 1)
+    def draw_death(self):
+        pyxel.text(self.camera.x,self.camera.y, "You died. Press [Enter] to try again", 1)
+        pyxel.text(self.camera.x,self.camera.y+20, "Press [Escape] to quit", 1)
 
     def draw_entities(self):
         for entity in loadedEntities:
@@ -237,6 +238,7 @@ class App: #Puts EVERYTHING together
                     Enemy(x*TILE_SIZE,y*TILE_SIZE,enemy,self.player,self.world,self.itemList,self.difficulty,always_loaded)
 
     def update_in_start(self):
+        self.camera.x, self.camera.y = 0,0
         if pyxel.btnp(pyxel.KEY_RETURN):
             self.difficulty = 0
             self.bunkers_explored = 0
@@ -290,7 +292,6 @@ class App: #Puts EVERYTHING together
                 self.effects.explo_screen = False
 
 
-            self.camera.update(self.player)
             pyxel.camera(self.camera.x,self.camera.y)
             
             if on_tick(60):
@@ -301,7 +302,7 @@ class App: #Puts EVERYTHING together
                     pyxel.playm(1, loop=True)
 
         else:
-            self.game_state = "dead"
+            self.game_state = "death"
                 
         if pyxel.frame_count - self.game_start >= self.ship_hold_time:
             self.info.description = ['','Return to SHIP','Explosion incoming']
