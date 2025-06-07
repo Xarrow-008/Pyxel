@@ -17,27 +17,17 @@ class App: #Puts EVERYTHING together
         pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=FPS)
         pyxel.load('../notAScrap_8by8.pyxres')
 
-        self.camera = Camera()
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship',-1)
+        self.rooms = self.world.roombuild.rooms
+        self.camera = Camera()
         self.itemList = ItemList()
         self.info = Info()
         self.player = Player(self.world, self.camera,self.itemList,self.info)
         self.effects = ScreenEffect(self.player)
         self.anim = Animation()
-        pyxel.playm(2,loop=True)
+        
 
-        self.ship_broken =  False
-        self.ship_hold_time = 120*120
-        self.explosion_time = 60*120
-        self.group_alive = False
-        self.game_start = 0
-        self.game_state = 'ship'
-        self.enemy_bar = 32
-        self.explosion_bar = 32
-        self.rooms = self.world.roombuild.rooms
-        self.difficulty = -1
-
-
+        self.game_state = 'start'
         
         pyxel.mouse(True)
 
@@ -45,14 +35,21 @@ class App: #Puts EVERYTHING together
     
 
     def update(self):
-        if self.game_state == 'bunker':
+        if self.game_state == "start":
+            self.update_in_start()
+        elif self.game_state == 'bunker':
             self.update_in_bunker()
-        if self.game_state == 'ship':
+        elif self.game_state == 'ship':
             self.update_in_ship()
-
+        elif self.game_state == "dead":
+            self.update_death()
     
     def draw(self):
-        if self.game_state == 'bunker':
+        pyxel.cls(0)
+        if self.game_state == "start":
+            self.draw_start_screen()
+
+        elif self.game_state == 'bunker':
             for y in range(HEIGHT):
                 for x in range(WIDTH):
                     if in_camera(x,y,self.camera.x,self.camera.y):
@@ -69,11 +66,21 @@ class App: #Puts EVERYTHING together
             self.draw_description()
             self.draw_timer_bar()
 
-        if self.game_state == 'ship':
+        elif self.game_state == 'ship':
             self.draw_ship_outside()
             self.draw_ship()
             self.draw_player()
             self.draw_description()
+
+        elif self.game_state == "dead":
+            self.draw_death_screen()
+    
+    def draw_start_screen(self):
+        pyxel.text(0,0, "Press [Enter] to start the game", 1)
+
+    def draw_death_screen(self):
+        pyxel.text(0,0, "You died, press enter to try again", 1)
+        pyxel.text(0,20, "Press escape to quit the game", 1)
 
     def draw_entities(self):
         for entity in loadedEntities:
@@ -154,7 +161,6 @@ class App: #Puts EVERYTHING together
             pyxel.text(self.camera.x+1, self.camera.y+119, self.info.description[2], 7)
 
     def draw_ship_outside(self):
-        pyxel.cls(0)
         waves = (math.cos(pyxel.frame_count/50)+1)/2
         pyxel.dither(waves/2+0.3125)
         draw_screen(16,16,0,-32)
@@ -230,6 +236,19 @@ class App: #Puts EVERYTHING together
                 for i in range(dic[enemy['name']]):
                     Enemy(x*TILE_SIZE,y*TILE_SIZE,enemy,self.player,self.world,self.itemList,self.difficulty,always_loaded)
 
+    def update_in_start(self):
+        if pyxel.btnp(pyxel.KEY_RETURN):
+            self.difficulty = 0
+            self.bunkers_explored = 0
+            self.generateShip()
+
+    def update_death(self):
+        if pyxel.btnp(pyxel.KEY_RETURN):
+            self.difficulty = 0
+            self.bunkers_explored = 0
+            self.generateShip()
+            self.player.alive = True
+
     def update_in_ship(self):
         self.camera.x,self.camera.y = 0,0
         self.anim.loop(6,10,32,24,[0,1])
@@ -237,7 +256,7 @@ class App: #Puts EVERYTHING together
         self.player.update_in_ship()
         if self.player.lever_pulled:
             self.game_state = 'bunker'
-            self.restartGame()
+            self.generateBunker()
 
     def update_in_bunker(self):
         self.update_effects()
@@ -273,17 +292,17 @@ class App: #Puts EVERYTHING together
 
             self.camera.update(self.player)
             pyxel.camera(self.camera.x,self.camera.y)
-        
-        if on_tick(60):
-            if not self.player.alive:
-                self.restartGame()
-            else:
+            
+            if on_tick(60):
                 if pyxel.frame_count - self.game_start >= self.ship_hold_time and not self.ship_broken:
                     self.ship_broken = True
                     self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':7,'hive_queen':1,'stalker':3,'bulwark':1})
                     self.group_alive = True
                     pyxel.playm(1, loop=True)
-        
+
+        else:
+            self.game_state = "dead"
+                
         if pyxel.frame_count - self.game_start >= self.ship_hold_time:
             self.info.description = ['','Return to SHIP','Explosion incoming']
 
@@ -293,30 +312,35 @@ class App: #Puts EVERYTHING together
                     self.effects.explo_frame = pyxel.frame_count
                 self.effects.explo_screen = True
                 
-        self.check_win()
+        self.check_escape()
 
     def update_effects(self):
         for slash in self.world.effects:
             if pyxel.frame_count - slash['time'] > 60:
                 self.world.effects.remove(slash)
 
-    def check_win(self):
+    def check_escape(self):
         if in_perimeter(self.player.x,self.player.y,WIDTH//2*TILE_SIZE+14,40,10):
             if self.player.fuel >= 5+self.difficulty:
                 self.info.description = ['[F] to escape','the explosion','']
                 if pyxel.btnp(pyxel.KEY_F):
                     self.player.fuel += -5-self.difficulty
-                    self.game_state = 'ship'
-                    self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship',self.difficulty)
-                    pyxel.playm(2,loop=True)
-                    self.player.x = 60
-                    self.player.y = 70
-                    pyxel.camera(0,0)
-                    self.camera.x,self.camera.y = 0,0
+                    self.generateShip()
+                    self.difficulty += 1
+                    self.bunkers_explored += 1
             else:
                 self.info.description = ['Needs '+str(5+self.difficulty)+' fuel to start','','']
 
-    def restartGame(self):
+    def generateShip(self):
+        self.game_state = 'ship'
+        self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship',self.difficulty)
+        pyxel.playm(2,loop=True)
+        self.player.x = 60
+        self.player.y = 70
+        pyxel.camera(0,0)
+        self.camera.x,self.camera.y = 0,0
+
+    def generateBunker(self):
         global pickUpsOnGround
         global loadedEntities
         global activeBoosts
@@ -324,21 +348,13 @@ class App: #Puts EVERYTHING together
         pickUpsOnGround = []
         activeBoosts = []
 
-        if self.player.alive:
-            self.difficulty += 1
-        else:
-            self.difficulty = -1
-
         self.camera.__init__()
         self.world.__init__(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'bunker',self.difficulty)
         self.itemList.__init__()
         pyxel.playm(0, loop=True)
 
-        if self.player.alive:
-            self.player.reset(self.world)
-        else:
-            self.player.__init__(self.world, self.camera,self.itemList,self.info)
-        
+        self.player.reset(self.world)
+
         self.effects.__init__(self.player)
         self.game_start = pyxel.frame_count
         self.ship_broken =  False
@@ -346,7 +362,7 @@ class App: #Puts EVERYTHING together
         self.explosion_time = 80*120
         self.group_alive = False
         self.game_state = 'bunker'
-        self.timer_bar = 32
+        self.enemy_bar = 32
         self.explosion_bar = 32
         self.rooms = self.world.roombuild.rooms
 
@@ -669,6 +685,7 @@ class Player: #Everything relating to the player and its control
         self.justKilled = False
 
         self.shotsFired = 0
+        self.luck = 0
 
         self.fuel = 0
         self.reset(world)
@@ -682,7 +699,6 @@ class Player: #Everything relating to the player and its control
 
         self.lever_pulled = False
         self.no_text = False
-        self.luck = 0
 
         self.health = 80
         self.max_health = 80
