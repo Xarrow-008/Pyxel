@@ -658,6 +658,7 @@ class Player: #Everything relating to the player and its control
         self.itemList = itemList
 
         self.gun = dic_copy(Guns.PISTOL)
+
         self.attackFrame = 0
         self.damage = 10
         self.slash_cooldown = 0.5*120
@@ -987,7 +988,7 @@ class Player: #Everything relating to the player and its control
             self.ownedItems.append(item)
         if item["trigger"] == "passive" and (item["effect"] == "stat_p" or item["effect"] == "stat_g"):
             for change in item["function"]:
-                self.increaseStat(change[0], change[1], change[2])
+                self.increaseStat(change[0], change[1], change[2], change[3])
 
     def changeWeapon(self, gun): #Allows the player to change guns, randomize its values slightly, and then reapplies item effects for it to work 
         self.gun = dic_copy(gun)
@@ -999,139 +1000,62 @@ class Player: #Everything relating to the player and its control
         for item in self.ownedItems:
             if item["trigger"] == "passive" and item["effect"]=="stat_g":
                 for change in item["function"]:
-                    self.increaseStat(change[0], change[1], change[2])
+                    self.increaseStat(change[0], change[1], change[2], change[3])
         for boost in activeBoosts:
             if boost.target == "boost_g":
-                self.increaseStat(boost.stat, boost.operation, boost.value)
+                self.increaseStat(boost.stat, boost.operation, boost.value, boost.gun)
         self.gun["piercing"] = math.ceil(self.gun["piercing"])
         self.gun["max_ammo"] = math.ceil(self.gun["max_ammo"])
         self.gun["mag_ammo"] = self.gun["max_ammo"]
         self.gun["reserve_ammo"] = math.ceil(self.gun["reserve_ammo"])
 
-    def increaseStat(self, stat, operation, value): #I despise this function, but it just does what the name implies
-        if stat == "health":
+    def increaseStat(self, stat, operation, value, gun): #I despise this function, but it just does what the name implies
+        if not gun:
             if operation == "addition":
-                self.health += value
+                setattr(self, stat, getattr(self, stat)+value)
             elif operation == "multiplication":
-                self.health *= value
-        elif stat == "max_health":
+                setattr(self, stat, getattr(self, stat)*value)
+        else:
             if operation == "addition":
-                self.max_health += value
+                self.gun[stat] += value
             elif operation == "multiplication":
-                self.max_health *= value
-        elif stat == "speed":
-            if operation == "addition":
-                self.speed += value
-            elif operation == "multiplication":
-                self.speed *= value
-            if self.speed  > 1.9*TILE_SIZE:
+                self.gun[stat] *= value
+
+        self.health = math.ceil(self.health)
+        self.max_health = math.ceil(self.max_health)
+        self.gun["bullet_count"] = math.ceil(self.gun["bullet_count"])
+        self.gun["max_ammo"] = math.ceil(self.gun["max_ammo"])
+        self.gun["mag_ammo"] = math.ceil(self.gun["mag_ammo"])
+        self.gun["reserve_ammo"] = math.ceil(self.gun["reserve_ammo"])
+        if self.speed  > 1.9*TILE_SIZE:
                 self.speed = 1.9*TILE_SIZE
-        elif stat == "dash_cooldown":
-            if operation == "addition":
-                self.dashCooldown += value
-            elif operation == "multiplication":
-                self.dashCooldown *= value
-        elif stat == "damage":
-            if operation == "addition":
-                self.gun["damage"] += value
-            elif operation == "multiplication":
-                self.gun["damage"] *= value
-        elif stat == "range":
-            if operation == "addition":
-                self.gun["range"] += value
-            elif operation == "multiplication":
-                self.gun["range"] *= value
-        elif stat == "spread":
-            if operation == "addition":
-                self.gun["spread"] += value
-            elif operation == "multiplication":
-                self.gun["spread"] *= value
-        elif stat == "piercing":
-            if operation == "addition":
-                self.gun["piercing"] += value
-            elif operation == "multiplication":
-                self.gun["piercing"] *= value
-        elif stat == "bullet_speed":
-            if operation == "addition":
-                self.gun["bullet_speed"] += value
-            elif operation == "multiplication":
-                self.gun["bullet_speed"] *= value
-        elif stat == "max_ammo":
-            if operation == "addition":
-                self.gun["max_ammo"] += value
-            elif operation == "multiplication":
-                self.gun["max_ammo"] *= value
-            self.gun["max_ammo"] = math.ceil(self.gun["max_ammo"])
-        elif stat == "mag_ammo":
-            if operation == "addition":
-                self.gun["mag_ammo"] += value
-            elif operation == "multiplication":
-                self.gun["mag_ammo"] *= value
-            self.gun["mag_ammo"] = math.ceil(self.gun["mag_ammo"])
-        elif stat == "reserve_ammo":
-            if operation == "addition":
-                self.gun["reserve_ammo"] += value
-            elif operation == "multiplication":
-                self.gun["reserve_ammo"] *= value
-            self.gun["reserve_ammo"] = math.ceil(self.gun["reserve_ammo"])
-        elif stat == "reload":
-            if operation == "addition":
-                self.gun["reload"] += value
-            elif operation == "multiplication":
-                self.gun["reload"] *= value
-        elif stat == "gun_cooldown":
-            if operation == "addition":
-                self.gun["cooldown"] += value
-            elif operation == "multiplication":
-                self.gun["cooldown"] *= value
-        elif stat == "bullet_count":
-            if operation == "addition":
-                self.gun["bullet_count"] += value
-            elif operation == "multiplication":
-                self.gun["bullet_count"] *= value
-            self.gun["bullet_count"] = math.ceil(self.gun["bullet_count"])
-        elif stat == "dash_damage":
-            if operation == "addition":
-                self.dashDamage += value
-            elif operation == "multiplication":
-                self.dashDamage *= value
-        elif stat == "luck":
-            if operation == "addition":
-                self.luck += value
-            elif operation == "multiplication":
-                self.luck *= value
-        elif stat == "pierce_damage":
-            if operation == "addition":
-                self.pierceDamage += value
-            elif operation == "multiplication":
-                self.pierceDamage *= value
         
     def triggerOnKillItems(self): #Self-explanatory
         for item in self.ownedItems:
             if item["trigger"] == "onKill":
                 if item["effect"] == "stat_p" or item["effect"] == "stat_g":
                     for change in item["function"]:
-                        self.increaseStat(change[0], change[1], change[2])
+                        self.increaseStat(change[0], change[1], change[2], change[3])
                 elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
                     for change in item["function"]:
-                        Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
+                        Boost(change[0], change[1], change[2], change[3], change[4], item["effect"], self, item)
 
     def triggerOnReloadItems(self): #Self-explanatory
         for item in self.ownedItems:
             if item["trigger"] == "onReload":
                 if item["effect"] == "stat_p" or item["effect"] == "stat_g":
                     for change in item["function"]:
-                        self.increaseStat(change[0], change[1], change[2])
+                        self.increaseStat(change[0], change[1], change[2], change[3])
                 elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
                     for change in item["function"]:
-                        Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
+                        Boost(change[0], change[1], change[2], change[3], change[4], item["effect"], self, item)
         
     def triggerOnDashItems(self): #Self-explanatory
         for item in self.ownedItems:
             if item["trigger"] == "onDash":
                 if item["effect"] == "stat_p" or item["effect"] == "stat_g":
                     for change in item["function"]:
-                        self.increaseStat(change[0], change[1], change[2])
+                        self.increaseStat(change[0], change[1], change[2], change[3])
                 elif item["effect"] == "boost_p" or item["effect"] == "boost_p":
                     for change in item["function"]:
                         boost_already_active = False
@@ -1140,7 +1064,7 @@ class Player: #Everything relating to the player and its control
                                 boost_already_active = True
                                 boost.frame = 0
                         if not boost_already_active:
-                            Boost(change[0], change[1], change[2], change[3], item["effect"], self, item)
+                            Boost(change[0], change[1], change[2], change[3], change[4], item["effect"], self, item)
 
 class EnemyTemplates: #all enemies and their stats to get easily
     SPIDER = {'name':'spider',"health":40, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(0,45)]}
@@ -1598,31 +1522,31 @@ class PickUp: #Creates an object on the ground the player can pickup
 
 class ItemList: #Lists every item and its properties
     def __init__(self):
-        self.SPEED_PASSIVE = {"name":"Jet speedup", "description":"Movement speed increase", "image":[1*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["speed", "addition", 0.05]]}
-        self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Health increase", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["max_health", "addition", 5], ["health", "addition", 5]]}
-        self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Range increase", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["range", "multiplication", 1.2]]}
-        self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Pierce increase", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["piercing", "addition", 1]]}
-        self.SPREAD_PASSIVE = {"name":"Iron Sight", "description":"Spread decrease", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["spread", "multiplication", 0.9]]}
-        self.HEAL_KILL = {"name":"Filth Blood", "description":"On kill : Heal", "image":[0*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_p", "function":[["health", "addition", 2]]}
-        self.AMMO_KILL = {"name":"Blood Bullets", "description":"On kill : Gain ammo", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_g", "function":[["mag_ammo", "addition", 1]]}
-        self.SPEED_KILL = {"name":"Hot Blood", "description":"On kill : Speed boost", "image":[4*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_p", "function":[["speed", "addition", 0.05, 1*120]]}
-        self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"On dash : Damage boost", "image":[3*TILE_SIZE,9*TILE_SIZE], "trigger":"onDash", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120]]}
-        self.SPEED_DASH = {"name":"Reactor Boost", "description":"On dash : speed boost", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120]]}
+        self.SPEED_PASSIVE = {"name":"Jet speedup", "description":"Movement speed increase", "image":[1*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["speed", "addition", 0.05, False]]}
+        self.HEALTH_PASSIVE = {"name":"Armor Plating", "description":"Health increase", "image":[0*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["max_health", "addition", 5, False], ["health", "addition", 5, False]]}
+        self.RANGE_PASSIVE = {"name":"Aerodynamism", "description":"Range increase", "image":[2*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["range", "multiplication", 1.2, True]]}
+        self.PIERCING_PASSIVE = {"name":"Sharpened Rounds", "description":"Pierce increase", "image":[3*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["piercing", "addition", 1, True]]}
+        self.SPREAD_PASSIVE = {"name":"Iron Sight", "description":"Spread decrease", "image":[4*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["spread", "multiplication", 0.9, True]]}
+        self.HEAL_KILL = {"name":"Filth Blood", "description":"On kill : Heal", "image":[0*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_p", "function":[["health", "addition", 2, False]]}
+        self.AMMO_KILL = {"name":"Blood Bullets", "description":"On kill : Gain ammo", "image":[2*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"stat_g", "function":[["mag_ammo", "addition", 1, True]]}
+        self.SPEED_KILL = {"name":"Hot Blood", "description":"On kill : Speed boost", "image":[4*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_p", "function":[["speed", "addition", 0.05, 1*120, False]]}
+        self.DAMAGE_DASH = {"name":"Terminal Velocity", "description":"On dash : Damage boost", "image":[3*TILE_SIZE,9*TILE_SIZE], "trigger":"onDash", "effect":"boost_g", "function":[["damage", "addition", 3, 1.5*120, False], ["damage", "addition", 3, 1.5*120, True]]}
+        self.SPEED_DASH = {"name":"Reactor Boost", "description":"On dash : speed boost", "image":[1*TILE_SIZE,8*TILE_SIZE], "trigger":"onDash", "effect":"boost_p", "function":[["speed", "addition", 0.1, 1.5*120, False], False]}
         self.common_list = [self.SPEED_PASSIVE, self.HEALTH_PASSIVE, self.RANGE_PASSIVE, self.PIERCING_PASSIVE, self.SPREAD_PASSIVE, self.HEAL_KILL, self.AMMO_KILL, self.SPEED_KILL, self.DAMAGE_DASH, self.SPEED_DASH]
         
-        self.DASH_DAMAGE_PASSIVE = {"name":"Crowd Burner", "description":"Dash deals damage", "image":[6*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["dash_damage", "addition", 10]]}
-        self.HEAL_RELOAD = {"name":"Core stabilization", "description":"On reload : Heal", "image":[7*TILE_SIZE,8*TILE_SIZE], "trigger":"onReload", "effect":"stat_p", "function":[["health", "addition", 5]]}
-        self.DAMAGE_PASSIVE = {"name":"Burning Bullets", "description":"Damage increase", "image":[7*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["damage", "addition", 5]]}
-        self.MAX_AMMO_PASSIVE = {"name":"Arm attachment", "description":"Max ammo increase", "image":[8*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["max_ammo", "multiplication", 1.1]]}
-        self.FIRERATE_KILL = {"name":"Overheat", "description":"On kill : Firerate boost", "image":[8*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_g", "function":[["gun_cooldown", "multiplication", 0.8]]}
+        self.DASH_DAMAGE_PASSIVE = {"name":"Crowd Burner", "description":"Dash deals damage", "image":[6*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["dashDamage", "addition", 10, False]]}
+        self.HEAL_RELOAD = {"name":"Core stabilization", "description":"On reload : Heal", "image":[7*TILE_SIZE,8*TILE_SIZE], "trigger":"onReload", "effect":"stat_p", "function":[["health", "addition", 5, False]]}
+        self.DAMAGE_PASSIVE = {"name":"Burning Bullets", "description":"Damage increase", "image":[7*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["damage", "addition", 5, True], ["damage", "addition", 5, False]]}
+        self.MAX_AMMO_PASSIVE = {"name":"Arm attachment", "description":"Max ammo increase", "image":[8*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["max_ammo", "multiplication", 1.1, True]]}
+        self.FIRERATE_KILL = {"name":"Overheat", "description":"On kill : Firerate boost", "image":[8*TILE_SIZE,9*TILE_SIZE], "trigger":"onKill", "effect":"boost_g", "function":[["cooldown", "multiplication", 0.8, 2*FPS, True]]}
         self.uncommon_list = [self.DASH_DAMAGE_PASSIVE, self.HEAL_RELOAD, self.DAMAGE_PASSIVE, self.MAX_AMMO_PASSIVE, self.FIRERATE_KILL]
 
-        self.BULLET_COUNT_PASSIVE = {"name":"Extra Gun", "description":"Double bullets", "image":[6*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2]]}
-        self.LUCK_PASSIVE = {"name":"Compatibility plug / Clover Charm", "description":"Increased chance of getting items", "image":[9*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 1]]}
-        self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[9*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["pierce_damage", "multiplication", 1.5]]}
+        self.BULLET_COUNT_PASSIVE = {"name":"Extra Gun", "description":"Double bullets", "image":[6*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["bullet_count", "multiplication", 2, True]]}
+        self.LUCK_PASSIVE = {"name":"Compatibility plug / Clover Charm", "description":"Increased chance of getting items", "image":[9*TILE_SIZE,8*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["luck", "addition", 1, False]]}
+        self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[9*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["pierceDamage", "multiplication", 1.5, False]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
 
-        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[5*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_g", "function":[["N/A", "N/A", 0]]}
+        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[5*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["N/A", "N/A", 0, False]]}
 
 class Effect: #Used to generate collision-less effects like explosions
     def __init__(self, length, image, durations, x, y, width, height):
@@ -1674,24 +1598,25 @@ class ScreenEffect: #effects that cover the whole screen
             self.explo_dither = (pyxel.frame_count - self.explo_frame)/180
 
 class Boost: #Gives a temporary stat boost to the player
-    def __init__(self, stat, operation, value, duration, target, player, creator):
+    def __init__(self, stat, operation, value, duration, gun, target, player, creator):
         self.stat = stat
         self.operation = operation
         self.value = value
         self.duration = duration
+        self.gun = gun
         self.frame = 0
         self.player = player
         self.target = target
-        self.player.increaseStat(self.stat, self.operation, self.value)
+        self.player.increaseStat(self.stat, self.operation, self.value, self.gun)
         activeBoosts.append(self) #The boost is active as long as its a part of this list
         self.creator = creator
 
     def update(self): #Once the boost is over, we reverse its effect
         if self.frame >= self.duration:
             if self.operation == "addition":
-                self.player.increaseStat(self.stat, self.operation, -self.value)
+                self.player.increaseStat(self.stat, self.operation, -self.value, self.gun)
             elif self.operation == "multiplication":
-                self.player.increaseStat(self.stat, self.operation, 1/self.value)
+                self.player.increaseStat(self.stat, self.operation, 1/self.value, self.gun)
             activeBoosts.remove(self)
         self.frame += 1
 
