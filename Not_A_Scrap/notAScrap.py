@@ -1,4 +1,4 @@
-import pyxel, os, random, math
+import pyxel, os, random, math, csv
 
 WIDTH = 256
 HEIGHT = 256
@@ -17,6 +17,8 @@ class App: #Puts EVERYTHING together
         pyxel.init(CAM_WIDTH,CAM_HEIGHT,title='Not a Scrap', fps=FPS)
         pyxel.load('../notAScrap_8by8.pyxres')
 
+        self.save = import_csv("save.csv")
+
         self.world = World(pyxel.tilemaps[0],RoomBuild(0,WIDTH//2,10),'ship',-1)
         self.rooms = self.world.roombuild.rooms
         self.camera = Camera()
@@ -25,6 +27,7 @@ class App: #Puts EVERYTHING together
         self.player = Player(self.world, self.camera,self.itemList,self.info)
         self.effects = ScreenEffect(self.player)
         self.anim = Animation()
+        
         
 
         self.game_state = 'start'
@@ -78,11 +81,27 @@ class App: #Puts EVERYTHING together
     
     def draw_start_screen(self):
         pyxel.text(self.camera.x, self.camera.y, "Press [Enter] to start the game", 1)
+        pyxel.text(self.camera.x, self.camera.y+20, "Press [F1] to reset save file", 1)
 
     def draw_death(self):
         pyxel.text(self.camera.x,self.camera.y, "You died. Press [Enter] to try again", 1)
         pyxel.text(self.camera.x,self.camera.y+20, "Press [Escape] to quit", 1)
-
+        
+        if self.bunkers_highscore_this_run:
+            pyxel.text(self.camera.x,self.camera.y+30, "Bunkers explored : "+str(self.bunkers_explored)+" (New Highscore !)", 1)
+        else:
+            pyxel.text(self.camera.x,self.camera.y+30, "Bunkers explored : "+str(self.bunkers_explored)+" (Highscore : "+str(self.save[0]["bunkers_highscore"]+")"), 1)
+        
+        if self.kills_highscore_this_run:
+            pyxel.text(self.camera.x,self.camera.y+40, "Enemies killed : "+str(self.player.enemiesKilled)+" (New Highscore !)", 1)
+        else:
+            pyxel.text(self.camera.x,self.camera.y+40, "Enemies killed : "+str(self.player.enemiesKilled)+" (Highscore : "+str(self.save[0]["kills_highscore"]+")"), 1)
+        
+        if self.items_highscore_this_run:
+            pyxel.text(self.camera.x,self.camera.y+50, "Items picked up : "+str(self.player.itemsPickedUp)+" (New Highscore !)", 1)
+        else:
+            pyxel.text(self.camera.x,self.camera.y+50, "Items picked up : "+str(self.player.itemsPickedUp)+" (Highscore : "+str(self.save[0]["items_highscore"]+")"), 1)
+    
     def draw_entities(self):
         for entity in loadedEntities:
             if in_camera(entity.x//TILE_SIZE,entity.y//TILE_SIZE,self.camera.x,self.camera.y):
@@ -243,6 +262,11 @@ class App: #Puts EVERYTHING together
             self.difficulty = 0
             self.bunkers_explored = 0
             self.generateShip()
+            self.bunkers_highscore_this_run = False
+            self.kills_highscore_this_run = False
+            self.items_highscore_this_run = False
+        if pyxel.btnp(pyxel.KEY_F1):
+            self.resetSaves()
 
     def update_death(self):
         global activeBoosts
@@ -252,7 +276,7 @@ class App: #Puts EVERYTHING together
             self.bunkers_explored = 0
             self.generateShip()
             self.player.alive = True
-            self.player = self.player.__init__()
+            self.player = Player(self.world, self.camera, self.itemList, self.info)
 
     def update_in_ship(self):
         self.camera.x,self.camera.y = 0,0
@@ -306,6 +330,7 @@ class App: #Puts EVERYTHING together
 
         else:
             self.game_state = "death"
+            self.endOfRun()
                 
         if pyxel.frame_count - self.game_start >= self.ship_hold_time:
             self.info.description = ['','Return to SHIP','Explosion incoming']
@@ -317,6 +342,18 @@ class App: #Puts EVERYTHING together
                 self.effects.explo_screen = True
                 
         self.check_escape()
+
+    def endOfRun(self):
+        if self.bunkers_explored > int(self.save[0]["bunkers_highscore"]):
+            self.save[0]["bunkers_highscore"] = str(self.bunkers_explored)
+            self.bunkers_highscore_this_run = True
+        if self.player.enemiesKilled > int(self.save[0]["kills_highscore"]):
+            self.save[0]["kills_highscore"] = str(self.player.enemiesKilled)
+            self.kills_highscore_this_run = True
+        if self.player.itemsPickedUp > int(self.save[0]["items_highscore"]):
+            self.save[0]["items_highscore"] = str(self.player.itemsPickedUp)
+            self.items_highscore_this_run = True
+        export_csv("save.csv", self.save)
 
     def update_effects(self):
         for slash in self.world.effects:
@@ -372,6 +409,11 @@ class App: #Puts EVERYTHING together
 
         pyxel.mouse(True)
         self.enemies_spawn_in_rooms()
+
+    def resetSaves(self):
+        data = [{'bunkers_highscore': '0', 'kills_highscore': '0', 'items_highscore': '0'}]
+        export_csv("save.csv", data)
+        self.save = import_csv("save.csv")
 
 class Animation: #makes moving things from the pyxres 
     def __init__(self):
@@ -688,8 +730,11 @@ class Player: #Everything relating to the player and its control
         self.ownedItems = []
         self.justKilled = False
 
-        self.shotsFired = 0
         self.luck = 0
+
+        self.shotsFired = 0
+        self.enemiesKilled = 0
+        self.itemsPickedUp = 0
 
         self.fuel = 0
         self.reset(world)
@@ -1009,6 +1054,7 @@ class Player: #Everything relating to the player and its control
     def getItem(self, item): #Adds an item to the player inventory, and triggers the effect of passive items
         if item['name']!='Fuel':
             self.ownedItems.append(item)
+            self.itemsPickedUp += 1
         if item["trigger"] == "passive" and (item["effect"] == "stat_p" or item["effect"] == "stat_g"):
             for change in item["function"]:
                 self.increaseStat(change[0], change[1], change[2], change[3])
@@ -1373,6 +1419,7 @@ class Enemy: #all the gestion of the atitude of the enemies
                     PickUp(self.x, self.y, "item", self.itemList.FUEL, self.player)
 
             self.player.triggerOnKillItems()
+            self.player.enemiesKilled += 1
             loadedEntities.remove(self)
     
     def pathing(self):
@@ -1545,7 +1592,6 @@ class PickUp: #Creates an object on the ground the player can pickup
                 if self.type == "item":
                     self.player.getItem(self.object)
                 if self.object['name'] == 'Fuel':
-                    self.player.fuel += 1
                     pyxel.play(2,46)
                 loadedEntities.remove(self)
                 pickUpsOnGround.remove(self)
@@ -1576,7 +1622,7 @@ class ItemList: #Lists every item and its properties
         self.PIERCING_DAMAGE_PASSIVE = {"name":"Blood Acceleration", "description":"Damage increase with piercing", "image":[9*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["pierceDamage", "multiplication", 1.5, False]]}
         self.legendary_list = [self.BULLET_COUNT_PASSIVE, self.LUCK_PASSIVE, self.PIERCING_DAMAGE_PASSIVE]
 
-        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[5*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["N/A", "N/A", 0, False]]}
+        self.FUEL = {"name":"Fuel", "description":"Keep the ship moving", "image":[5*TILE_SIZE,9*TILE_SIZE], "trigger":"passive", "effect":"stat_p", "function":[["fuel", "additive", 1, False]]}
 
 class Effect: #Used to generate collision-less effects like explosions
     def __init__(self, length, image, durations, x, y, width, height):
@@ -1784,6 +1830,19 @@ def in_camera(x,y, camx, camy): #checks if coordinates are inside the camera vie
 def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
 
+def import_csv(file) :
+    tab = []
+    with open(file) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for line in reader:
+            tab.append(line)
+    return tab
 
+def export_csv(file, data):
+    with open(file, "w", newline="") as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(data[0].keys())
+        for row in data:
+            writer.writerow(row.values())
 
 App()
