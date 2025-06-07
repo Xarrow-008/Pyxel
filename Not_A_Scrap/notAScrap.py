@@ -245,7 +245,9 @@ class App: #Puts EVERYTHING together
             self.generateShip()
 
     def update_death(self):
+        global activeBoosts
         if pyxel.btnp(pyxel.KEY_RETURN):
+            activeBoosts = []
             self.difficulty = 0
             self.bunkers_explored = 0
             self.generateShip()
