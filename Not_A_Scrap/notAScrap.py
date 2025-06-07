@@ -301,7 +301,7 @@ class App: #Puts EVERYTHING together
                 self.world.effects.remove(slash)
 
     def check_win(self):
-        if in_perimeter(self.player.x,self.player.y,814,40,10):
+        if in_perimeter(self.player.x,self.player.y,WIDTH//2*TILE_SIZE+14,40,10):
             if self.player.fuel >= 5+self.difficulty:
                 self.info.description = ['[F] to escape','the explosion','']
                 if pyxel.btnp(pyxel.KEY_F):
