@@ -21,7 +21,7 @@ class App:
     def update(self):
         if pyxel.btnp(pyxel.KEY_A):
             self.world.__init__()
-        if pyxel.btn(pyxel.KEY_A) and on_tick(60):
+        if pyxel.btn(pyxel.KEY_A) and on_tick(40):
             self.world.__init__()
             
     def draw(self):
@@ -29,6 +29,7 @@ class App:
             for x in range(WIDTH):
                 block = self.world.map[y][x]
                 draw_block(x*TILE_SIZE,y*TILE_SIZE,0,block)
+        draw(0,0,0,96,48,32,32,scale=2)
 
 def draw_block(x,y,img,block):
     draw(x,y,img,block[0]*TILE_SIZE,block[1]*TILE_SIZE,TILE_SIZE,TILE_SIZE)
