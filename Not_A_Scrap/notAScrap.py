@@ -644,61 +644,59 @@ class Furniture: #objects interactables to get items and fuel
             self.rooms[index]['recycler'] = (X_pos,Y_pos)
 
 class Physics: #This is used to have a common move function
-    def __init__(self, world):
+    def __init__(self, owner, world):
         self.world = world
-        self.momentum = 0
+        self.owner = owner
         self.collision_happened = False
 
-    def move(self, x, y, width, height, vector): #We give a movement vector, and information relating to the thing moving, and we get the new coordinates
-        X = int(x//TILE_SIZE)
-        Y = int(y//TILE_SIZE)
+    def move(self, vector, coef): #We give a movement vector and get the new coordinates of the entity
+        X = int(self.owner.x//TILE_SIZE)
+        Y = int(self.owner.y//TILE_SIZE)
 
         #We handle horizontal and vertical movement separatly to make problem solving easier
 
-        new_x = x + vector[0]*self.momentum
+        new_x = self.owner.x + vector[0]*coef
 
         new_X = X+pyxel.sgn(vector[0])
         if vector[0]!=0:
             next_X_1 = self.world.world_map[Y][new_X]
-            if y != Y*TILE_SIZE:
+            if self.owner.y != Y*TILE_SIZE:
                 next_X_2 = self.world.world_map[Y+1][new_X]
             else:
                 next_X_2 = WorldItem.GROUND
             #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 not in WorldItem.WALLS or not collision(new_x, y, new_X*TILE_SIZE, Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in WorldItem.WALLS or not collision(new_x, y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
-                x = new_x
+            if (next_X_1 not in WorldItem.WALLS or not collision(new_x, self.owner.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in WorldItem.WALLS or not collision(new_x, self.owner.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
+                self.owner.x = new_x
             #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
-            elif (next_X_1 in WorldItem.WALLS or next_X_2 in WorldItem.WALLS) and new_x+width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+            elif (next_X_1 in WorldItem.WALLS or next_X_2 in WorldItem.WALLS) and new_x+self.owner.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
                 self.collision_happened = True
-                x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
+                self.owner.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
         
-        X = int(x//TILE_SIZE)
+        X = int(self.owner.x//TILE_SIZE)
 
         #We calculate vertical movement in the same way we do horizontal movement
 
-        new_y = y + vector[1]*self.momentum
+        new_y = self.owner.y + vector[1]*coef
         new_Y = Y+pyxel.sgn(vector[1])
         if vector[1]!=0:
             next_Y_1 = self.world.world_map[new_Y][X]
-            if x != X*TILE_SIZE:
+            if self.owner.x != X*TILE_SIZE:
                 next_Y_2 = self.world.world_map[new_Y][X+1]
             else:
                 next_Y_2 = WorldItem.GROUND
             
-            if (next_Y_1 not in WorldItem.WALLS or not collision(x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 not in WorldItem.WALLS or not collision(x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [width, height], [TILE_SIZE, TILE_SIZE])):
-                y = new_y
-            elif (next_Y_1 in WorldItem.WALLS or next_Y_2 in WorldItem.WALLS) and new_y+height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+            if (next_Y_1 not in WorldItem.WALLS or not collision(self.owner.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 not in WorldItem.WALLS or not collision(self.owner.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
+                self.owner.y = new_y
+            elif (next_Y_1 in WorldItem.WALLS or next_Y_2 in WorldItem.WALLS) and new_y+self.owner.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
                 self.collision_happened = True
-                y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
-
-        return x,y
+                self.owner.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
 class Player: #Everything relating to the player and its control
     def __init__(self, world, camera,itemList,info):
         self.alive = True
         self.width = TILE_SIZE
         self.height = TILE_SIZE
-        self.physics = Physics(world)
+        self.physics = Physics(self, world)
         self.camera = camera
         self.info = info
 
@@ -707,6 +705,7 @@ class Player: #Everything relating to the player and its control
         self.last_facing = [1,0]
 
         self.speed = 0.25
+        self.momentum = 0
         self.speedFallOff = 4
         self.isDashing = False
         self.dashCooldown = 40
@@ -825,19 +824,19 @@ class Player: #Everything relating to the player and its control
 
     def movement(self): #Handle ZQSD inputs and translate them into movement
         if pyxel.btn(pyxel.KEY_Q):
-            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [-1,0])
+            self.physics.move([-1,0], self.momentum)
             self.facing[0] = -1
             self.image = (1,2)
         if pyxel.btn(pyxel.KEY_D):
-            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [1,0])
+            self.physics.move([1,0], self.momentum)
             self.facing[0] = 1
             self.image = (0,2)
         if pyxel.btn(pyxel.KEY_Z):
-            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,-1])
+            self.physics.move([0,-1], self.momentum)
             self.facing[1] = -1
             self.image = (0,3)
         if pyxel.btn(pyxel.KEY_S):
-            self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [0,1])
+            self.physics.move([0,1], self.momentum)
             self.facing[1] = 1
             self.image = (1,3)
         if not (pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D)):
@@ -861,10 +860,10 @@ class Player: #Everything relating to the player and its control
             self.last_facing[0] = self.facing[0]
             self.last_facing[1] = self.facing[1]
 
-        if (pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S))and self.physics.momentum <= self.speed and not self.stuck:
-            self.physics.momentum = self.speed
+        if (pyxel.btn(pyxel.KEY_Q) or pyxel.btn(pyxel.KEY_D) or pyxel.btn(pyxel.KEY_Z) or pyxel.btn(pyxel.KEY_S))and self.momentum <= self.speed and not self.stuck:
+            self.momentum = self.speed
         else:
-            self.physics.momentum /= self.speedFallOff
+            self.momentum /= self.speedFallOff
 
     def fireWeapon(self): #Fire the player's gun when they right-click
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.attackFrame>=self.gun["cooldown"] and self.gun["mag_ammo"]>0:
@@ -928,11 +927,11 @@ class Player: #Everything relating to the player and its control
         if (pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_SHIFT)) and self.dashFrame >= self.dashCooldown:
             self.isDashing = True
             self.dashFrame = 0
-            self.physics.momentum = self.dashStrength
+            self.momentum = self.dashStrength
             self.image = [6,2]
 
     def dashMovement(self): #Does the movement while the player is dashing
-        self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.facing)
+        self.physics.move(self.facing, self.momentum)
         if self.dashDamage > 0:
             for entity in loadedEntities:
                 if entity.type == "enemy" and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and not entity.hitByDash:
@@ -976,7 +975,7 @@ class Player: #Everything relating to the player and its control
 
                 if pyxel.btn(pyxel.KEY_F):
                     self.stuck = True
-                    self.physics.momentum /= self.speedFallOff
+                    self.momentum /= self.speedFallOff
                     self.room['chest_opening'] += 1
 
                     for i in range(3):
@@ -1136,51 +1135,54 @@ class Player: #Everything relating to the player and its control
                         if not boost_already_active:
                             Boost(change[0], change[1], change[2], change[3], change[4], self, item)
 
+class Melees: #Basic class for all the melee weapons, will get expanded once we implement the player's melee weapons
+    SPIDER_MELEE = {"damage":5, "range":1*TILE_SIZE, "cooldown":1*FPS}
+    BULWARK_MELEE = {"damage":15, "range":1*TILE_SIZE, "cooldown":1*FPS}
+    HIVE_QUEEN_MELEE = {"damage":5, "range":1*TILE_SIZE, "cooldown":1*FPS}
+    HATCHLING_MELEE = {"damage":2, "range":1*TILE_SIZE, "cooldown":0.75*FPS}
+
+class Guns: #Contains all the different guns the player can get
+    NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
+    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "mag_ammo":16, "reserve_ammo":60, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
+    SHOTGUN = {"damage":12, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "mag_ammo":5, "reserve_ammo":20, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
+    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "mag_ammo":40, "reserve_ammo":140, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
+    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "mag_ammo":24, "reserve_ammo":70, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
+    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "mag_ammo":4, "reserve_ammo":25, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
+    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "reserve_ammo":20, "mag_ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
+    Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
+
+    TURRET_GUN = {"damage":5, "bullet_speed":0.3, "range":7*TILE_SIZE, "piercing":0, "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":120, "cooldown":0.5*FPS, "spread":0, "bullet_count":1, "name":"Turret Gun", "rate":[], "description":"You're not supposed to see this", "explode_radius":0}
+
+
 class EnemyTemplates: #all enemies and their stats to get easily
-    SPIDER = {'name':'spider',"health":40, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(0,45)]}
-    BULWARK = {'name':'bulwark',"health":100, "speed":0.18, "damage":15, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":15, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":False, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(65,75)]}
-    STALKER = {'name':'stalker',"health":40, "speed":0.1, "damage":10, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":60, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":60, "lunge_length":20, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"lunge", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(45,65)]}
-    TUMOR = {'name':'tumor',"health":20, "speed":0.36, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,4)*120//2, "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"collision", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(75,82)]}
-    TURRET = {'name':'turret',"health":40, "speed":0, "damage":5, "range":7*TILE_SIZE, "attack_freeze":0, "attack_cooldown":0.5*FPS, "attack_speed":0.3, "lunge_range":0*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":False, "attack":"bullet", "spawner":False, "has_items":False, 'spawning_chance':[x for x in range(82,90)]}
-    INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "speed":0.45, "damage":5, "range":7*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":12*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":1,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, 'can_lunge':True,"attack":"bullet", "spawner":False, "has_items":True, 'spawning_chance':[x for x in range(91,92)]}
-    HIVE_QUEEN = {'name':'hive_queen',"health":50, "speed":0.15, "damage":5, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":120, "attack_speed":1.5, "lunge_range":2*TILE_SIZE, "lunge_freeze":40, "lunge_length":20, "lunge_speed":0.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":True, "has_items":False, 'spawning_chance':[x for x in range(92,99)]}
-    HATCHLING = {'name':'hatchling',"health":10, "speed":0.4, "damage":2, "range":1*TILE_SIZE, "attack_freeze":40, "attack_cooldown":90, "attack_speed":1.5, "lunge_range":6*TILE_SIZE, "lunge_freeze":30, "lunge_length":15, "lunge_speed":1.5,"lunge_cooldown":random.randint(2,6)*120//2, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "takes_knockback":True, "can_lunge":True, "attack":"slash", "spawner":False, "has_items":False, 'spawning_chance':[]}
+    SPIDER = {'name':'spider',"health":40, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(0,45)], "abilities":{"movement":{"speed":0.36, "knockback_coef":1, "weight":1}, "melee_attack":{"weapon":Melees.SPIDER_MELEE, "freeze":40}, "lunge":{"range":6*TILE_SIZE, "freeze":40, "length":20, "speed":1,"cooldown":random.randint(2,6)*120//2, "damage":0}}}
+    BULWARK = {'name':'bulwark',"health":100, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(65,75)], "abilities":{"movement":{"speed":0.18, "knockback_coef":0, "weight":1}, "melee_attack":{"weapon":Melees.BULWARK_MELEE, "freeze":40}, "lunge":{"range":6*TILE_SIZE, "freeze":40, "length":15, "speed":1,"cooldown":random.randint(2,6)*120//2, "damage":0}}}
+    STALKER = {'name':'stalker',"health":40, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(45,65)], "abilities":{"movement":{"speed":0.1, "knockback_coef":1, "weight":1}, "lunge":{"range":12*TILE_SIZE, "freeze":60, "length":20, "speed":1.5,"cooldown":random.randint(2,6)*120//2, "damage":10}}}
+    TUMOR = {'name':'tumor',"health":20, "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(75,82)], "abilities":{"movement":{"speed":0.36, "knockback_coef":1, "weight":1}, "lunge":{"range":6*TILE_SIZE, "freeze":40, "length":20, "speed":1,"cooldown":random.randint(2,4)*120//2, "damage":0}, "kamikaze":{"damage":5, "radius":2*TILE_SIZE}}}
+    TURRET = {'name':'turret',"health":40, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(82,90)], "abilities":{"ranged_attack":{"weapon":Guns.TURRET_GUN, "freeze":0}}}
+    INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(91,92)], "abilities":{"movement":{"speed":0.45, "knockback_coef":1, "weight":1}, "ranged_attack":{"weapon":"random", "freeze":40}, "lunge":{"range":12*TILE_SIZE, "freeze":40, "length":20, "speed":1,"cooldown":random.randint(2,6)*120//2, "damage":0}}}
+    HATCHLING = {'name':'hatchling',"health":10, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[], "abilities":{"movement":{"speed":0.4, "knockback_coef":1, "weight":1}, "melee_attack":{"weapon":Melees.HATCHLING_MELEE, "freeze":40}, "lunge":{"range":6*TILE_SIZE, "freeze":30, "length":15, "speed":1.5,"cooldown":random.randint(2,6)*120//2, "damage":0}}}
+    HIVE_QUEEN = {'name':'hive_queen',"health":50, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":True, 'spawning_chance':[x for x in range(92,99)], "abilities":{"movement":{"speed":0.15, "knockback_coef":1, "weight":1}, "melee_attack":{"weapon":Melees.HIVE_QUEEN_MELEE, "freeze":40}, "lunge":{"range":2*TILE_SIZE, "freeze":40, "length":20, "speed":0.5,"cooldown":random.randint(2,6)*120//2, "damage":0}, "spawner":{"passive_amount":2, "death_amount":3, "cooldown":5*FPS, "entity":"HATCHLING"}}}
+    
     
     ENEMY_LIST = [SPIDER,BULWARK,STALKER,TUMOR,TURRET,INFECTED_SCRAPPER,HIVE_QUEEN,HATCHLING]
 
 class Enemy: #all the gestion of the atitude of the enemies
-    def __init__(self, x, y, template, player, world,itemList,difficulty,always_loaded=False): #Creates a new enemy, with all its stats
+    def __init__(self, x, y, template, player, world,itemList,difficulty,always_loaded=False, spawned=False): #Creates a new enemy, with all its stats
         self.x = x
         self.y = y
         self.player = player
         self.world = world
-        self.physics = Physics(world)
+        self.physics = Physics(self, world)
         self.difficulty = difficulty
         self.rooms = self.world.roombuild.rooms
         self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
         self.scale = 1
+        self.spawned = spawned
 
         self.health = math.ceil(template["health"] * (1.25**self.difficulty))
-        self.speed = template["speed"]
-        self.physics.momentum = self.speed
         self.cos = 0
         self.sin = 0
-
-        self.isAttacking = False
-        self.damage = math.ceil(template["damage"] * (1.25**self.difficulty))
-        self.range = template["range"] 
-        self.attack_freeze = template["attack_freeze"]
-        self.attack_cooldown = template["attack_cooldown"]
-        self.attack_speed = template["attack_speed"]
-        self.attackFrame = 0
-
-        self.isLunging = 0
-        self.lunge_range = template["lunge_range"]
-        self.lunge_speed = template["lunge_speed"]
-        self.lunge_freeze = template["lunge_freeze"]
-        self.lunge_length = template["lunge_length"]
-        self.lunge_cooldown = template["lunge_cooldown"]
-        self.lungeFrame = 0
 
         self.loaded = False
         self.always_loaded = always_loaded
@@ -1197,29 +1199,47 @@ class Enemy: #all the gestion of the atitude of the enemies
 
         self.hitStun = False
         self.hitFrame = 0
-        self.takesKnockback = template["takes_knockback"]
         self.knockback = 0
         self.hitByDash = False
-
-        self.canLunge = template["can_lunge"]
-        self.attack_type = template["attack"]
-        self.spawnFrame = 0
-        self.spawner = template["spawner"]
 
         self.lastHitBy = "N/A"
 
         self.type = "enemy"
-        self.has_items = template["has_items"]
         self.name = template["name"]
         self.pathing()
 
-        self.shotsFired = 0
+        self.abilities = dic_copy(template["abilities"])
 
-        if template["has_items"]:
-            gun_random = random.randint(1,100)
-            for gun in Guns.Gun_list:
-                if gun_random in gun["rate"]:
-                    self.gun = gun
+        if "ranged_attack" in self.abilities.keys():
+            if self.abilities["ranged_attack"]["weapon"] == "random":
+                gun_random = random.randint(1,100)
+                for gun in Guns.Gun_list:
+                    if gun_random in gun["rate"]:
+                        self.abilities["ranged_attack"]["weapon"] = gun
+            self.abilities["ranged_attack"]["weapon"]["damage"] = math.ceil(self.abilities["ranged_attack"]["weapon"]["damage"] * (1.25**self.difficulty))
+            self.isAttackingRanged = False
+            self.rangedAttackFrame = 0
+            self.rangedAttackVector = []
+            self.shotsFired = 0
+
+        if "melee_attack" in self.abilities.keys():
+            self.abilities["melee_attack"]["weapon"]["damage"] = math.ceil(self.abilities["melee_attack"]["weapon"]["damage"] * (1.25**self.difficulty))
+            self.isAttackingMelee = False
+            self.meleeAttackFrame = 0
+            self.meleeAttackVector = []
+
+        if "lunge" in self.abilities.keys():
+            self.lungeFrame = 0
+            self.lungeState = "notLunging"
+            self.lungeVector = []
+
+        if "kamikaze" in self.abilities.keys():
+            self.abilities["kamikaze"]["damage"] = math.ceil(self.abilities["kamikaze"]["damage"] * (1.25**self.difficulty))
+
+        if "spawner" in self.abilities.keys():
+            self.spawnFrame = 0
+
+        self.actionPriority = 0
 
         loadedEntities.append(self) #As long as this enemy exists in this list, its alive
 
@@ -1235,14 +1255,23 @@ class Enemy: #all the gestion of the atitude of the enemies
         self.img_change = [0,0]
 
         if self.loaded or self.always_loaded:
-            self.enemies_pusharound()
-            self.attack()
-            self.lunge()
-            self.spawn_hatchlings()
-            self.kamikaze()
-            self.lungeFrame += 1
-            self.attackFrame += 1
-            self.spawnFrame += 1
+            self.establishPriority()
+            if "movement" in self.abilities.keys():
+                self.enemies_pusharound()
+            if "melee_attack" in self.abilities.keys():
+                self.melee_attack()
+                self.meleeAttackFrame += 1
+            if "ranged_attack" in self.abilities.keys():
+                self.ranged_attack()
+                self.rangedAttackFrame += 1
+            if "lunge" in self.abilities.keys():
+                self.lunge()
+                self.lungeFrame += 1
+            if "spawner" in self.abilities.keys():
+                self.spawner()
+                self.spawnFrame += 1
+            if "kamikaze" in self.abilities.keys():
+                self.kamikaze()
             self.getFacing()
             self.death()
             
@@ -1250,10 +1279,21 @@ class Enemy: #all the gestion of the atitude of the enemies
                 self.hitStunFunction()
             else:
                 self.pathing()
-                self.moveInPathing()
+                if "movement" in self.abilities.keys():
+                    self.moveInPathing()
 
             self.image[0], self.image[1] = self.base_image[0] + self.facing[0] + self.img_change[0], self.base_image[1] + self.facing[1] + self.img_change[1]
     
+    def establishPriority(self):
+        # The Action with a priority of 0 (walking), is the default action, which happens when no other action is going on. All actions with a priority > 0 will only happen when their condition is met, and when the action the entity is doing has a strictly lower priority
+        if "melee_attack" in self.abilities.keys() and self.isAttackingMelee:
+            self.actionPriority = 1
+        elif "ranged_attack" in self.abilities.keys() and self.isAttackingRanged:
+            self.actionPriority = 1
+        elif "lunge" in self.abilities.keys() and self.lungeState != "notLunging":
+            self.actionPriority = 1
+        else:
+            self.actionPriority = 0
 
     def hitStunFunction(self):
         self.img_change[0] = 16
@@ -1263,97 +1303,99 @@ class Enemy: #all the gestion of the atitude of the enemies
         self.hitFrame += 1
 
     def moveInPathing(self):
-        if not self.isAttacking and self.isLunging == 0:
+        if self.actionPriority == 0:
             if self.norm < 100 and self.norm > 5:
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [self.cos, self.sin])
+                self.physics.move([self.cos, self.sin], self.abilities["movement"]["speed"])
     
     def enemies_pusharound(self): #Prevent enemies from overlapping by making them push each other
         for entity in self.player.loadedEntitiesInRange:
             cos = random.randint(-200,200)/100
             sin = math.sqrt((2-cos)**2) * (random.randint(0,1)*2-1)
-            if in_perimeter(self.x,self.y,entity.x,entity.y,3) and self != entity:
-                if entity.type == "enemy" and collision(self.x, self.y, entity.x ,entity.y, [self.width, self.height], [entity.width, entity.height]):
-                    self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, [cos, sin])
-                    entity.x ,entity.y = entity.physics.move(entity.x ,entity.y, entity.width, entity.height, [-cos, -sin])
+            if entity.type == "enemy" and collision(self.x, self.y, entity.x ,entity.y, [self.width, self.height], [entity.width, entity.height]) and self != entity and "movement" in entity.abilities.keys():
+                self.physics.move([cos, sin], entity.abilities["movement"]["weight"])
+                entity.physics.move([-cos, -sin], self.abilities["movement"]["weight"])
 
-    def attack(self): #Makes the enemies slash or attack 
-        if self.isLunging == 0 and self.room['name'] == self.player.room['name'] and self.attack_type in ["slash", "bullet"]:
-            if math.sqrt((self.player.x - self.x)**2+(self.player.y - self.y)**2) <= self.range and self.attackFrame >= self.attack_cooldown and not self.isAttacking:
-                self.attackFrame = 0
-                self.isAttacking = True
-                self.attackVector = [self.cos, self.sin]
-            if self.isAttacking and self.attackFrame >= self.attack_freeze:
-                self.attackFrame = 0
-                self.isAttacking = False
-                if self.attack_type == "slash":
-                    self.slash()
-                elif self.attack_type == "bullet":
-                    self.shotsFired += 1
-                    if self.has_items:
-                        for i in range(self.gun["bullet_count"]):
-                            if self.norm != 0:
-                                angle = math.acos(self.cos)*pyxel.sgn(self.sin)
-                                lowest_angle = angle - self.gun["spread"]*(math.pi/180)
-                                highest_angle = angle + self.gun["spread"]*(math.pi/180)
-                                angle = random.uniform(lowest_angle, highest_angle)
-                                cos = math.cos(angle)
-                                sin = math.sin(angle)
-                            else:
-                                cos = 0
-                                sin = 0
-                            Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"]/2, self.gun["range"], self.gun["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.gun["explode_radius"], self.shotsFired)
+    def melee_attack(self):
+        if (self.actionPriority == 0 or self.isAttackingMelee) and self.room["name"] == self.player.room["name"]:
+            if distance(self.player.x, self.player.y, self.x, self.y) <= self.abilities["melee_attack"]["weapon"]["range"] and self.meleeAttackFrame >= self.abilities["melee_attack"]["weapon"]["cooldown"] and not self.isAttackingMelee:
+                self.meleeAttackFrame = 0
+                self.isAttackingMelee = True
+                self.meleeAttackVector = [self.cos, self.sin]
+            if self.isAttackingMelee and self.meleeAttackFrame >= self.abilities["melee_attack"]["freeze"]:
+                self.meleeAttackFrame = 0
+                self.isAttackingMelee = False
+                self.slash()
+        if self.room["name"] != self.player.room["name"]:
+            self.isAttackingMelee = False
+
+    def ranged_attack(self):
+        if (self.actionPriority == 0 or self.isAttackingRanged) and self.room["name"] == self.player.room["name"]:
+            if distance(self.player.x, self.player.y, self.x, self.y) <= self.abilities["ranged_attack"]["weapon"]["range"] and self.rangedAttackFrame >= self.abilities["ranged_attack"]["weapon"]["cooldown"] and not self.isAttackingRanged:
+                self.rangedAttackFrame = 0
+                self.isAttackingRanged = True
+                self.rangedAttackVector = [self.cos, self.sin]
+            if self.isAttackingRanged and self.rangedAttackFrame >= self.abilities["ranged_attack"]["freeze"]:
+                self.rangedAttackFrame = 0
+                self.isAttackingRanged = False
+                self.shotsFired += 1
+                for i in range(self.abilities["ranged_attack"]["weapon"]["bullet_count"]):
+                    if self.norm != 0:
+                        angle = math.acos(self.cos)*pyxel.sgn(self.sin)
+                        lowest_angle = angle - self.abilities["ranged_attack"]["weapon"]["spread"]*(math.pi/180)
+                        highest_angle = angle - self.abilities["ranged_attack"]["weapon"]["spread"]*(math.pi/180)
+                        angle = random.uniform(lowest_angle, highest_angle)
+                        sin = math.sin(angle)
+                        cos = math.cos(angle)
                     else:
-                        Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [self.cos, self.sin], self.damage, self.attack_speed, self.range, 0, self.world, self.player, [1*TILE_SIZE,6*TILE_SIZE], "enemy", 0, self.shotsFired)
+                        cos = 0
+                        sin = 0
+                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.abilities["ranged_attack"]["weapon"]["damage"], self.abilities["ranged_attack"]["weapon"]["bullet_speed"], self.abilities["ranged_attack"]["weapon"]["range"], self.abilities["ranged_attack"]["weapon"]["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.abilities["ranged_attack"]["weapon"]["explode_radius"], self.shotsFired)
+        
         if self.room['name'] != self.player.room['name']:
-            self.isAttacking = False
+            self.isAttackingRanged = False
 
     def slash(self):
         self.world.effects.append({'x':self.x+self.cos*TILE_SIZE,'y':self.y+self.sin*TILE_SIZE,'image':[7,6],'scale':1,'time':pyxel.frame_count})
         pyxel.play(3,54)
         if collision(self.x+self.cos*TILE_SIZE,self.y+self.sin*TILE_SIZE,self.player.x,self.player.y,(TILE_SIZE,TILE_SIZE),(TILE_SIZE,TILE_SIZE)): #pas assez de sin et cos
-            self.player.health -= self.damage
+            self.player.health -= self.abilities["melee_attack"]["weapon"]["damage"]
             self.player.isHit = True
             self.player.hitFrame = 0
 
     def lunge(self): #Allows the enemy to lunge at the player
-        if not self.isAttacking and self.canLunge:
-            if self.norm<=self.lunge_range and self.norm>self.range and self.lungeFrame >= self.lunge_cooldown and self.isLunging==0:
+        if (self.actionPriority == 0 or self.lungeState != "notLunging"):
+            if self.norm <= self.abilities["lunge"]["range"] and self.lungeFrame >= self.abilities["lunge"]["cooldown"] and self.lungeState == "notLunging":
                 self.lungeFrame = 0
-                self.isLunging = 1
+                self.lungeState = "freezing"
                 self.lungeVector = [self.cos, self.sin]
                 if self.name == 'stalker':
                     pyxel.play(3,50)
-            if self.isLunging==1 and self.lungeFrame >= self.lunge_freeze:
+            if self.lungeState == "freezing" and self.lungeFrame >= self.abilities["lunge"]["freeze"]:
                 self.lungeFrame = 0
-                self.isLunging = 2
-                self.physics.momentum = self.lunge_speed
+                self.lungeState = "lunging"
                 self.hit_player = False
                 pyxel.play(3,random.randint(51,53))
-            if self.isLunging==2:
-                self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.lungeVector)
-                if self.attack_type == "lunge": #Makes the enemy damage the player when colliding
+            if self.lungeState == "lunging":
+                self.physics.move(self.lungeVector, self.abilities["lunge"]["speed"])
+                if self.abilities["lunge"]["damage"] > 0: #Makes the enemy damage the player when colliding
                     if collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]) and not self.hit_player:
-                        self.player.health -= self.damage
+                        self.player.health -= self.abilities["lunge"]["damage"]
                         self.player.isHit = True
                         self.player.hitFrame = 0
                         self.hit_player = True
-                if self.lungeFrame >= self.lunge_length:
-                    self.isLunging=0
-                    self.physics.momentum = self.speed
+                if self.lungeFrame >= self.abilities["lunge"]["length"]:
+                    self.lungeState = "notLunging"
 
-    def spawn_hatchlings(self): #Allows enemies to spawn hatchlings
-        if self.spawner and self.spawnFrame > 5*FPS:
-            for i in range(2):
-                Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList, self.difficulty,True)
+    def spawner(self): #Allows enemies to spawn hatchlings
+        if self.spawnFrame >= self.abilities["spawner"]["cooldown"]:
+            for i in range(self.abilities["spawner"]["passive_amount"]):
+                Enemy(self.x, self.y, getattr(EnemyTemplates, self.abilities["spawner"]["entity"]), self.player, self.world, self.itemList, self.difficulty,True, spawned=True)
             self.spawnFrame = 0
 
     def kamikaze(self): #Allows enemy to blow itself up
-        if self.attack_type == "collision" and collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]):
+        if collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]):
             pyxel.play(3,56)
             self.health = 0
-            self.player.health -= self.damage
-            self.player.isHit = True
-            self.player.hitFrame = 0
 
     def getFacing(self):
         if abs(self.horizontal)>abs(self.vertical):
@@ -1369,7 +1411,7 @@ class Enemy: #all the gestion of the atitude of the enemies
             else:
                 self.facing[0] = 8
 
-        if self.isLunging == 1:
+        if "lunge" in self.abilities.keys() and self.lungeState == "freezing":
                 self.img_change[0] = 32
 
     def randomItem(self): #Returns a random item, depending on its rarity
@@ -1388,21 +1430,35 @@ class Enemy: #all the gestion of the atitude of the enemies
     def death(self): #Runs alls the things that happen when the enemy dies
         if self.health <= 0:
 
-            if self.spawner :
-                for i in range(5):
-                    Enemy(self.x, self.y, EnemyTemplates.HATCHLING, self.player, self.world, self.itemList, self.difficulty)
+            if "spawner" in self.abilities.keys():
+                for i in range(self.abilities["spawner"]["death_amount"]):
+                    Enemy(self.x, self.y, getattr(EnemyTemplates, self.abilities["spawner"]["entity"]), self.player, self.world, self.itemList, self.difficulty, spawned=True)
 
-            if self.attack_type == "collision":
+            if "kamikaze" in self.abilities.keys():
                 Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:9, 1:9, 2:9, 3:9}, self.x, self.y, TILE_SIZE, TILE_SIZE)
                 pyxel.play(3,56)
+                if distance(self.x+self.width/2, self.y+self.height/2, self.player.x+self.width/2, self.player.y+self.height/2) <= self.abilities["kamikaze"]["radius"]:
+                    self.player.health -= self.abilities["kamikaze"]["damage"]
+                    self.player.isHit = True
+                    self.player.hitFrame = 0
                 for entity in loadedEntities:
                     if entity.type == "enemy" and distance(self.x+self.width/2, self.y+self.height/2, entity.x+entity.width/2, entity.y+entity.height/2)<=2*TILE_SIZE:
-                        entity.health -= self.damage
+                        entity.health -= self.abilities["kamikaze"]["damage"]
                         entity.hitStun = True
-                        entity.knockback = 20
-                        entity.x, entity.y = entity.physics.move(entity.x, entity.y, entity.width, entity.height, [-entity.cos*entity.knockback, -entity.sin*entity.knockback])
+                        if "movement" in entity.abilities.keys():
+                            entity.knockback = 20
+                            horizontal = entity.x - self.x
+                            vertical = entity.y - self.y
+                            norm = math.sqrt(horizontal**2+vertical**2)
+                            if norm != 0:
+                                cos = horizontal/norm
+                                sin = vertical/norm
+                            else:
+                                cos = 0
+                                sin = 0
+                            entity.physics.move([cos, sin], -entity.knockback*entity.abilities["movement"]["knockback_coef"])
 
-            if self.name != "hatchling":
+            if self.spawned:
                 item_chance = 10 + self.player.luck
                 gun_chance = 12
 
@@ -1496,15 +1552,6 @@ class EnemyGroup: #simulates a group of enemies to not load them directly (those
             if self.room['name']+1 <= len(self.rooms):
                 self.room = self.rooms[self.room['name']+1]
 
-class Guns: #Contains all the different guns the player can get
-    NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
-    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "mag_ammo":16, "reserve_ammo":60, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
-    SHOTGUN = {"damage":12, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "mag_ammo":5, "reserve_ammo":20, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
-    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "mag_ammo":40, "reserve_ammo":140, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
-    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "mag_ammo":24, "reserve_ammo":70, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "mag_ammo":4, "reserve_ammo":25, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
-    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "reserve_ammo":20, "mag_ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
-    Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
 class Bullet: #Creates a bullet that can collide and deal damage
     def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, explode_radius, shot):
@@ -1518,8 +1565,8 @@ class Bullet: #Creates a bullet that can collide and deal damage
         self.world = world
         self.player = player
         self.image = image
-        self.physics = Physics(world)
-        self.physics.momentum = speed
+        self.physics = Physics(self, world)
+        self.speed = speed
         self.owner = owner
         self.explode_radius = explode_radius
         self.piercing = piercing
@@ -1529,7 +1576,7 @@ class Bullet: #Creates a bullet that can collide and deal damage
         loadedEntities.append(self) #As long as the bullet is a part of this list, it exists
 
     def update(self): #All the things we need to run every frame
-        self.x, self.y = self.physics.move(self.x, self.y, self.width, self.height, self.vector)
+        self.physics.move(self.vector, self.speed)
         self.check_hit()
         self.bullet_destroyed()
     
@@ -1539,12 +1586,18 @@ class Bullet: #Creates a bullet that can collide and deal damage
                 entity.health -= self.damage
                 entity.hitStun = True
                 entity.lastHitBy = self.shot
-                if self.explode_radius == 0:
-                    entity.knockback = 10
-                else:
-                    entity.knockback = 20
-                if entity.hitFrame<=10 and entity.takesKnockback and (entity.isLunging != 2 and entity.isLunging != 1):
-                    entity.x, entity.y = entity.physics.move(entity.x, entity.y, entity.width, entity.height, [-entity.cos*entity.knockback, -entity.sin*entity.knockback])
+                if "movement" in entity.abilities.keys():
+                    if self.explode_radius == 0:
+                        entity.knockback = 10
+                    else:
+                        entity.knockback = 20
+                    entity.knockback *= entity.abilities["movement"]["knockback_coef"]
+                    if entity.hitFrame<=10:
+                        if "lunge" in entity.abilities.keys():
+                            if entity.lungeState == "notLunging":
+                                entity.physics.move(self.vector, entity.knockback)
+                        else:
+                            entity.physics.move(self.vector, entity.knockback)
                 if self.piercing != 0:
                     entity.pierced.append(self)
                     self.damage *= self.player.pierceDamage
@@ -1554,7 +1607,7 @@ class Bullet: #Creates a bullet that can collide and deal damage
             self.piercing -= 1
             self.player.isHit = True
             self.player.hitFrame = 0
-        self.range -= math.sqrt((self.vector[0]*self.physics.momentum)**2+(self.vector[1]*self.physics.momentum)**2)
+        self.range -= math.sqrt((self.vector[0]*self.speed)**2+(self.vector[1]*self.speed)**2)
     
     def bullet_destroyed(self): #Checks if the bullet should destroy itself
         if self.physics.collision_happened or self.range <= 0 or self.piercing<0:
