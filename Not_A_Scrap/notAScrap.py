@@ -24,7 +24,7 @@ class App: #Puts EVERYTHING together
         self.camera = Camera()
         self.itemList = ItemList()
         self.info = Info()
-        self.player = Player(self.world, self.camera,self.itemList,self.info)
+        self.player = Player(self)
         self.effects = ScreenEffect(self.player)
         self.anim = Animation()
         
@@ -248,13 +248,13 @@ class App: #Puts EVERYTHING together
                 random_enemy = random.randint(0,99)
                 for enemy in EnemyTemplates.ENEMY_LIST:
                     if random_enemy in enemy['spawning_chance']:
-                        Enemy(X_pos*TILE_SIZE,Y_pos*TILE_SIZE,enemy,self.player,self.world,self.itemList,self.difficulty)
+                        Enemy(self, X_pos*TILE_SIZE,Y_pos*TILE_SIZE,enemy)
 
     def spawn_enemies_at(self,x,y,dic,always_loaded=False):
         for enemy in EnemyTemplates.ENEMY_LIST:
             if enemy['name'] in dic.keys():
                 for i in range(dic[enemy['name']]):
-                    Enemy(x*TILE_SIZE,y*TILE_SIZE,enemy,self.player,self.world,self.itemList,self.difficulty,always_loaded)
+                    Enemy(self, x*TILE_SIZE,y*TILE_SIZE,enemy,always_loaded)
 
     def update_in_start(self):
         self.camera.x, self.camera.y = 0,0
@@ -276,7 +276,7 @@ class App: #Puts EVERYTHING together
             self.bunkers_explored = 0
             self.generateShip()
             self.player.alive = True
-            self.player = Player(self.world, self.camera, self.itemList, self.info)
+            self.player = Player(self)
 
     def update_in_ship(self):
         self.camera.x,self.camera.y = 0,0
@@ -324,7 +324,7 @@ class App: #Puts EVERYTHING together
             if on_tick(60):
                 if pyxel.frame_count - self.game_start >= self.ship_hold_time and not self.ship_broken:
                     self.ship_broken = True
-                    self.group = EnemyGroup(self.rooms,self.rooms[0],{'spider':7,'hive_queen':1,'stalker':3,'bulwark':1})
+                    self.group = EnemyGroup(self, 0,{'spider':7,'hive_queen':1,'stalker':3,'bulwark':1})
                     self.group_alive = True
                     pyxel.playm(1, loop=True)
 
@@ -655,9 +655,16 @@ class Physics: #This is used to have a common move function
 
         #We handle horizontal and vertical movement separatly to make problem solving easier
 
-        new_x = self.owner.x + vector[0]*coef
-
+        #Calculate the new position and prevent entities from going faster than 1T/f in order to prevent clipping
+        if abs(vector[0]*coef) < TILE_SIZE:
+            new_x = self.owner.x + vector[0]*coef
+        else:
+            new_x = self.owner.x + (pyxel.sgn(vector[0]) * (TILE_SIZE - 0.01))
         new_X = X+pyxel.sgn(vector[0])
+
+        if new_x+TILE_SIZE > new_X*TILE_SIZE:
+            new_x = new_X*TILE_SIZE
+            
         if vector[0]!=0:
             next_X_1 = self.world.world_map[Y][new_X]
             if self.owner.y != Y*TILE_SIZE:
@@ -676,8 +683,15 @@ class Physics: #This is used to have a common move function
 
         #We calculate vertical movement in the same way we do horizontal movement
 
-        new_y = self.owner.y + vector[1]*coef
+        if abs(vector[1]*coef) < TILE_SIZE:
+            new_y = self.owner.y + vector[1]*coef
+        else:
+            new_y = self.owner.y + (pyxel.sgn(vector[1]) * (TILE_SIZE - 0.01))
         new_Y = Y+pyxel.sgn(vector[1])
+        if new_y+TILE_SIZE > new_Y*TILE_SIZE:
+            new_y = new_Y*TILE_SIZE
+
+        
         if vector[1]!=0:
             next_Y_1 = self.world.world_map[new_Y][X]
             if self.owner.x != X*TILE_SIZE:
@@ -692,31 +706,37 @@ class Physics: #This is used to have a common move function
                 self.owner.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
 class Player: #Everything relating to the player and its control
-    def __init__(self, world, camera,itemList,info):
+    def __init__(self, app):
+        self.app = app
+        self.world = app.world
+        self.camera = app.camera
+        self.info = app.info
+        self.itemList = app.itemList
+
         self.alive = True
         self.width = TILE_SIZE
         self.height = TILE_SIZE
-        self.physics = Physics(self, world)
-        self.camera = camera
-        self.info = info
+        self.physics = Physics(self, self.world)
 
         self.image = (1,3)
         self.facing = [1,0]
         self.last_facing = [1,0]
 
         self.speed = 0.25
+        self.knockbackCoef = 1
         self.momentum = 0
         self.speedFallOff = 4
+
         self.isDashing = False
         self.dashCooldown = 40
         self.dashLength = 20
         self.dashFrame = 0
         self.dashStrength = self.speed*3
         self.dashDamage = 0
+        self.dashDamageKnockbackCoef = 0.5
         
         self.stuck = False
         self.open_time = 240
-        self.itemList = itemList
 
         self.gun = dic_copy(Guns.PISTOL)
 
@@ -736,7 +756,7 @@ class Player: #Everything relating to the player and its control
         self.itemsPickedUp = 0
 
         self.fuel = 0
-        self.reset(world)
+        self.reset(self.world)
 
     def reset(self,world):
         self.world = world
@@ -865,7 +885,7 @@ class Player: #Everything relating to the player and its control
         else:
             self.momentum /= self.speedFallOff
 
-    def fireWeapon(self): #Fire the player's gun when they right-click
+    def fireWeapon(self): #Fire the player's gun when they left-click
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and self.attackFrame>=self.gun["cooldown"] and self.gun["mag_ammo"]>0:
             pyxel.play(2,60)
             self.attackFrame = 0
@@ -887,7 +907,7 @@ class Player: #Everything relating to the player and its control
                 else:
                     cos = 0
                     sin = 0
-                Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun["damage"], self.gun["bullet_speed"], self.gun["range"], self.gun["piercing"], self.world, self, (0,6*TILE_SIZE), "player", self.gun["explode_radius"], self.shotsFired)
+                Bullet(self.app, self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.gun, "player", self.shotsFired)
 
     def reloadWeapon(self): #Makes the player reload its weapon when it reaches 0 or presses R
         if pyxel.btnp(pyxel.KEY_R) and self.gun["mag_ammo"]<self.gun["max_ammo"] and self.gun["mag_ammo"]!=0:
@@ -919,9 +939,10 @@ class Player: #Everything relating to the player and its control
             self.world.effects.append({'x':self.x+cos*TILE_SIZE,'y':self.y+sin*TILE_SIZE,'image':[6,6],'scale':1.1,'time':pyxel.frame_count})
             for entity in self.loadedEntitiesInRange:
                 if collision(self.x+cos*TILE_SIZE,self.y+sin*TILE_SIZE,entity.x,entity.y,(TILE_SIZE*1.1,TILE_SIZE*1.1),(TILE_SIZE,TILE_SIZE)) and entity.type == 'enemy':
-                    entity.health -= self.damage
+                    entity.health -= Melees.SHOVE["damage"]
                     entity.hitStun = True
-                    entity.knockback = 2
+                    if "movement" in entity.abilities.keys():
+                        entity.apply_knockback([cos,sin], Melees.SHOVE["damage"], Melees.SHOVE["knockback_coef"])
 
     def dash(self): #Start the dash when the player presses space
         if (pyxel.btn(pyxel.KEY_SPACE) or pyxel.btn(pyxel.KEY_SHIFT)) and self.dashFrame >= self.dashCooldown:
@@ -938,7 +959,8 @@ class Player: #Everything relating to the player and its control
                     entity.health -= self.dashDamage
                     entity.hitStun = True
                     entity.hitByDash = True
-                    entity.knockback = 0.5
+                    if "movement" in entity.abilities.keys():
+                        entity.apply_knockback(self.facing, self.dashDamage, self.dashDamageKnockbackCoef)
         if self.dashFrame >= self.dashLength:
             self.isDashing = False
             self.dashFrame = 0
@@ -955,6 +977,11 @@ class Player: #Everything relating to the player and its control
         if self.isHit and self.hitFrame >= self.hitLength:
                 self.isHit = False
                 self.hitFrame = 0
+
+    def applyKnockback(self, vector, damage, coef):
+        base_knockback = 10*len(str(damage))
+        coef_knockback = coef * self.knockbackCoef * base_knockback
+        self.physics.move(vector, coef_knockback)
 
     def preventOOB(self): #Prevents the player going out of bounds
         if self.x<0:
@@ -1061,7 +1088,7 @@ class Player: #Everything relating to the player and its control
     def changeWeapon(self, gun): #Allows the player to change guns, randomize its values slightly, and then reapplies item effects for it to work 
         self.gun = dic_copy(gun)
         for key in self.gun.keys():
-            if key not in ["name", "description", "image", "rate", "bullet_count"]:
+            if key not in ["name", "description", "image", "bullet_image", "rate", "bullet_count"]:
                 lowest_value = self.gun[key]*0.9
                 highest_value = self.gun[key]*1.1
                 self.gun[key] = random.uniform(lowest_value, highest_value)
@@ -1136,45 +1163,181 @@ class Player: #Everything relating to the player and its control
                             Boost(change[0], change[1], change[2], change[3], change[4], self, item)
 
 class Melees: #Basic class for all the melee weapons, will get expanded once we implement the player's melee weapons
-    SPIDER_MELEE = {"damage":5, "range":1*TILE_SIZE, "cooldown":1*FPS}
-    BULWARK_MELEE = {"damage":15, "range":1*TILE_SIZE, "cooldown":1*FPS}
-    HIVE_QUEEN_MELEE = {"damage":5, "range":1*TILE_SIZE, "cooldown":1*FPS}
-    HATCHLING_MELEE = {"damage":2, "range":1*TILE_SIZE, "cooldown":0.75*FPS}
+    SPIDER_MELEE = {"damage":5, "range":1*TILE_SIZE, "cooldown":1*FPS, "knockback_coef":1}
+    BULWARK_MELEE = {"damage":15, "range":1*TILE_SIZE, "cooldown":1*FPS, "knockback_coef":1}
+    HIVE_QUEEN_MELEE = {"damage":5, "range":1*TILE_SIZE, "cooldown":1*FPS, "knockback_coef":1}
+    HATCHLING_MELEE = {"damage":2, "range":1*TILE_SIZE, "cooldown":0.75*FPS, "knockback_coef":1}
+
+    SHOVE = {"damage":5, "range":1*TILE_SIZE, "cooldown":1*FPS, "knockback_coef":1.5}
 
 class Guns: #Contains all the different guns the player can get
-    NONE = {"damage":0, "bullet_speed":1, "range":1, "piercing":0, "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":120, "cooldown":120, "spread":0, "bullet_count":0, "name":"None", "image":[0,0], "rate":[], "description":"No weapon", "explode_radius":0}
-    PISTOL = {"damage":9, "bullet_speed":0.75, "range":6*TILE_SIZE, "piercing":0, "max_ammo":16, "mag_ammo":16, "reserve_ammo":60, "reload":0.8*120, "cooldown":1/3*120, "spread":15, "bullet_count":1, "name":"Pistol", "image":[1*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(1,26)], "description":"Basic weapon", "explode_radius":0}
-    SHOTGUN = {"damage":12, "bullet_speed":0.6, "range":4*TILE_SIZE, "piercing":0, "max_ammo":5, "mag_ammo":5, "reserve_ammo":20, "reload":3*120, "cooldown":0.75*120, "spread":25, "bullet_count":6, "name":"Shotgun", "image":[3*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(26,51)], "description":"Multiple pellets, medium damage", "explode_radius":0}
-    SMG = {"damage":8, "bullet_speed":1, "range":4*TILE_SIZE, "piercing":0, "max_ammo":40, "mag_ammo":40, "reserve_ammo":140, "reload":2.5*120, "cooldown":0.12*120, "spread":20, "bullet_count":1, "name":"SMG", "image":[0*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(51,76)], "description":"Highest fire rate, low damage", "explode_radius":0}
-    RIFLE = {"damage":12, "bullet_speed":0.9, "range":7*TILE_SIZE, "piercing":1, "max_ammo":24, "mag_ammo":24, "reserve_ammo":70, "reload":3*120, "cooldown":0.25*120, "spread":12, "bullet_count":1, "name":"Rifle", "image":[2*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(76,86)], "description":"High fire rate, medium damage", "explode_radius":0}
-    SNIPER = {"damage":20, "bullet_speed":2, "range":20*TILE_SIZE, "piercing":4, "max_ammo":4, "mag_ammo":4, "reserve_ammo":25, "reload":4*120, "cooldown":1*120, "spread":0, "bullet_count":1, "name":"Sniper", "image":[4*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(86,96)], "description":"Single fire, high damage", "explode_radius":0}
-    GRENADE_LAUNCHER = {"damage":20, "bullet_speed":1.5, "range":20*TILE_SIZE, "piercing":0, "max_ammo":1, "reserve_ammo":20, "mag_ammo":1, "reload":1.5*120, "cooldown":1*120, "spread":5, "bullet_count":1, "name":"Grenade Launcher", "image":[5*TILE_SIZE,7*TILE_SIZE], "rate":[x for x in range(96,101)], "description":"Single fire, explosive shots", "explode_radius":1.5*TILE_SIZE}
+    NONE = {"name":"None","description":"No weapon",
+            "image":[0,0],
+            "bullet_image":[0,0],
+            "rate":[],
+            "spread":0, "bullet_count":0,
+            "bullet_speed":1, "range":1,
+            "damage":0,  "piercing":0, "explode_radius":0, "knockback_coef":0,
+            "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":1*FPS, 
+            "cooldown":1*FPS}
+    
+    PISTOL = {"name":"Pistol", "description":"Basic weapon",
+              "image":[1*TILE_SIZE,7*TILE_SIZE],
+              "bullet_image":[0,6*TILE_SIZE],
+              "rate":[x for x in range(1,26)],
+              "spread":15, "bullet_count":1,
+              "bullet_speed":0.75, "range":6*TILE_SIZE,
+              "damage":9,  "piercing":0, "explode_radius":0, "knockback_coef":5,
+              "max_ammo":16, "mag_ammo":16, "reserve_ammo":60, "reload":0.8*FPS,
+              "cooldown":1/3*FPS}
+    
+    SHOTGUN = {"name":"Shotgun", "description":"Multiple pellets, medium damage",
+               "image":[3*TILE_SIZE,7*TILE_SIZE],
+               "bullet_image":[0,6*TILE_SIZE],
+               "rate":[x for x in range(26,51)],
+               "spread":25, "bullet_count":6,
+               "bullet_speed":0.6, "range":4*TILE_SIZE,
+               "damage":12,  "piercing":0, "explode_radius":0, "knockback_coef":1,
+               "max_ammo":5, "mag_ammo":5, "reserve_ammo":20, "reload":3*FPS, 
+               "cooldown":0.75*FPS}
+    
+    SMG = {"name":"SMG", "description":"Highest fire rate, low damage",
+           "image":[0*TILE_SIZE,7*TILE_SIZE],
+           "bullet_image":[0,6*TILE_SIZE],
+           "rate":[x for x in range(51,76)],
+           "spread":20, "bullet_count":1,
+           "bullet_speed":1, "range":4*TILE_SIZE,
+           "damage":8,  "piercing":0, "explode_radius":0, "knockback_coef":1,
+           "max_ammo":40, "mag_ammo":40, "reserve_ammo":140, "reload":2.5*FPS, 
+           "cooldown":0.12*FPS}
+    
+    RIFLE = {"name":"Rifle", "description":"High fire rate, medium damage",
+             "image":[2*TILE_SIZE,7*TILE_SIZE],
+             "bullet_image":[0,6*TILE_SIZE],
+             "rate":[x for x in range(76,86)],
+             "spread":12, "bullet_count":1,
+             "bullet_speed":0.9, "range":7*TILE_SIZE,
+             "damage":12,  "piercing":1, "explode_radius":0, "knockback_coef":1,
+             "max_ammo":24, "mag_ammo":24, "reserve_ammo":70, "reload":3*FPS, 
+             "cooldown":0.25*FPS}
+    
+    SNIPER = {"name":"Sniper", "description":"Single fire, high damage",
+              "image":[4*TILE_SIZE,7*TILE_SIZE],
+              "bullet_image":[0,6*TILE_SIZE],
+              "rate":[x for x in range(86,96)],
+              "spread":0, "bullet_count":1,
+              "bullet_speed":2, "range":20*TILE_SIZE,
+              "damage":20,  "piercing":4, "explode_radius":0, "knockback_coef":1,
+              "max_ammo":4, "mag_ammo":4, "reserve_ammo":25, "reload":4*FPS, 
+              "cooldown":1*FPS}
+    
+    GRENADE_LAUNCHER = {"name":"Grenade Launcher", "description":"Single fire, explosive shots",
+                        "image":[5*TILE_SIZE,7*TILE_SIZE],
+                        "bullet_image":[0,6*TILE_SIZE],
+                        "rate":[x for x in range(96,101)],
+                        "spread":5, "bullet_count":1,
+                        "bullet_speed":1.5, "range":20*TILE_SIZE,
+                        "damage":20, "piercing":0, "explode_radius":1.5*TILE_SIZE, "knockback_coef":2,
+                        "max_ammo":1, "reserve_ammo":20, "mag_ammo":1, "reload":1.5*FPS, 
+                        "cooldown":1*FPS}
+    
     Gun_list = [PISTOL, RIFLE, SMG, SNIPER, SHOTGUN, GRENADE_LAUNCHER]
 
-    TURRET_GUN = {"damage":5, "bullet_speed":0.3, "range":7*TILE_SIZE, "piercing":0, "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":120, "cooldown":0.5*FPS, "spread":0, "bullet_count":1, "name":"Turret Gun", "rate":[], "description":"You're not supposed to see this", "explode_radius":0}
-
+    TURRET_GUN = {"name":"Turret Gun","description":"You're not supposed to see this",
+            "image":[0,0],
+            "bullet_image":[1*TILE_SIZE,6*TILE_SIZE],
+            "rate":[],
+            "spread":0, "bullet_count":1,
+            "bullet_speed":0.3, "range":7*TILE_SIZE,
+            "damage":5,  "piercing":0, "explode_radius":0, "knockback_coef":1,
+            "max_ammo":0, "mag_ammo":0, "reserve_ammo":0, "reload":1*FPS, 
+            "cooldown":0.5*FPS}
 
 class EnemyTemplates: #all enemies and their stats to get easily
-    SPIDER = {'name':'spider',"health":40, "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(0,45)], "abilities":{"movement":{"speed":0.36, "knockback_coef":1, "weight":1}, "melee_attack":{"weapon":Melees.SPIDER_MELEE, "freeze":40}, "lunge":{"range":6*TILE_SIZE, "freeze":40, "length":20, "speed":1,"cooldown":random.randint(2,6)*120//2, "damage":0}}}
-    BULWARK = {'name':'bulwark',"health":100, "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(65,75)], "abilities":{"movement":{"speed":0.18, "knockback_coef":0, "weight":1}, "melee_attack":{"weapon":Melees.BULWARK_MELEE, "freeze":40}, "lunge":{"range":6*TILE_SIZE, "freeze":40, "length":15, "speed":1,"cooldown":random.randint(2,6)*120//2, "damage":0}}}
-    STALKER = {'name':'stalker',"health":40, "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(45,65)], "abilities":{"movement":{"speed":0.1, "knockback_coef":1, "weight":1}, "lunge":{"range":12*TILE_SIZE, "freeze":60, "length":20, "speed":1.5,"cooldown":random.randint(2,6)*120//2, "damage":10}}}
-    TUMOR = {'name':'tumor',"health":20, "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(75,82)], "abilities":{"movement":{"speed":0.36, "knockback_coef":1, "weight":1}, "lunge":{"range":6*TILE_SIZE, "freeze":40, "length":20, "speed":1,"cooldown":random.randint(2,4)*120//2, "damage":0}, "kamikaze":{"damage":5, "radius":2*TILE_SIZE}}}
-    TURRET = {'name':'turret',"health":40, "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(82,90)], "abilities":{"ranged_attack":{"weapon":Guns.TURRET_GUN, "freeze":0}}}
-    INFECTED_SCRAPPER = {'name':'infected_scrapper',"health":50, "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[x for x in range(91,92)], "abilities":{"movement":{"speed":0.45, "knockback_coef":1, "weight":1}, "ranged_attack":{"weapon":"random", "freeze":40}, "lunge":{"range":12*TILE_SIZE, "freeze":40, "length":20, "speed":1,"cooldown":random.randint(2,6)*120//2, "damage":0}}}
-    HATCHLING = {'name':'hatchling',"health":10, "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":False, 'spawning_chance':[], "abilities":{"movement":{"speed":0.4, "knockback_coef":1, "weight":1}, "melee_attack":{"weapon":Melees.HATCHLING_MELEE, "freeze":40}, "lunge":{"range":6*TILE_SIZE, "freeze":30, "length":15, "speed":1.5,"cooldown":random.randint(2,6)*120//2, "damage":0}}}
-    HIVE_QUEEN = {'name':'hive_queen',"health":50, "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, "spawner":True, 'spawning_chance':[x for x in range(92,99)], "abilities":{"movement":{"speed":0.15, "knockback_coef":1, "weight":1}, "melee_attack":{"weapon":Melees.HIVE_QUEEN_MELEE, "freeze":40}, "lunge":{"range":2*TILE_SIZE, "freeze":40, "length":20, "speed":0.5,"cooldown":random.randint(2,6)*120//2, "damage":0}, "spawner":{"passive_amount":2, "death_amount":3, "cooldown":5*FPS, "entity":"HATCHLING"}}}
+    SPIDER = {'name':'spider',
+              "image":(0*TILE_SIZE,12*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE,
+              'spawning_chance':[x for x in range(0,45)],
+              "health":40,
+              "abilities":{
+                  "movement":{"speed":0.36, "knockback_coef":1, "weight":1},
+                  "melee_attack":{"weapon":Melees.SPIDER_MELEE, "freeze":40},
+                  "lunge":{"range":6*TILE_SIZE, "freeze":40, "length":20, "speed":1,"cooldown":random.randint(2,6)*120//2, "damage":0, "knockback_coef":0}}}
+    
+    BULWARK = {'name':'bulwark',
+               "image":(0*TILE_SIZE,18*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE,
+               'spawning_chance':[x for x in range(65,75)],
+               "health":100,
+               "abilities":{
+                   "movement":{"speed":0.18, "knockback_coef":0, "weight":1},
+                   "melee_attack":{"weapon":Melees.BULWARK_MELEE, "freeze":40},
+                   "lunge":{"range":6*TILE_SIZE, "freeze":40, "length":15, "speed":1,"cooldown":random.randint(2,6)*120//2, "damage":0, "knockback_coef":0}}}
+    
+    STALKER = {'name':'stalker',
+               "image":(0*TILE_SIZE,14*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE,
+               'spawning_chance':[x for x in range(45,65)],
+               "health":40,
+               "abilities":{
+                   "movement":{"speed":0.1, "knockback_coef":1, "weight":1},
+                   "lunge":{"range":12*TILE_SIZE, "freeze":60, "length":20, "speed":1.5,"cooldown":random.randint(2,6)*120//2, "damage":10, "knockback_coef":1}}}
+    
+    TUMOR = {'name':'tumor',
+             "image":(0*TILE_SIZE,24*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE,
+             'spawning_chance':[x for x in range(75,82)],
+             "health":20,
+             "abilities":{
+                 "movement":{"speed":0.36, "knockback_coef":1, "weight":1},
+                 "lunge":{"range":6*TILE_SIZE, "freeze":40, "length":20, "speed":1,"cooldown":random.randint(2,4)*120//2, "damage":0, "knockback_coef":0},
+                 "kamikaze":{"damage":5, "radius":2*TILE_SIZE, "knockback_coef":2}}}
+    
+    TURRET = {'name':'turret',
+              "image":(0*TILE_SIZE,22*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE,
+              'spawning_chance':[x for x in range(82,90)],
+              "health":40,
+              "abilities":{
+                  "ranged_attack":{"weapon":Guns.TURRET_GUN, "freeze":0}}}
+    
+    INFECTED_SCRAPPER = {'name':'infected_scrapper',
+                         "image":(0*TILE_SIZE,26*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, 
+                         'spawning_chance':[x for x in range(91,92)],
+                         "health":50,
+                         "abilities":{
+                             "movement":{"speed":0.45, "knockback_coef":1, "weight":1}, 
+                             "ranged_attack":{"weapon":"random", "freeze":40}, 
+                             "lunge":{"range":12*TILE_SIZE, "freeze":40, "length":20, "speed":1,"cooldown":random.randint(2,6)*120//2, "damage":0, "knockback_coef":0}}}
+    
+    HATCHLING = {'name':'hatchling',
+                 "image":(0*TILE_SIZE,20*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, 
+                 'spawning_chance':[], 
+                 "health":10, 
+                 "abilities":{
+                     "movement":{"speed":0.4, "knockback_coef":1, "weight":1}, 
+                     "melee_attack":{"weapon":Melees.HATCHLING_MELEE, "freeze":40}, 
+                     "lunge":{"range":6*TILE_SIZE, "freeze":30, "length":15, "speed":1.5,"cooldown":random.randint(2,6)*120//2, "damage":0, "knockback_coef":0}}}
+    
+    HIVE_QUEEN = {'name':'hive_queen',
+                  "image":(0*TILE_SIZE,16*TILE_SIZE), "width":TILE_SIZE, "height":TILE_SIZE, 
+                  'spawning_chance':[x for x in range(92,99)],
+                  "health":50,
+                  "abilities":{
+                      "movement":{"speed":0.15, "knockback_coef":1, "weight":1}, 
+                      "melee_attack":{"weapon":Melees.HIVE_QUEEN_MELEE, "freeze":40}, 
+                      "lunge":{"range":2*TILE_SIZE, "freeze":40, "length":20, "speed":0.5,"cooldown":random.randint(2,6)*120//2, "damage":0, "knockback_coef":0}, 
+                      "spawner":{"passive_amount":2, "death_amount":3, "cooldown":5*FPS, "entity":"HATCHLING"}}}
     
     
     ENEMY_LIST = [SPIDER,BULWARK,STALKER,TUMOR,TURRET,INFECTED_SCRAPPER,HIVE_QUEEN,HATCHLING]
 
 class Enemy: #all the gestion of the atitude of the enemies
-    def __init__(self, x, y, template, player, world,itemList,difficulty,always_loaded=False, spawned=False): #Creates a new enemy, with all its stats
+    def __init__(self, app, x, y, template, always_loaded=False, spawned=False): #Creates a new enemy, with all its stats
+        self.app = app
+        self.player = app.player
+        self.world = app.world
+        self.itemList = app.itemList
+        self.difficulty = app.difficulty
+
         self.x = x
         self.y = y
-        self.player = player
-        self.world = world
-        self.physics = Physics(self, world)
-        self.difficulty = difficulty
+        self.physics = Physics(self, self.world)
         self.rooms = self.world.roombuild.rooms
         self.room = find_room(self.x//TILE_SIZE,self.y//TILE_SIZE,self.rooms)
         self.scale = 1
@@ -1186,7 +1349,6 @@ class Enemy: #all the gestion of the atitude of the enemies
 
         self.loaded = False
         self.always_loaded = always_loaded
-        self.itemList = itemList
 
         self.base_image = template["image"]
         self.image = [template["image"][0], template["image"][1]]
@@ -1315,6 +1477,11 @@ class Enemy: #all the gestion of the atitude of the enemies
                 self.physics.move([cos, sin], entity.abilities["movement"]["weight"])
                 entity.physics.move([-cos, -sin], self.abilities["movement"]["weight"])
 
+    def apply_knockback(self, vector, damage, coef):
+        base_knockback = 10*len(str(damage))
+        coef_knockback = coef * self.abilities["movement"]["knockback_coef"] * base_knockback
+        self.physics.move(vector, coef_knockback)
+
     def melee_attack(self):
         if (self.actionPriority == 0 or self.isAttackingMelee) and self.room["name"] == self.player.room["name"]:
             if distance(self.player.x, self.player.y, self.x, self.y) <= self.abilities["melee_attack"]["weapon"]["range"] and self.meleeAttackFrame >= self.abilities["melee_attack"]["weapon"]["cooldown"] and not self.isAttackingMelee:
@@ -1349,18 +1516,19 @@ class Enemy: #all the gestion of the atitude of the enemies
                     else:
                         cos = 0
                         sin = 0
-                    Bullet(self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.abilities["ranged_attack"]["weapon"]["damage"], self.abilities["ranged_attack"]["weapon"]["bullet_speed"], self.abilities["ranged_attack"]["weapon"]["range"], self.abilities["ranged_attack"]["weapon"]["piercing"], self.world, self.player, (1*TILE_SIZE,6*TILE_SIZE), "enemy", self.abilities["ranged_attack"]["weapon"]["explode_radius"], self.shotsFired)
+                    Bullet(self.app, self.x+self.width/2, self.y+self.height/2, 4, 4, [cos, sin], self.abilities["ranged_attack"]["weapon"], "enemy", self.shotsFired)
         
         if self.room['name'] != self.player.room['name']:
             self.isAttackingRanged = False
 
     def slash(self):
-        self.world.effects.append({'x':self.x+self.cos*TILE_SIZE,'y':self.y+self.sin*TILE_SIZE,'image':[7,6],'scale':1,'time':pyxel.frame_count})
+        self.world.effects.append({'x':self.x+self.meleeAttackVector[0]*TILE_SIZE,'y':self.y+self.meleeAttackVector[1]*TILE_SIZE,'image':[7,6],'scale':1,'time':pyxel.frame_count})
         pyxel.play(3,54)
-        if collision(self.x+self.cos*TILE_SIZE,self.y+self.sin*TILE_SIZE,self.player.x,self.player.y,(TILE_SIZE,TILE_SIZE),(TILE_SIZE,TILE_SIZE)): #pas assez de sin et cos
+        if collision(self.x+self.meleeAttackVector[0]*TILE_SIZE,self.y+self.meleeAttackVector[1]*TILE_SIZE,self.player.x,self.player.y,(TILE_SIZE,TILE_SIZE),(TILE_SIZE,TILE_SIZE)): #pas assez de sin et cos
             self.player.health -= self.abilities["melee_attack"]["weapon"]["damage"]
             self.player.isHit = True
             self.player.hitFrame = 0
+            self.player.applyKnockback(self.meleeAttackVector, self.abilities["melee_attack"]["weapon"]["damage"], self.abilities["melee_attack"]["weapon"]["knockback_coef"])
 
     def lunge(self): #Allows the enemy to lunge at the player
         if (self.actionPriority == 0 or self.lungeState != "notLunging"):
@@ -1383,18 +1551,18 @@ class Enemy: #all the gestion of the atitude of the enemies
                         self.player.isHit = True
                         self.player.hitFrame = 0
                         self.hit_player = True
+                        self.player.applyKnockback(self.lungeVector, self.abilities["lunge"]["damage"], self.abilities["lunge"]["knockback_coef"])
                 if self.lungeFrame >= self.abilities["lunge"]["length"]:
                     self.lungeState = "notLunging"
 
     def spawner(self): #Allows enemies to spawn hatchlings
         if self.spawnFrame >= self.abilities["spawner"]["cooldown"]:
             for i in range(self.abilities["spawner"]["passive_amount"]):
-                Enemy(self.x, self.y, getattr(EnemyTemplates, self.abilities["spawner"]["entity"]), self.player, self.world, self.itemList, self.difficulty,True, spawned=True)
+                Enemy(self.app, self.x, self.y, getattr(EnemyTemplates, self.abilities["spawner"]["entity"]), spawned=True)
             self.spawnFrame = 0
 
     def kamikaze(self): #Allows enemy to blow itself up
         if collision(self.x, self.y, self.player.x, self.player.y, [self.width, self.height], [self.player.width, self.player.height]):
-            pyxel.play(3,56)
             self.health = 0
 
     def getFacing(self):
@@ -1432,7 +1600,7 @@ class Enemy: #all the gestion of the atitude of the enemies
 
             if "spawner" in self.abilities.keys():
                 for i in range(self.abilities["spawner"]["death_amount"]):
-                    Enemy(self.x, self.y, getattr(EnemyTemplates, self.abilities["spawner"]["entity"]), self.player, self.world, self.itemList, self.difficulty, spawned=True)
+                    Enemy(self.app, self.x, self.y, getattr(EnemyTemplates, self.abilities["spawner"]["entity"]), spawned=True)
 
             if "kamikaze" in self.abilities.keys():
                 Effect(4,[2*TILE_SIZE, 6*TILE_SIZE], {0:9, 1:9, 2:9, 3:9}, self.x, self.y, TILE_SIZE, TILE_SIZE)
@@ -1441,12 +1609,12 @@ class Enemy: #all the gestion of the atitude of the enemies
                     self.player.health -= self.abilities["kamikaze"]["damage"]
                     self.player.isHit = True
                     self.player.hitFrame = 0
+                    self.player.applyKnockback([self.cos, self.sin], self.abilities["kamikaze"]["damage"], self.abilities["kamikaze"]["knockback_coef"])
                 for entity in loadedEntities:
                     if entity.type == "enemy" and distance(self.x+self.width/2, self.y+self.height/2, entity.x+entity.width/2, entity.y+entity.height/2)<=2*TILE_SIZE:
                         entity.health -= self.abilities["kamikaze"]["damage"]
                         entity.hitStun = True
                         if "movement" in entity.abilities.keys():
-                            entity.knockback = 20
                             horizontal = entity.x - self.x
                             vertical = entity.y - self.y
                             norm = math.sqrt(horizontal**2+vertical**2)
@@ -1456,9 +1624,9 @@ class Enemy: #all the gestion of the atitude of the enemies
                             else:
                                 cos = 0
                                 sin = 0
-                            entity.physics.move([cos, sin], -entity.knockback*entity.abilities["movement"]["knockback_coef"])
+                            entity.apply_knockback([cos, sin], self.abilities["kamikaze"]["damage"], self.abilities["kamikaze"]["knockback_coef"])
 
-            if self.spawned:
+            if not self.spawned:
                 item_chance = 10 + self.player.luck
                 gun_chance = 12
 
@@ -1542,9 +1710,11 @@ class Enemy: #all the gestion of the atitude of the enemies
             self.sin = 0
 
 class EnemyGroup: #simulates a group of enemies to not load them directly (those who come from above)
-    def __init__(self,rooms,room,dic_enemies={'spider':0}):
-        self.rooms = rooms
-        self.room = room
+    def __init__(self,app, room, dic_enemies={'spider':0}):
+        self.app = app
+        self.rooms = app.rooms
+        self.room = self.rooms[room]
+
         self.dic_enemies = dic_enemies
         self.loaded = False
     def update(self):
@@ -1552,27 +1722,38 @@ class EnemyGroup: #simulates a group of enemies to not load them directly (those
             if self.room['name']+1 <= len(self.rooms):
                 self.room = self.rooms[self.room['name']+1]
 
-
 class Bullet: #Creates a bullet that can collide and deal damage
-    def __init__(self, x, y, width, height, vector, damage, speed, range, piercing, world, player, image, owner, explode_radius, shot):
+    def __init__(self, app, x, y, width, height, vector, gun, owner, shot):
+        self.app = app
+        self.world = app.world
+        self.player = app.player
+
+        self.physics = Physics(self, self.world)
+
+
         self.x = x
         self.y = y
         self.width = width
         self.height = height
-        self.vector = vector
-        self.damage = damage
-        self.range = range
-        self.world = world
-        self.player = player
-        self.image = image
-        self.physics = Physics(self, world)
-        self.speed = speed
-        self.owner = owner
-        self.explode_radius = explode_radius
-        self.piercing = piercing
         self.scale = 1
-        self.type = "bullet"
+        self.vector = vector
+
+        self.gun = gun
+
+        self.image = gun["bullet_image"]
+
+        self.damage = gun["damage"]
+        self.range = gun["range"]
+        self.speed = gun["bullet_speed"]
+        self.explode_radius = gun["explode_radius"]
+        self.piercing = gun["piercing"]
+        self.knockback_coef = gun["knockback_coef"]
+
+        self.owner = owner
         self.shot = shot
+        self.type = "bullet"
+        
+        
         loadedEntities.append(self) #As long as the bullet is a part of this list, it exists
 
     def update(self): #All the things we need to run every frame
@@ -1587,17 +1768,12 @@ class Bullet: #Creates a bullet that can collide and deal damage
                 entity.hitStun = True
                 entity.lastHitBy = self.shot
                 if "movement" in entity.abilities.keys():
-                    if self.explode_radius == 0:
-                        entity.knockback = 10
-                    else:
-                        entity.knockback = 20
-                    entity.knockback *= entity.abilities["movement"]["knockback_coef"]
                     if entity.hitFrame<=10:
                         if "lunge" in entity.abilities.keys():
                             if entity.lungeState == "notLunging":
-                                entity.physics.move(self.vector, entity.knockback)
+                                entity.apply_knockback(self.vector, self.damage, self.knockback_coef)
                         else:
-                            entity.physics.move(self.vector, entity.knockback)
+                            entity.physics.move(self.vector, self.damage, self.knockback_coef)
                 if self.piercing != 0:
                     entity.pierced.append(self)
                     self.damage *= self.player.pierceDamage
@@ -1705,7 +1881,7 @@ class Effect: #Used to generate collision-less effects like explosions
         self.frame += 1
 
 class ScreenEffect: #effects that cover the whole screen
-    def __init__(self,player):
+    def __init__(self, player):
         self.player = player
         self.redscreen = False
         self.red_dither = 0
