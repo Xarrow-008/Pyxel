@@ -70,6 +70,12 @@ class DrawArea:
         self.y = y
         self.width = width
         self.height = height
+        self.canvas = [[0 for x in range(256)] for y in range(256)]
+        self.cam_x = 0
+        self.cam_y = 0
+    def update(self):
+        if mouse_inside(self.x,self.y,self.width,self.height):
+            pass
 
 
 class button_maker_desk:
@@ -148,9 +154,7 @@ class Button:
         self.pressed = False
     
     def update(self):
-        if (pyxel.mouse_x > self.x and pyxel.mouse_x < self.x + self.width) and (
-            pyxel.mouse_y > self.y and pyxel.mouse_y < self.y + self.height
-        ):
+        if mouse_inside(self.x,self.y,self.width,self.height):
             if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
                 self.pressed = True
             else:
@@ -210,6 +214,14 @@ def is_pressed(button_list,name,pos='N/A'):
                 if pos == (button.x,button.y):
                     return True
     return False
+
+def mouse_inside(x,y,width,height):
+    if (pyxel.mouse_x > x and pyxel.mouse_x < x + width) and (
+            pyxel.mouse_y > y and pyxel.mouse_y < y + height
+        ):
+        return True
+    else:
+        return False
 
 def show(x, y, img, asset, colkey=None, rotate=None, scale=1):
     pyxel.blt(x + 10//2*(scale-1), y + 10//2*(scale-1), img, asset[0]*11, asset[1]*11, 10, 10, colkey=colkey, rotate=rotate, scale=scale)
