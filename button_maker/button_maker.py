@@ -1,11 +1,11 @@
 import pyxel, os, random
 
-ASSETS = {'arrow_left':(0,0),'arrow_right':(1,0),'arrow_up':(2,0),'arrow_down':(3,0),'pause':(0,1),'start':(1,1)}
+ASSETS = {'arrow_left':(0,0),'arrow_right':(1,0),'arrow_up':(2,0),'arrow_down':(3,0),'pause':(0,1),'play':(1,1)}
 
 class App:
     def __init__(self):
         os.system('cls')
-        pyxel.init(128,128,fps=120)
+        pyxel.init(width=128,height=128,fps=120)
         pyxel.load('../makers_asset.pyxres')
 
         self.button_list = []
@@ -25,7 +25,9 @@ class App:
         self.desk.draw()
         
         for button in self.button_list:
-            pyxel.rect(button.x, button.y, button.width, button.height, button.name)
+            pyxel.rect(button.x, button.y, button.width, button.height, button.color)
+        
+        self.desk.draw_over()
 
         self.draw_mouse_pos()
 
@@ -36,31 +38,37 @@ class App:
 class animation_desk:
     def __init__(self,button_list):
         self.button_list = button_list
-        self.colorpick = ColorPick(button_list,2,114)
-        self.button_list.append(Button(5,26,100,10,10))
-        self.button_list.append(Button(5,40,100,10,10))
-        self.button_list.append(Button(5,54,100,10,10))
+        self.colorpick = ColorPick(button_list,4,113)
+        self.playing = False
+        self.button_list.append(Button(name='previous_frame',color=5,x=26,y=100,width=10,height=10))
+        self.button_list.append(Button('play/pause_anim',5,40,100,10,10))
+        self.button_list.append(Button('next_frame',5,54,100,10,10))
 
     def update(self):
         self.colorpick.update()
+        if is_pressed(self.button_list,'play/pause_anim'):
+            self.playing = not self.playing
 
     def draw(self):
         pyxel.cls(7)
-        pyxel.rect(1,1,98,98,11)
+        pyxel.rect(1,1,98,98,col=11)
 
         self.colorpick.draw()
     
     def draw_over(self):
         show(x=26,y=100,img=0,asset=ASSETS['arrow_left'])
         show(x=54,y=100,img=0,asset=ASSETS['arrow_right'])
-        show(x=40,y=100,img=0,asset=ASSETS['arrow_left'])
+        if self.playing:
+            show(x=40,y=100,img=0,asset=ASSETS['pause'])
+        else:
+            show(x=40,y=100,img=0,asset=ASSETS['play'])
 
 
 class button_maker_desk:
     def __init__(self,button_list):
         self.button_list = button_list
         self.maker_mode = False
-        self.colorpick = ColorPick(button_list,72,2)
+        self.colorpick = ColorPick(button_list,x=72,y=2)
         self.currently_drawing = 'N/A'
 
     def update(self):
@@ -76,7 +84,8 @@ class button_maker_desk:
                 self.currently_drawing.update()
                 if not self.currently_drawing.is_drawing:
                     if self.currently_drawing.width > 1 and self.currently_drawing.height > 1:
-                        self.button_list.append(Button(self.currently_drawing.name,
+                        self.button_list.append(Button('color_select',
+                                                self.currently_drawing.color,
                                                 self.currently_drawing.x,
                                                 self.currently_drawing.y,
                                                 self.currently_drawing.width,
@@ -89,20 +98,23 @@ class button_maker_desk:
     def draw(self):
         pyxel.cls(0)
         if self.maker_mode:
-            pyxel.text(0,0,'maker_mode',8)
-        pyxel.text(0,123,'A to switch on/off maker mode',7)
+            pyxel.text(x=0,y=0,s='maker_mode',col=8)
+        pyxel.text(x=0,y=123,s='A to switch on/off maker mode',col=7)
 
         if self.currently_drawing != 'N/A':
             for y in range(self.currently_drawing.height):
                 for x in range(self.currently_drawing.width):
-                    pyxel.pset(self.currently_drawing.x + x,self.currently_drawing.y + y,self.currently_drawing.name)
+                    pyxel.pset(self.currently_drawing.x + x,self.currently_drawing.y + y,self.currently_drawing.color)
         
         self.colorpick.draw()
 
+    def draw_over(self):
+        pass
+
 
 class ButtonDraw:
-    def __init__(self,name,mouse_x,mouse_y):
-        self.name = name
+    def __init__(self,color,mouse_x,mouse_y):
+        self.color = color
         self.x = mouse_x
         self.y = mouse_y
         self.width = 0
@@ -118,8 +130,9 @@ class ButtonDraw:
         
 
 class Button:
-    def __init__(self,name,x,y,width,height):
+    def __init__(self,name,color,x,y,width,height):
         self.name = name
+        self.color = color
         self.x = x
         self.y = y
         self.width = width
@@ -135,7 +148,7 @@ class Button:
             else:
                 self.pressed = False
             if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT):
-                print(f'        self.button_list.append(Button({self.name},{self.x},{self.y},{self.width},{self.height}))')
+                print(f'        self.button_list.append(Button("color_select",{self.name},{self.x},{self.y},{self.width},{self.height}))')
 
 
 class ColorPick:
@@ -147,29 +160,29 @@ class ColorPick:
         self.current_color = 0
         self.button_list = button_list
         self.color_buttons = []
-        self.color_buttons.append(Button(0,self.x+0,self.y+0,5,5))
-        self.color_buttons.append(Button(1,self.x+7,self.y+0,5,5))
-        self.color_buttons.append(Button(2,self.x+14,self.y+0,5,5))
-        self.color_buttons.append(Button(3,self.x+21,self.y+0,5,5))
-        self.color_buttons.append(Button(4,self.x+28,self.y+0,5,5))
-        self.color_buttons.append(Button(5,self.x+35,self.y+0,5,5))
-        self.color_buttons.append(Button(6,self.x+42,self.y+0,5,5))
-        self.color_buttons.append(Button(7,self.x+49,self.y+0,5,5))
-        self.color_buttons.append(Button(8,self.x+0,self.y+7,5,5))
-        self.color_buttons.append(Button(9,self.x+7,self.y+7,5,5))
-        self.color_buttons.append(Button(10,self.x+14,self.y+7,5,5))
-        self.color_buttons.append(Button(11,self.x+21,self.y+7,5,5))
-        self.color_buttons.append(Button(12,self.x+28,self.y+7,5,5))
-        self.color_buttons.append(Button(13,self.x+35,self.y+7,5,5))
-        self.color_buttons.append(Button(14,self.x+42,self.y+7,5,5))
-        self.color_buttons.append(Button(15,self.x+49,self.y+7,5,5))
+        self.color_buttons.append(Button(name='color_select',color=0,x=self.x+0,y=self.y+0,width=5,height=5))
+        self.color_buttons.append(Button('color_select',1,self.x+7,self.y+0,5,5))
+        self.color_buttons.append(Button('color_select',2,self.x+14,self.y+0,5,5))
+        self.color_buttons.append(Button('color_select',3,self.x+21,self.y+0,5,5))
+        self.color_buttons.append(Button('color_select',4,self.x+28,self.y+0,5,5))
+        self.color_buttons.append(Button('color_select',5,self.x+35,self.y+0,5,5))
+        self.color_buttons.append(Button('color_select',6,self.x+42,self.y+0,5,5))
+        self.color_buttons.append(Button('color_select',7,self.x+49,self.y+0,5,5))
+        self.color_buttons.append(Button('color_select',8,self.x+0,self.y+7,5,5))
+        self.color_buttons.append(Button('color_select',9,self.x+7,self.y+7,5,5))
+        self.color_buttons.append(Button('color_select',10,self.x+14,self.y+7,5,5))
+        self.color_buttons.append(Button('color_select',11,self.x+21,self.y+7,5,5))
+        self.color_buttons.append(Button('color_select',12,self.x+28,self.y+7,5,5))
+        self.color_buttons.append(Button('color_select',13,self.x+35,self.y+7,5,5))
+        self.color_buttons.append(Button('color_select',14,self.x+42,self.y+7,5,5))
+        self.color_buttons.append(Button('color_select',15,self.x+49,self.y+7,5,5))
         for button in self.color_buttons:
             self.button_list.append(button)
     
     def update(self):
         for button in self.color_buttons:
             if button.pressed:
-                self.current_color = button.name
+                self.current_color = button.color
                 print(self.current_color)
 
     def draw(self):
@@ -180,6 +193,16 @@ class ColorPick:
             pyxel.pset(corners[i][0],corners[i][1],color_below_corners[i])
     
 
+def is_pressed(button_list,name,pos='N/A'):
+    for button in button_list:
+        if button.pressed and button.name == name:
+            if pos == 'N/A':
+                return True
+            else:
+                if pos == (button.x,button.y):
+                    return True
+    return False
+
 def show(x, y, img, asset, colkey=None, rotate=None, scale=1):
-    pyxel.blt(x + w//2*(scale-1), y + h//2*(scale-1), img, asset[0], asset[1], 10, 10, colkey=colkey, rotate=rotate, scale=scale)
+    pyxel.blt(x + 10//2*(scale-1), y + 10//2*(scale-1), img, asset[0]*11, asset[1]*11, 10, 10, colkey=colkey, rotate=rotate, scale=scale)
 App()
