@@ -17,7 +17,7 @@ class App:
     def update(self):
         if self.showing == 'screen':
             self.animation.loop(6,10,32,24,[0,1])
-            self.animation.slide_anim(10,3,FLOORS)
+            self.animation.slide_random([128,105],18,2,FLOORS,[-1,0])
         elif self.showing == 'menu':
             if in_perimeter(64,48,pyxel.mouse_x,pyxel.mouse_y,14):
                 if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
@@ -32,9 +32,6 @@ class App:
                 if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
                     self.keyboard = 'zqsd'
                     print('changed to zqsd')
-
-        if on_tick(60):
-            print(pyxel.mouse_x,pyxel.mouse_y)
         
         if pyxel.btnp(pyxel.KEY_F):
             if self.showing == 'screen':
@@ -50,6 +47,7 @@ class App:
             self.draw_menu()
             self.draw_highlight()
         self.draw_test()
+        self.draw_mouse_pos()
 
     def draw_test(self):
         draw(0,0,0,0,96,16,16,scale=2)
@@ -59,13 +57,13 @@ class App:
         waves = (math.cos(pyxel.frame_count/50)+1)/2
         pyxel.dither(waves/2+0.3125)
         draw_screen(48,0,0,0)
-        for i in range(len(self.animation.slide)-1):
+        for i in range(len(self.animation.slide_blocks)-1):
             pyxel.blt(
-                self.animation.slide_pos + i*8,
-                105,
+                self.animation.slide_start[0] + self.animation.slide_direction[0]*(8*i+self.animation.slide_pos),
+                self.animation.slide_start[1] + self.animation.slide_direction[1]*(8*i+self.animation.slide_pos),
                 0,
-                self.animation.slide[i][0]*8,
-                self.animation.slide[i][1]*8,
+                self.animation.slide_blocks[i][0]*8,
+                self.animation.slide_blocks[i][1]*8,
                 8,
                 8
                 )
@@ -74,8 +72,8 @@ class App:
         pyxel.blt(40,55,1,32,0,5*TILE_SIZE,3*TILE_SIZE,colkey=11,scale=2)
         pyxel.blt(
             40,95,1,
-            self.animation.image1[0],
-            self.animation.image1[1],
+            self.animation.loop_image[0],
+            self.animation.loop_image[1],
             40,
             8,
             scale=2,
@@ -96,6 +94,9 @@ class App:
             elif self.keyboard == 'zqsd':
                 pyxel.blt(72,72,1,160,16,16,16,scale=2,colkey=12)
 
+    def draw_mouse_pos(self):
+        pyxel.text(pyxel.mouse_x-8,pyxel.mouse_y-8,str(pyxel.mouse_x)+','+str(pyxel.mouse_y),7)
+
 def draw_screen(u, v,camx,camy):
     for y in range(7):
         for x in range(128//8):
@@ -111,20 +112,26 @@ def draw_screen(u, v,camx,camy):
 
 class Animation:
     def __init__(self):
-        self.image1 = (0,0)
-        self.slide  = [random.choice(FLOORS) for i in range(18)]
+        self.loop_image = (0,0)
+        self.slide_blocks  = []
         self.slide_pos = 0
+        self.slide_start = [0,0]
     def loop(self,length,duration,u,v,direction):
         if on_tick(duration):
             for i in range(length):
                 if pyxel.frame_count % (length*duration) == i*duration:
-                    self.image1 = (u+direction[0]*i*8,v+direction[1]*i*8)
-    def slide_anim(self,length,duration,blocks_list):
+                    self.loop_image = (u+direction[0]*i*8,v+direction[1]*i*8)
+
+    def slide_random(self,start,length,duration,blocks_list,direction):
+        self.slide_direction = direction
+        self.slide_start = start
+        if len(self.slide_blocks) == 0:
+            self.slide_blocks = [random.choice(blocks_list) for i in range(length)]
         if on_tick(duration):
-            self.slide_pos += -1
-            if self.slide_pos <= -8:
-                self.slide.pop(0)
-                self.slide.append(random.choice(blocks_list))
+            self.slide_pos += 1
+            if self.slide_pos >= 8:
+                self.slide_blocks.pop(len(self.slide_blocks)-1)
+                self.slide_blocks.insert(0,random.choice(blocks_list))
                 self.slide_pos = 0
         
 def on_tick(tickrate=60):
