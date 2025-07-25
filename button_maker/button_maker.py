@@ -64,6 +64,14 @@ class animation_desk:
             show(x=40,y=100,img=0,asset=ASSETS['play'])
 
 
+class DrawArea:
+    def __init__(self,x,y,width,height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+
+
 class button_maker_desk:
     def __init__(self,button_list):
         self.button_list = button_list
