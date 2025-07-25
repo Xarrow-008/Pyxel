@@ -205,4 +205,6 @@ def is_pressed(button_list,name,pos='N/A'):
 
 def show(x, y, img, asset, colkey=None, rotate=None, scale=1):
     pyxel.blt(x + 10//2*(scale-1), y + 10//2*(scale-1), img, asset[0]*11, asset[1]*11, 10, 10, colkey=colkey, rotate=rotate, scale=scale)
+
+
 App()
