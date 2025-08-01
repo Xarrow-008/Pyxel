@@ -32,7 +32,8 @@ class App:
         self.draw_mouse_pos()
 
     def draw_mouse_pos(self):
-        pyxel.text(pyxel.mouse_x,pyxel.mouse_y+10,str(pyxel.mouse_x)+','+str(pyxel.mouse_y),15)
+        #pyxel.text(pyxel.mouse_x,pyxel.mouse_y+10,str(pyxel.mouse_x)+','+str(pyxel.mouse_y),15)
+        pyxel.text(pyxel.mouse_x,pyxel.mouse_y+10,str(self.desk.draw_area.mpos_on_canvas_x)+','+str(self.desk.draw_area.mpos_on_canvas_y),15)
 
 
 class animation_desk:
@@ -55,6 +56,7 @@ class animation_desk:
         pyxel.cls(7)
         pyxel.rect(1,1,98,98,col=11)
 
+        self.draw_area.draw()
         self.colorpick.draw()
     
     def draw_over(self):
@@ -72,18 +74,56 @@ class DrawArea:
         self.y = y
         self.width = width
         self.height = height
-        self.canvas = [[0 for x in range(256)] for y in range(256)]
+        self.canvas = [[2 for x in range(256)] for y in range(256)]
         self.color = 0
         self.cam_x = 0
         self.cam_y = 0
+        self.mpos_on_canvas_x = 0
+        self.mpos_on_canvas_y = 0
+        self.last_mpos_on_canvas_x = 0
+        self.last_mpos_on_canvas_y = 0
+        self.lclick = False
+        self.last_lclick = False
+        self.canvas_hold_pos = (0,0)
+        self.holding = False
     def update(self,color):
         self.color = color
         if mouse_inside(self.x,self.y,self.width,self.height):
-            if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-                if self.color == 0:
-                    print('black')
+            self.last_mpos_on_canvas_x = self.mpos_on_canvas_x
+            self.last_mpos_on_canvas_y = self.mpos_on_canvas_y
+            self.mpos_on_canvas_x = pyxel.mouse_x + self.cam_x - self.x
+            self.mpos_on_canvas_y = pyxel.mouse_y + self.cam_y - self.y
+
+            if self.lclick:
+                self.last_lclick = True
+            self.lclick = False
+            if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and not pyxel.btn(pyxel.KEY_SPACE):
+                self.canvas[self.mpos_on_canvas_y][self.mpos_on_canvas_x] = self.color
+                self.lclick = True
+
+            if (pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and pyxel.btn(pyxel.KEY_SPACE)) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
+                if not self.holding:
+                    self.canvas_hold_pos = (self.cam_x + pyxel.mouse_x,self.cam_y + pyxel.mouse_y)
                 else:
-                    print('other')
+                    self.cam_x = self.canvas_hold_pos[0] - pyxel.mouse_x
+                    self.cam_y = self.canvas_hold_pos[1] - pyxel.mouse_y
+                    if self.cam_x<0:
+                        self.cam_x = 0
+                    if self.cam_x + self.width > 256:
+                        self.cam_x = 256 - self.width
+                    if self.cam_y<0:
+                        self.cam_y = 0
+                    if self.cam_y + self.height > 256:
+                        self.cam_y = 256 - self.height
+                        
+                self.holding = True
+            else:
+                self.holding = False
+    
+    def draw(self):
+        for y in range(self.height):
+            for x in range(self.width):
+                pyxel.pset(self.x + x, self.y + y, self.canvas[self.cam_y + y][self.cam_x + x])
 
 
 class button_maker_desk:
@@ -224,8 +264,8 @@ def is_pressed(button_list,name,pos='N/A'):
     return False
 
 def mouse_inside(x,y,width,height):
-    if (pyxel.mouse_x > x and pyxel.mouse_x < x + width) and (
-            pyxel.mouse_y > y and pyxel.mouse_y < y + height
+    if (pyxel.mouse_x >= x and pyxel.mouse_x <= x + width) and (
+            pyxel.mouse_y >= y and pyxel.mouse_y <= y + height
         ):
         return True
     else:
@@ -234,5 +274,7 @@ def mouse_inside(x,y,width,height):
 def show(x, y, img, asset, colkey=None, rotate=None, scale=1):
     pyxel.blt(x + 10//2*(scale-1), y + 10//2*(scale-1), img, asset[0]*11, asset[1]*11, 10, 10, colkey=colkey, rotate=rotate, scale=scale)
 
+def on_tick(tickrate=60,delay=0): #allows the computer to make operations only on certain times to not do averything 120 times a second
+    return (pyxel.frame_count % tickrate)-delay == 0
 
 App()
