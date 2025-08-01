@@ -39,6 +39,7 @@ class animation_desk:
     def __init__(self,button_list):
         self.button_list = button_list
         self.colorpick = ColorPick(button_list,4,113)
+        self.draw_area = DrawArea(1,1,98,98)
         self.playing = False
         self.button_list.append(Button(name='previous_frame',color=5,x=26,y=100,width=10,height=10))
         self.button_list.append(Button('play/pause_anim',5,40,100,10,10))
@@ -46,6 +47,7 @@ class animation_desk:
 
     def update(self):
         self.colorpick.update()
+        self.draw_area.update(self.colorpick.current_color)
         if is_pressed(self.button_list,'play/pause_anim'):
             self.playing = not self.playing
 
@@ -71,11 +73,17 @@ class DrawArea:
         self.width = width
         self.height = height
         self.canvas = [[0 for x in range(256)] for y in range(256)]
+        self.color = 0
         self.cam_x = 0
         self.cam_y = 0
-    def update(self):
+    def update(self,color):
+        self.color = color
         if mouse_inside(self.x,self.y,self.width,self.height):
-            pass
+            if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+                if self.color == 0:
+                    print('black')
+                else:
+                    print('other')
 
 
 class button_maker_desk:
