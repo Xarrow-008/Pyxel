@@ -100,6 +100,10 @@ class DrawArea:
             if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and not pyxel.btn(pyxel.KEY_SPACE):
                 self.canvas[self.mpos_on_canvas_y][self.mpos_on_canvas_x] = self.color
                 self.lclick = True
+                if self.last_lclick:
+                    line_from_last_pos = pos_line(self.last_mpos_on_canvas_x,self.last_mpos_on_canvas_y,self.mpos_on_canvas_x,self.mpos_on_canvas_y)
+                    for pos in line_from_last_pos:
+                        self.canvas[pos[1]][pos[0]] = self.color
 
             if (pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and pyxel.btn(pyxel.KEY_SPACE)) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
                 if not self.holding:
@@ -109,16 +113,20 @@ class DrawArea:
                     self.cam_y = self.canvas_hold_pos[1] - pyxel.mouse_y
                     if self.cam_x<0:
                         self.cam_x = 0
-                    if self.cam_x + self.width > 256:
-                        self.cam_x = 256 - self.width
+                    if self.cam_x + self.width > 255:
+                        self.cam_x = 255 - self.width
                     if self.cam_y<0:
                         self.cam_y = 0
-                    if self.cam_y + self.height > 256:
-                        self.cam_y = 256 - self.height
-                        
+                    if self.cam_y + self.height > 255:
+                        self.cam_y = 255 - self.height
+
                 self.holding = True
             else:
                 self.holding = False
+        
+        if not mouse_inside(self.x,self.y,self.width,self.height):
+            self.lclick = False
+            self.last_lclick = False
     
     def draw(self):
         for y in range(self.height):
@@ -276,5 +284,20 @@ def show(x, y, img, asset, colkey=None, rotate=None, scale=1):
 
 def on_tick(tickrate=60,delay=0): #allows the computer to make operations only on certain times to not do averything 120 times a second
     return (pyxel.frame_count % tickrate)-delay == 0
+
+def pos_line(x0,y0,x1,y1): #not exactly bresenham's algorithm because i dont understand it all yet but ill change it when i do
+    positions = []
+    cos = x1 - x0
+    sin = y1 - y0
+    step_ref = max(abs(cos),abs(sin))
+    if step_ref != 0:
+        stepX = cos / step_ref #diviser toute la longueur par step pour creer chaque marche de l'escalier
+        stepY = sin / step_ref #l'autre cote de l'escalier
+        for i in range(step_ref+1): #+1 car on met un carre a 0 et a la fin
+            positions.append(   (round(x0 + i * stepX), #i fois le nombre de marche auquel on se trouve
+                                round(y0 + i * stepY))
+                            )
+    return positions
+
 
 App()
