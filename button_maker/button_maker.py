@@ -1,6 +1,7 @@
 import pyxel, os, random
 
-ASSETS = {'arrow_left':(0,0),'arrow_right':(1,0),'arrow_up':(2,0),'arrow_down':(3,0),'pause':(0,1),'play':(1,1)}
+ASSETS = {'arrow_left':(0,0),'arrow_right':(1,0),'arrow_up':(2,0),'arrow_down':(3,0),
+          'pause':(0,1),'play':(1,1),'zoom_out':(2,1),'zoom_in':(3,1)}
 
 class App:
     def __init__(self):
@@ -32,26 +33,36 @@ class App:
         self.draw_mouse_pos()
 
     def draw_mouse_pos(self):
-        #pyxel.text(pyxel.mouse_x,pyxel.mouse_y+10,str(pyxel.mouse_x)+','+str(pyxel.mouse_y),15)
-        pyxel.text(pyxel.mouse_x,pyxel.mouse_y+10,str(self.desk.draw_area.mpos_on_canvas_x)+','+str(self.desk.draw_area.mpos_on_canvas_y),15)
+        pyxel.text(pyxel.mouse_x,pyxel.mouse_y+10,str(pyxel.mouse_x)+','+str(pyxel.mouse_y),15)
+        #pyxel.text(pyxel.mouse_x,pyxel.mouse_y+10,str(self.desk.draw_area.mpos_on_canvas_x)+','+str(self.desk.draw_area.mpos_on_canvas_y),15)
 
 
 class animation_desk:
     def __init__(self,button_list):
         self.button_list = button_list
         self.colorpick = ColorPick(button_list,4,113)
-        self.draw_area = DrawArea(1,1,98,98)
+        self.draw_area = DrawArea(1,1,97,97)
         self.playing = False
         self.button_list.append(Button(name='previous_frame',color=5,x=26,y=100,width=10,height=10))
         self.button_list.append(Button('play/pause_anim',5,40,100,10,10))
         self.button_list.append(Button('next_frame',5,54,100,10,10))
+        self.button_list.append(Button('zoom_out',5,101,20,10,10))
+        self.button_list.append(Button('zoom_in',5,116,20,10,10))
 
     def update(self):
         self.colorpick.update()
         self.draw_area.update(self.colorpick.current_color)
         if is_pressed(self.button_list,'play/pause_anim'):
             self.playing = not self.playing
-
+        if is_pressed(self.button_list,'zoom_out'):
+            self.draw_area.zoom += -1
+        if is_pressed(self.button_list,'zoom_in'):
+            self.draw_area.zoom += 1
+        
+        if self.draw_area.zoom <= 0:
+            self.draw_area.zoom = 1
+        if self.draw_area.zoom >= 6:
+            self.draw_area.zoom = 5
     def draw(self):
         pyxel.cls(7)
         pyxel.rect(1,1,98,98,col=11)
@@ -66,6 +77,8 @@ class animation_desk:
             show(x=40,y=100,img=0,asset=ASSETS['pause'])
         else:
             show(x=40,y=100,img=0,asset=ASSETS['play'])
+        show(x=101,y=20,img=0,asset=ASSETS['zoom_out'])
+        show(x=116,y=20,img=0,asset=ASSETS['zoom_in'])
 
 
 class DrawArea:
@@ -76,12 +89,10 @@ class DrawArea:
         self.height = height
         self.canvas = [[2 for x in range(256)] for y in range(256)]
         self.color = 0
-        self.cam_x = 0
-        self.cam_y = 0
-        self.mpos_on_canvas_x = 0
-        self.mpos_on_canvas_y = 0
-        self.last_mpos_on_canvas_x = 0
-        self.last_mpos_on_canvas_y = 0
+        self.cam = [0,0]
+        self.pencil_pos = (0,0) #position on the canvas
+        self.last_pencil_pos = (0,0)
+        self.zoom = 2
         self.lclick = False
         self.last_lclick = False
         self.canvas_hold_pos = (0,0)
@@ -89,36 +100,34 @@ class DrawArea:
     def update(self,color):
         self.color = color
         if mouse_inside(self.x,self.y,self.width,self.height):
-            self.last_mpos_on_canvas_x = self.mpos_on_canvas_x
-            self.last_mpos_on_canvas_y = self.mpos_on_canvas_y
-            self.mpos_on_canvas_x = pyxel.mouse_x + self.cam_x - self.x
-            self.mpos_on_canvas_y = pyxel.mouse_y + self.cam_y - self.y
+            self.last_pencil_pos = (self.pencil_pos[0], self.pencil_pos[1])
+            self.pencil_pos = self.canvas_pos((pyxel.mouse_x, pyxel.mouse_y))
 
             if self.lclick:
                 self.last_lclick = True
             self.lclick = False
             if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and not pyxel.btn(pyxel.KEY_SPACE):
-                self.canvas[self.mpos_on_canvas_y][self.mpos_on_canvas_x] = self.color
+                self.canvas[self.pencil_pos[1]][self.pencil_pos[0]] = self.color
                 self.lclick = True
                 if self.last_lclick:
-                    line_from_last_pos = pos_line(self.last_mpos_on_canvas_x,self.last_mpos_on_canvas_y,self.mpos_on_canvas_x,self.mpos_on_canvas_y)
+                    line_from_last_pos = pos_line(self.last_pencil_pos[0],self.last_pencil_pos[1],self.pencil_pos[0],self.pencil_pos[1])
                     for pos in line_from_last_pos:
                         self.canvas[pos[1]][pos[0]] = self.color
 
             if (pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and pyxel.btn(pyxel.KEY_SPACE)) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
                 if not self.holding:
-                    self.canvas_hold_pos = (self.cam_x + pyxel.mouse_x,self.cam_y + pyxel.mouse_y)
+                    self.canvas_hold_pos = (pyxel.mouse_x + self.cam[0] * self.zoom, pyxel.mouse_y + self.cam[1] * self.zoom)
                 else:
-                    self.cam_x = self.canvas_hold_pos[0] - pyxel.mouse_x
-                    self.cam_y = self.canvas_hold_pos[1] - pyxel.mouse_y
-                    if self.cam_x<0:
-                        self.cam_x = 0
-                    if self.cam_x + self.width > 255:
-                        self.cam_x = 255 - self.width
-                    if self.cam_y<0:
-                        self.cam_y = 0
-                    if self.cam_y + self.height > 255:
-                        self.cam_y = 255 - self.height
+                    self.cam = [(self.canvas_hold_pos[0] - pyxel.mouse_x) // self.zoom, (self.canvas_hold_pos[1] - pyxel.mouse_y) // self.zoom]
+
+                    if self.cam[0]<0:
+                        self.cam[0] = 0
+                    if self.cam[0] + self.width > 255:
+                        self.cam[0] = 255 - self.width
+                    if self.cam[1]<0:
+                        self.cam[1] = 0
+                    if self.cam[1] + self.height > 255:
+                        self.cam[1] = 255 - self.height
 
                 self.holding = True
             else:
@@ -129,9 +138,19 @@ class DrawArea:
             self.last_lclick = False
     
     def draw(self):
-        for y in range(self.height):
-            for x in range(self.width):
-                pyxel.pset(self.x + x, self.y + y, self.canvas[self.cam_y + y][self.cam_x + x])
+        for y in range(self.height//self.zoom+1):
+            for x in range(self.width//self.zoom+1):
+                for size_y in range(self.zoom):
+                    for size_x in range(self.zoom):
+                        posx = self.x + x*self.zoom + size_x
+                        posy = self.y + y*self.zoom + size_y
+                        if point_inside(posx,posy,self.x,self.y,self.width,self.height):
+                            pyxel.pset(posx, posy, self.canvas[self.cam[1] + y][self.cam[0] + x])
+    
+    def canvas_pos(self,pos=(0,0)):
+        return( pyxel.mouse_x // self.zoom + self.cam[0] - self.x,
+                pyxel.mouse_y // self.zoom + self.cam[1] - self.y
+        )
 
 
 class button_maker_desk:
@@ -225,7 +244,7 @@ class ColorPick:
         self.y = y
         self.width = 58
         self.height = 16
-        self.current_color = 0
+        self.current_color = 7
         self.button_list = button_list
         self.color_buttons = []
         self.color_buttons.append(Button(name='color_select',color=0,x=self.x+0,y=self.y+0,width=5,height=5))
@@ -272,12 +291,12 @@ def is_pressed(button_list,name,pos='N/A'):
     return False
 
 def mouse_inside(x,y,width,height):
-    if (pyxel.mouse_x >= x and pyxel.mouse_x <= x + width) and (
-            pyxel.mouse_y >= y and pyxel.mouse_y <= y + height
-        ):
-        return True
-    else:
-        return False
+    return point_inside(pyxel.mouse_x,pyxel.mouse_y,x,y,width,height)
+
+def point_inside(point_x,point_y,area_x,area_y,width,height):
+    return (point_x >= area_x and point_x <= area_x + width) and (
+            point_y >= area_y and point_y <= area_y + height
+            )
 
 def show(x, y, img, asset, colkey=None, rotate=None, scale=1):
     pyxel.blt(x + 10//2*(scale-1), y + 10//2*(scale-1), img, asset[0]*11, asset[1]*11, 10, 10, colkey=colkey, rotate=rotate, scale=scale)
