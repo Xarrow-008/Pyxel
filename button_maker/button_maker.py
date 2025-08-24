@@ -1,7 +1,8 @@
-import pyxel, os, random
+import pyxel, os, random, copy
 
-ASSETS = {'arrow_left':(0,0),'arrow_right':(1,0),'arrow_up':(2,0),'arrow_down':(3,0),
-          'pause':(0,1),'play':(1,1),'zoom_out':(2,1),'zoom_in':(3,1)}
+ASSETS = {'arrow_left':(0,0),'arrow_right':(1,0),'arrow_up':(2,0),'arrow_down':(3,0), 'cursor':(4,0),
+          'pause':(0,1),'play':(1,1),'zoom_out':(2,1),'zoom_in':(3,1),
+          'grid':(0,2),'cross':(1,2)}
 
 class App:
     def __init__(self):
@@ -17,12 +18,14 @@ class App:
         pyxel.run(self.update,self.draw)
 
     def update(self):
+
         self.desk.update()
 
         for button in self.button_list:
             button.update()
 
     def draw(self):
+
         self.desk.draw()
         
         for button in self.button_list:
@@ -41,13 +44,14 @@ class animation_desk:
     def __init__(self,button_list):
         self.button_list = button_list
         self.colorpick = ColorPick(button_list,4,113)
-        self.draw_area = DrawArea(1,1,97,97)
+        self.draw_area = DrawArea(1,1,95,95)
         self.playing = False
-        self.button_list.append(Button(name='previous_frame',color=5,x=26,y=100,width=10,height=10))
+        self.button_list.append(Button(name='last_frame',color=5,x=26,y=100,width=10,height=10))
         self.button_list.append(Button('play/pause_anim',5,40,100,10,10))
         self.button_list.append(Button('next_frame',5,54,100,10,10))
         self.button_list.append(Button('zoom_out',5,101,20,10,10))
         self.button_list.append(Button('zoom_in',5,116,20,10,10))
+        self.button_list.append(Button("grid_on/off",5,101,3,10,10))
 
     def update(self):
         self.colorpick.update()
@@ -58,6 +62,8 @@ class animation_desk:
             self.draw_area.zoom += -1
         if is_pressed(self.button_list,'zoom_in'):
             self.draw_area.zoom += 1
+        if is_pressed(self.button_list,'grid_on/off'):
+            self.draw_area.grid = not self.draw_area.grid
         
         if self.draw_area.zoom <= 0:
             self.draw_area.zoom = 1
@@ -65,20 +71,21 @@ class animation_desk:
             self.draw_area.zoom = 5
     def draw(self):
         pyxel.cls(7)
-        pyxel.rect(1,1,98,98,col=11)
+        pyxel.rect(1,1,95,95,col=11)
 
         self.draw_area.draw()
         self.colorpick.draw()
     
     def draw_over(self):
-        show(x=26,y=100,img=0,asset=ASSETS['arrow_left'])
-        show(x=54,y=100,img=0,asset=ASSETS['arrow_right'])
+        icon(x=26,y=100,img=0,asset_name='arrow_left')
+        icon(x=54,y=100,img=0,asset_name='arrow_right')
         if self.playing:
-            show(x=40,y=100,img=0,asset=ASSETS['pause'])
+            icon(x=40,y=100,img=0,asset_name='pause')
         else:
-            show(x=40,y=100,img=0,asset=ASSETS['play'])
-        show(x=101,y=20,img=0,asset=ASSETS['zoom_out'])
-        show(x=116,y=20,img=0,asset=ASSETS['zoom_in'])
+            icon(x=40,y=100,img=0,asset_name='play')
+        icon(x=101,y=20,img=0,asset_name='zoom_out')
+        icon(x=116,y=20,img=0,asset_name='zoom_in')
+        icon(x=101,y=3,img=0,asset_name='grid',crossed_condition=not self.draw_area.grid)
 
 
 class DrawArea:
@@ -87,52 +94,83 @@ class DrawArea:
         self.y = y
         self.width = width
         self.height = height
-        self.canvas = [[2 for x in range(256)] for y in range(256)]
+        self.canvas = [[2 for x in range(32)] for y in range(32)]
+        self.past_canvas = [copy.deepcopy(self.canvas)]
+        self.canvas_index = 0
+        self.coming_back = False
         self.color = 0
         self.cam = [0,0]
         self.pencil_pos = (0,0) #position on the canvas
         self.last_pencil_pos = (0,0)
-        self.zoom = 2
+        self.zoom = 5
         self.lclick = False
         self.last_lclick = False
         self.canvas_hold_pos = (0,0)
         self.holding = False
+        self.grid = True
+        self.grid_size = 8
+    
     def update(self,color):
         self.color = color
+
         if mouse_inside(self.x,self.y,self.width,self.height):
             self.last_pencil_pos = (self.pencil_pos[0], self.pencil_pos[1])
-            self.pencil_pos = self.canvas_pos((pyxel.mouse_x, pyxel.mouse_y))
+            self.pencil_pos = self.canvas_pos((pyxel.mouse_x,pyxel.mouse_y))
 
-            if self.lclick:
-                self.last_lclick = True
+            self.last_lclick = self.lclick    
             self.lclick = False
+
             if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and not pyxel.btn(pyxel.KEY_SPACE):
-                self.canvas[self.pencil_pos[1]][self.pencil_pos[0]] = self.color
+                self.paint(self.pencil_pos,self.color)
                 self.lclick = True
                 if self.last_lclick:
                     line_from_last_pos = pos_line(self.last_pencil_pos[0],self.last_pencil_pos[1],self.pencil_pos[0],self.pencil_pos[1])
                     for pos in line_from_last_pos:
-                        self.canvas[pos[1]][pos[0]] = self.color
+                        self.paint(pos,self.color)
 
             if (pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) and pyxel.btn(pyxel.KEY_SPACE)) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
                 if not self.holding:
                     self.canvas_hold_pos = (pyxel.mouse_x + self.cam[0] * self.zoom, pyxel.mouse_y + self.cam[1] * self.zoom)
                 else:
-                    self.cam = [(self.canvas_hold_pos[0] - pyxel.mouse_x) // self.zoom, (self.canvas_hold_pos[1] - pyxel.mouse_y) // self.zoom]
+                    self.cam = [(self.canvas_hold_pos[0] - pyxel.mouse_x) // self.zoom, 
+                                (self.canvas_hold_pos[1] - pyxel.mouse_y) // self.zoom]
 
                     if self.cam[0]<0:
                         self.cam[0] = 0
-                    if self.cam[0] + self.width > 255:
-                        self.cam[0] = 255 - self.width
-                    if self.cam[1]<0:
+                    if self.cam[0] > len(self.canvas[0]) - 4:
+                        self.cam[0] = len(self.canvas[0]) - 4
+                    if self.cam[1] < 0:
                         self.cam[1] = 0
-                    if self.cam[1] + self.height > 255:
-                        self.cam[1] = 255 - self.height
+                    if self.cam[1] > len(self.canvas) - 4:
+                        self.cam[1] = len(self.canvas) - 4
 
                 self.holding = True
             else:
                 self.holding = False
         
+        if self.last_lclick and not self.lclick:
+            if len(self.past_canvas) > 16:
+                self.past_canvas.pop(len(self.past_canvas)-1)
+            if self.coming_back:
+                for i in range(self.canvas_index):
+                    self.past_canvas.pop(0)
+                self.canvas_index = 0
+            self.past_canvas.insert(0,copy.deepcopy(self.canvas))
+            self.coming_back = False
+        
+        if pyxel.btn(pyxel.KEY_CTRL) and pyxel.btnp(pyxel.KEY_Z):
+            if len(self.past_canvas) > 1 and self.canvas_index < len(self.past_canvas)-1:
+                self.canvas_index += 1
+                self.coming_back = True
+                self.canvas = copy.deepcopy(self.past_canvas[self.canvas_index])
+
+        if pyxel.btn(pyxel.KEY_CTRL) and pyxel.btnp(pyxel.KEY_Y):
+            if self.canvas_index > 0:
+                self.canvas_index += -1
+                self.canvas = copy.deepcopy(self.past_canvas[self.canvas_index])
+                self.coming_back = True
+        
+
         if not mouse_inside(self.x,self.y,self.width,self.height):
             self.lclick = False
             self.last_lclick = False
@@ -145,12 +183,34 @@ class DrawArea:
                         posx = self.x + x*self.zoom + size_x
                         posy = self.y + y*self.zoom + size_y
                         if point_inside(posx,posy,self.x,self.y,self.width,self.height):
-                            pyxel.pset(posx, posy, self.canvas[self.cam[1] + y][self.cam[0] + x])
+                            if self.cam[1] + y < len(self.canvas) and self.cam[0] + x < len(self.canvas[0]):
+                                pyxel.pset(posx, posy, self.canvas[self.cam[1] + y][self.cam[0] + x])
+                            else:
+                                pyxel.pset(posx, posy, 0)
+        if self.grid:
+            for x in range(1,len(self.canvas[0])//self.grid_size+1):
+                xpos = self.x + (self.grid_size * x - self.cam[0]) * self.zoom
+                if xpos >= self.x and xpos < self.x + self.width:
+                    y_endline = self.y + min(self.height,(len(self.canvas)-self.cam[1])*self.zoom-1)
+                    if is_within_length(xpos,self.canvas[0]*self.zoom) and xpos < self.width:
+                        pyxel.line(xpos, self.y, xpos, y_endline, 5)
+
+            for y in range(1,len(self.canvas)//self.grid_size+1):
+                ypos = self.y + (self.grid_size * y - self.cam[1]) * self.zoom
+                if ypos >= self.y and ypos < self.y + self.height:
+                    x_endline = self.x + min(self.width,(len(self.canvas[0])-self.cam[0])*self.zoom-1)
+                    if is_within_length(ypos,self.canvas*self.zoom) and ypos < self.height:
+                        pyxel.line(self.x, ypos, x_endline, ypos, 5)
+
     
     def canvas_pos(self,pos=(0,0)):
-        return( pyxel.mouse_x // self.zoom + self.cam[0] - self.x,
-                pyxel.mouse_y // self.zoom + self.cam[1] - self.y
+        return( (pos[0] - self.x) // self.zoom + self.cam[0],
+                (pos[1] - self.y) // self.zoom + self.cam[1]
         )
+    
+    def paint(self,pos,color):
+        if is_within_length(pos[1],self.canvas) and is_within_length(pos[0],self.canvas[0]):
+            self.canvas[pos[1]][pos[0]] = color
 
 
 class button_maker_desk:
@@ -301,6 +361,11 @@ def point_inside(point_x,point_y,area_x,area_y,width,height):
 def show(x, y, img, asset, colkey=None, rotate=None, scale=1):
     pyxel.blt(x + 10//2*(scale-1), y + 10//2*(scale-1), img, asset[0]*11, asset[1]*11, 10, 10, colkey=colkey, rotate=rotate, scale=scale)
 
+def icon(x, y, img, asset_name, crossed_condition=False, colkey=5, scale=1):
+    show(x, y, img, ASSETS[asset_name],colkey=colkey, scale=scale)
+    if crossed_condition:
+        show(x, y, img, ASSETS['cross'],colkey=colkey,scale=scale)
+
 def on_tick(tickrate=60,delay=0): #allows the computer to make operations only on certain times to not do averything 120 times a second
     return (pyxel.frame_count % tickrate)-delay == 0
 
@@ -318,5 +383,7 @@ def pos_line(x0,y0,x1,y1): #not exactly bresenham's algorithm because i dont und
                             )
     return positions
 
+def is_within_length(nb,list):
+    return nb < len(list)
 
 App()

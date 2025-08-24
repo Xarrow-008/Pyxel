@@ -41,9 +41,61 @@ def draw_line(x0,y0,x1,y1):
                                 round(y0 + i * stepY))
                             )
     return positions
-position_line = draw_line(10,10,17,1)
-for pos in position_line:
-    canvas[pos[1]][pos[0]] = '$'
-for y in canvas:
-    print(y)
-print(random.randint(0,1))
+
+
+class App:
+    def __init__(self):
+        os.system('cls')
+        pyxel.init(width=128,height=128,fps=120)
+
+        self.tab = []
+        self.number = 0
+        self.index = 0
+        self.coming_back = False
+        self.last_lclick = False
+        self.lclick = False
+
+        pyxel.mouse(True)
+        pyxel.run(self.update,self.draw)
+    
+    def update(self):
+
+        self.last_lclick = self.lclick
+        self.lclick = False
+
+        for i in range(10):
+            if pyxel.btnp(getattr(pyxel,'KEY_'+str(i))):
+                self.number = i
+                self.lclick = True
+        
+        if self.last_lclick and not self.lclick:
+            if self.coming_back:
+                for i in range(self.index):
+                    self.tab.pop(0)
+                self.index = 0
+            self.tab.insert(0,self.number)
+            self.coming_back = False
+        
+        if pyxel.btn(pyxel.KEY_CTRL) and pyxel.btnp(pyxel.KEY_Z):
+            if self.index < len(self.tab)-1:
+                self.index += 1
+                self.coming_back = True
+                self.number = self.tab[self.index]
+
+        if pyxel.btn(pyxel.KEY_CTRL) and pyxel.btnp(pyxel.KEY_Y):
+            if self.index > 0:
+                self.index += -1
+                self.number = self.tab[self.index]
+                self.coming_back = True
+
+        if pyxel.btnp(pyxel.KEY_A):
+            print(self.tab, self.index, self.number, self.coming_back)
+
+        #                                                  //\\CAN DESTROY CODE//\\
+    def draw(self):
+        pyxel.cls(0)
+        pyxel.text(10,10,str(self.tab),7)
+        pyxel.text(14+12*self.index,13,'_',11)
+        pyxel.text(18,20,str(self.number),3)
+
+App()
