@@ -120,9 +120,9 @@ class animation_desk:
         if is_pressed(self.button_list,'zoom_in'):
             self.draw_area.zoom += 1
         if is_pressed(self.button_list,'speed_down'):
-            self.framerate += 5
+            self.framerate += 2
         if is_pressed(self.button_list,'speed_up'):
-            self.framerate -= 5
+            self.framerate -= 2
         
         if self.draw_area.zoom <= 0:
             self.draw_area.zoom = 1
