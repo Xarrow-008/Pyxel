@@ -1,8 +1,10 @@
 import pyxel, os, random, copy
 
 ASSETS = {'arrow_left':(0,0),'arrow_right':(1,0),'arrow_up':(2,0),'arrow_down':(3,0), 'cursor':(4,0),
-          'pause':(0,1),'play':(1,1),'zoom_out':(2,1),'zoom_in':(3,1),
+          'pause':(0,1),'play':(1,1),'minus':(2,1),'plus':(3,1),
           'grid':(0,2),'cross':(1,2)}
+
+BASE_CANVAS = [[2 for x in range(32)] for y in range(32)]
 
 class App:
     def __init__(self):
@@ -44,31 +46,94 @@ class animation_desk:
     def __init__(self,button_list):
         self.button_list = button_list
         self.colorpick = ColorPick(button_list,4,113)
-        self.draw_area = DrawArea(1,1,95,95)
+        self.draw_area = DrawArea(1,1,95,95,BASE_CANVAS)
         self.playing = False
-        self.button_list.append(Button(name='last_frame',color=5,x=26,y=100,width=10,height=10))
-        self.button_list.append(Button('play/pause_anim',5,40,100,10,10))
-        self.button_list.append(Button('next_frame',5,54,100,10,10))
-        self.button_list.append(Button('zoom_out',5,101,20,10,10))
-        self.button_list.append(Button('zoom_in',5,116,20,10,10))
-        self.button_list.append(Button("grid_on/off",5,101,3,10,10))
+        self.start_frame = 0
+        self.animation = []
+        self.framerate = 10
+        self.frames = [{'all_canvas':copy.deepcopy(self.draw_area.past_canvas),'index':0,'coming_back':False}]
+        self.frames_index = 0
+        self.button_list.append(Button(name='last_frame',color=5,x=26,y=100,width=10,height=10,icon='arrow_left'))
+        self.button_list.append(Button('play/pause_anim',5,40,100,10,10,'pause/play'))
+        self.button_list.append(Button('next_frame',5,54,100,10,10,'arrow_right'))
+        self.button_list.append(Button('zoom_out',5,101,28,10,10,'minus'))
+        self.button_list.append(Button('zoom_in',5,116,28,10,10,'plus'))
+        self.button_list.append(Button('speed_down',5,101,48,10,10,'minus'))
+        self.button_list.append(Button('speed_up',5,116,48,10,10,'plus'))
+        self.button_list.append(Button('grid_on/off',5,101,3,10,10,'grid/crossed'))
+        self.base_canvas = copy.deepcopy(self.frames[0]['all_canvas'])
 
     def update(self):
         self.colorpick.update()
         self.draw_area.update(self.colorpick.current_color)
-        if is_pressed(self.button_list,'play/pause_anim'):
+        if is_pressed(self.button_list,'play/pause_anim') or pyxel.btnp(pyxel.KEY_LALT):
             self.playing = not self.playing
+            if self.playing:
+                self.save()
+                self.animation = [frame['all_canvas'][frame['index']] for frame in self.frames]
+                self.start_frame = pyxel.frame_count
+            else:
+                self.load()
+
+
+        if not self.playing:
+            if is_pressed(self.button_list,'last_frame') or pyxel.btnp(pyxel.KEY_1):
+                self.save()
+                if self.frames_index > 0:
+                    self.frames_index -= 1
+                    self.load()
+
+            if is_pressed(self.button_list,'next_frame') or pyxel.btnp(pyxel.KEY_3):
+                self.save()
+                if self.frames_index >= len(self.frames)-1:
+                    self.frames.append({'all_canvas':copy.deepcopy(self.base_canvas),'index':0,'coming_back':False})
+
+                self.frames_index += 1
+                self.load()
+        
+        else:
+            frame = (pyxel.frame_count - self.start_frame)//self.framerate % len(self.animation)-1
+            self.draw_area.canvas = self.animation[frame]
+            
+        if pyxel.btnp(pyxel.KEY_A):
+            print(self.draw_area.canvas,flush=True)
+
+        self.parameters_gestion()
+
+    def save(self):
+        self.frames[self.frames_index]['coming_back'] = self.draw_area.coming_back
+        self.frames[self.frames_index]['index'] = self.draw_area.canvas_index
+        self.draw_area.past_canvas[self.draw_area.canvas_index] = copy.deepcopy(self.draw_area.canvas)
+        self.frames[self.frames_index]['all_canvas'] = copy.deepcopy(self.draw_area.past_canvas)
+
+    def load(self):
+        self.draw_area.coming_back = self.frames[self.frames_index]['coming_back']
+        self.draw_area.canvas_index = self.frames[self.frames_index]['index']
+        self.draw_area.past_canvas = copy.deepcopy(self.frames[self.frames_index]['all_canvas'])
+        self.draw_area.canvas = copy.deepcopy(self.draw_area.past_canvas[self.draw_area.canvas_index])
+
+    def parameters_gestion(self):
+        if is_pressed(self.button_list,'grid_on/off'):
+            self.draw_area.grid = not self.draw_area.grid
         if is_pressed(self.button_list,'zoom_out'):
             self.draw_area.zoom += -1
         if is_pressed(self.button_list,'zoom_in'):
             self.draw_area.zoom += 1
-        if is_pressed(self.button_list,'grid_on/off'):
-            self.draw_area.grid = not self.draw_area.grid
+        if is_pressed(self.button_list,'speed_down'):
+            self.framerate += 5
+        if is_pressed(self.button_list,'speed_up'):
+            self.framerate -= 5
         
         if self.draw_area.zoom <= 0:
             self.draw_area.zoom = 1
         if self.draw_area.zoom >= 6:
             self.draw_area.zoom = 5
+        
+        if self.framerate <= 0:
+            self.framerate = 1
+        if self.framerate > 180:
+            self.framerate = 180
+
     def draw(self):
         pyxel.cls(7)
         pyxel.rect(1,1,95,95,col=11)
@@ -77,24 +142,34 @@ class animation_desk:
         self.colorpick.draw()
     
     def draw_over(self):
-        icon(x=26,y=100,img=0,asset_name='arrow_left')
-        icon(x=54,y=100,img=0,asset_name='arrow_right')
-        if self.playing:
-            icon(x=40,y=100,img=0,asset_name='pause')
-        else:
-            icon(x=40,y=100,img=0,asset_name='play')
-        icon(x=101,y=20,img=0,asset_name='zoom_out')
-        icon(x=116,y=20,img=0,asset_name='zoom_in')
-        icon(x=101,y=3,img=0,asset_name='grid',crossed_condition=not self.draw_area.grid)
+        for button in self.button_list:
+            if button.icon != None:
+                for key in ASSETS.keys():
+                    if button.icon == key:
+                        icon(button.x,button.y,img=0,asset_name=key)
+
+            if button.name == 'grid_on/off':
+                icon(button.x,button.y,img=0,asset_name='grid',crossed_condition=not self.draw_area.grid)
+            if button.name == 'play/pause_anim':
+                if self.playing:
+                    icon(button.x,button.y,img=0,asset_name='pause')
+                else:
+                    icon(button.x,button.y,img=0,asset_name='play')
+
+            if button.name == 'zoom_out':
+                pyxel.text(button.x + 5,button.y - 7,'Zoom',col=6)
+
+            if button.name == 'speed_down':
+                pyxel.text(button.x + 3,button.y - 7,'Speed',col=6)
 
 
 class DrawArea:
-    def __init__(self,x,y,width,height):
+    def __init__(self,x,y,width,height,canvas):
         self.x = x
         self.y = y
         self.width = width
         self.height = height
-        self.canvas = [[2 for x in range(32)] for y in range(32)]
+        self.canvas = canvas
         self.past_canvas = [copy.deepcopy(self.canvas)]
         self.canvas_index = 0
         self.coming_back = False
@@ -279,13 +354,14 @@ class ButtonDraw:
         
 
 class Button:
-    def __init__(self,name,color,x,y,width,height):
+    def __init__(self,name,color,x,y,width,height,icon=None):
         self.name = name
         self.color = color
         self.x = x
         self.y = y
         self.width = width
         self.height = height
+        self.icon = icon
         self.pressed = False
     
     def update(self):

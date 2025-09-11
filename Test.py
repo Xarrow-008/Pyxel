@@ -28,6 +28,8 @@ pyxel.show()
 os.system('cls')
 canvas = [['.' for x in range(20)] for y in range(20)]
 
+digits = [0,1,2,3,4,5,6,7,8,9]
+"""
 def draw_line(x0,y0,x1,y1):
     positions = []
     cos = x1 - x0
@@ -91,7 +93,7 @@ class App:
         if pyxel.btnp(pyxel.KEY_A):
             print(self.tab, self.index, self.number, self.coming_back)
 
-        #                                                  //\\CAN DESTROY CODE//\\
+        #                                                  //\\CAN ERASE CODE - NO PROBLEM//\\
     def draw(self):
         pyxel.cls(0)
         pyxel.text(10,10,str(self.tab),7)
@@ -99,3 +101,35 @@ class App:
         pyxel.text(18,20,str(self.number),3)
 
 App()
+"""
+
+def string_to_list(string):
+    final = []
+    for i in range(len(string)-1):
+        char = string[i]
+        if char != ' ' and char != ',' and char != '[' and char != ']':
+            if int(char) in digits:
+                final.append(int(char))
+    return final
+
+def str_to_int(string):
+    number = 0
+    in_number = False
+    for char in string:
+        if int(char) in digits:
+            if not in_number:
+                in_number = True
+                number = int(char)
+            else:
+                number *= 10
+                number += int(char)
+        elif in_number:
+            return number
+    return number
+
+        
+
+#print(string_to_list('[1,2,3,4,5,18]'))
+
+print(type('1'))
+#print(str_to_int('jdnbvdfdgzhsnb15j dcbjghkhedj'))
