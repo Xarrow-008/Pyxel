@@ -131,5 +131,29 @@ def str_to_int(string):
 
 #print(string_to_list('[1,2,3,4,5,18]'))
 
-print(type('1'))
+
 #print(str_to_int('jdnbvdfdgzhsnb15j dcbjghkhedj'))
+liste = [[8,8,8],[8,8,8],[8,8,8],[8,8,8],[8,8,8],[8,8,8]]
+
+def rect_in_list(x, y, w, h): 
+    all_pos = []
+    for in_y in range(h):
+        for in_x in range(w):
+            all_pos.append((x+in_x,y+in_y))
+    return all_pos
+
+square_b_r = rect_in_list(1,1,2,2)
+
+dic = {'x':0,'y':0}
+tup = (10,11)
+
+for coord in square_b_r:
+    liste[coord[1]][coord[0]] = 1
+
+for y in liste:
+    print(y)
+
+dic['x'], dic['y'] = tup
+
+print(dic)
+
