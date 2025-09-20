@@ -1,0 +1,493 @@
+Results of Éliott's Brainstorming
+
+1. Gameplay elements and game design principles that we didn't agree on, but that I feel would be good to add and follow
+A. Game design principles
+a. Item Design
+A big part of what makes Roguelikes good is that they're effectively infintely replayable, since the random elements make every run different. A big part of what make those runs different are the items. In order for our game's items to actually make a difference, I think we should follow a few rules when designing items :
+- Items must be impactful : The player should be able to notice the change the item induces. Rarer items would obviously have more noticable effects, but even common items should change things the player can notice, if they're paying attention
+- Items must be unique : The game's items should be unique in both effect and usage. This means that there shouldn't be an item that is just a better/worse version of another item, that items should impact a wide variety of things, and that items should have their effects triggered by a wide category of things
+- Item may have synergies : Most strategies in Roguelikes do not generally rely on individual items being powerful, but on multiple items of varying power level interacting with each other for powerful results. We shouldn't try to force items to have synergies, but should make it so there is overlap between the activation methods of certain items, and the effect of others, such that synergies are created organically (For example, an item which increases firing speed would synergise well with an item that increases the damage of the last bullet in a clip, since the first item's effect means that the second item's effect happens more often (since you're going through your clip faster), thus increasing the player's overall damage output)
+b. Different playstyles
+Our game should be designed in such a way that multiple different playstyles can coexist and all allow the player to succeed. Obviously, each playstyle will struggle in certain areas, but be more efficient in others. These playstyles would also be highly dependent on the weapons and items the player gets, meaning the player would have to know how to play multiple playstyles in order to adapt to the situation. I've listed some of the major aspects of playstyles I could think of dichotomies here :
+- Close-quarters/Long Range
+	- A close-quarters playstyle would rely on weapons whose effective range is quite short, such as melee weapons, or ranged weapons with high spread like Shotguns or SMGs. Because of the proximity to enemies, the player would have to dedicate a lot of attention to dodging the enemies' attacks, or have access to items that can reduce them or negate them. This is currently unviable since we don't have melee weapons, and the ranged weapons are effective at mid range
+	- A Long Range playstyle would rely on ranged weapons with a mid to long effective range, such as every thing I didn't mention in the close-quarters paragraph. While they don't have to worry as actively about enemy attacks, the fact that enemies close to them are out of their effective range means that they are restricted in their movement (meaning that maps with more claustrophobic design would be more dangerous to them), since they have to move constantly to stay out of the way of enemies, as opposed to close-quarters player, who have no such restriction. This is currently pretty much the only viable aspect of the dichotomy, since ranged weapons that are effective in mid/long range, are equally as effective in short range, and that enemies move slowly enough, with the maps big enough, that you can't ever really get "boxed in" by the enemies.
+- Single hit/Multiple hits
+	- A single hit playstyle would rely on the ability to one/two-shot enemies with a weapon like a shotgun or a sniper. This would be particuliarly effective against regular enemies, since it means the player doesn't really have to dodge attacks, but becomes much more risky against enemies who can withstand the attack, like bosses, or even some of the tougher enemies that spawn later in the run, since it leaves the player vulnerable. This is currently viable with the shotgun and maybe the sniper.
+	- A multiple hit playstyle would rely on the ability to constantly deal damage to enemies over a period of time, either with a weapon with a high-fire rate, or other item-assisted means. This playstyle would probably be more generally risky, since most enemies would presumably live longer, but would grant the player the ability to deal damage more consistantly to some of the tougher enemies. This is also currently viable with the rifle and the SMG.
+- Single Target/Multiple Target
+	- A single target playstyle would be focused on having the entirety on the player's damage output be focused on one enemy. This would be very efficient at killing individual strong enemies and bosses, but would struggle against big groups of weaker enemies, that are individually weak to the player's attacks, but as a whole can survive for a long period of time. This is currently the only really viable playstyle of the dichotomy, since the only "multiple targets" weapon is the grenade launcher.
+	- A multiple target playstyle would essentially just be the opposite of that ; centered around damaging groups of enemies, good at killing groups, worse at killing individual strong enemies. Technically, every playstyle ends up becoming a multiple targets playstyle, since the piercing item makes every bullet hit multiple enemies.
+These are mostly guidelines on possible aspects of playstyles we should consider when designing things. Its almost garanteed that the actual playstyles players use would more likely be a mix of each dichotomy.
+B. Gameplay mechanics
+a. Critical hits
+Critical hits would be a random chance for the player to deal more damage (this could start at 0%, and then increase through items). This extra damage would work as a coefficient.
+I think we should add this because :
+- This adds a new aspect of the game that can be affected by items, increasing the item uniqueness
+- This would make "single hit" playstyles more effective, since the extra damage from the coefficient would be more significant than for low damage/high firerate weapons
+- This would add variation to the player's damage output, which I personally think feels better than if you're doing the same amount of damage every attack (note : we should add damage numbers)
+b. Damage fall-off/ramp-up
+Both of theses would be a mechanic where bullets would increase/decrease in damage depending on the distance they've travelled.
+I think we should add this because :
+- This allows us to better control the effective range of weapons
+- This would add a lot more variation to the player's damage outut, which I still like for exactly the same reasons
+c. Changes to the dash
+I propose we make it so that the dash has a longer cooldown, but that it allows to go through enemy attacks (or at least during a part of it) without taking damage.
+I think we should add this because :
+- Currently, the dash is pretty much just a mobility tool, that you use when you're not in danger, since the locked movement makes it very difficult to dodge attacks while dashing, which essentially just means you use the dash to go faster to the place where the actual action happens. This change would turn the dash into a mobility/utility tool, where, when you're not in danger, you can use the dash to go the action faster, and when you are, you can use the dash to try and dodge the enemie's attacks (which are currently quite difficult to dodge in certain cases, especially turret bullets). The longer cooldown would make it so that you still have to think about how you're using your dash, and can't just dash through every attack.
+- A better ability to dodge would make close-quarters playstyles much more viable, while the decreased mobility would make long range playstyles slightly less viable (though they can still dash away from enemies, just less often)
+- This is how dashes work in basically every roguelike that has a dash
+d. Status effects
+These would be things like "fire", "poison", "bleed", "shocked", "stunned", "slowed", etc. We could eventually add things like resistances or weaknesses to certain of these status effects to regulate difficulty (or because a machine bleeding doesn't make a lot of sense). These should be able to stack, meaning that an enemy that receives an attack that deals fire damage twice, would have 2 stacks of the "fire" status effect, and receive twice the damage from fire than an enemy that only has 1.
+I think we should add this because :
+- This adds a new aspect of the game that can be affected by items, increasing the item uniqueness
+- This would make "multiple hits" playstyles more viable, since most status effects that deal damage would do it over time
+e. Map Hazards
+These would be things like pools of toxic liquid on the ground, traps, or locked doors that need a key.
+I think we should add this because :
+- This would force the player to pay more attention to their environment
+- Theses also allow to indirectly restrict the player's movement, meaning they have to be more careful when retreating in order to not hit a hazard
+- We could make the hazards depend on the type of bunker the player is in for world building purposes
+- This makes it so that the type of bunker the player is in is something the player should pay attention to
+
+2. Enemies
+A. Enemy Families
+I've separated every enemy into different "families" (we can find a better name later). Enemies within the same family share common aesthetics, mechanics and lore. Every family would also contain one boss. I think this is a good thing because :
+- having enemies that look like each other makes the world seem more coherent
+- having the enemies that look like each other behave in a similar way is just intuitive
+- having the enemies share lore as a group makes the game look like it really has a world with characters that interact with each other in it, rather than just a bunch of unrelated characters put together
+- we can have things that affect only a specific enemy family
+a. Basics (can probably find a better name)
+Lore : This is the citizenry of the aliens (note to self : need to find them a name). They're stuck on Earth because of the nukes and absolutely hate it here. They do not have have formal training in combat. They're attacking you because they want to reverse-engineer your ship in order to escape the planet (because their ships were destroyed by the nukes, and Earth doesn't have the ressources necessary for their technology to function) and because in some cases you're just walking into the bunkers they've made their home.
+Appearance : Considering what we've been doing so far, probably spider like. I imagined their technology (what's left of it) would take the form of implants, though I don't know how much of that detail you could put in a 16x16 image. It would probably make sense for them to have some sort of clothing, or the spider equivalent.
+Function : These are essentially the starting enemies that introduce the player to all of the base mechanics that are then built upon by the enemies of other families
+b. Mutants
+Lore : These were caused by the radiation from the nukes. They're effectively big, living, aggregates of cancerous cells. Their aggressivity is caused by their limited sentience of "I am constantly killing my own cells, if I don't find more biomass to absorb I will die."
+Appearance : I was thinking something inspired by the infection from Hollow Knight, but green.
+Function : These would essentially restrict the player's movement through enemies that explode on contact, and others that leave toxic fluid on the ground, meaning the player has to be extra-careful when maneuvering around these enemies.
+c. Hunters
+Lore : These were part of the citizenry of the aliens, but ended up being isolated from the rest of the group by the nukes. They had to survive in the wasteland, and as such had to rapidly evolve. The current hunters are the descendents of these original aliens. These new hunters have adapted to life on the planet, and by now are mostly unrelated to the rest of the species. They're aggressive because humans are just a part of their preys.
+Appearance : They would obviously retain a lot of spider-like features, but I imagined the adaptation to life on the planet would make them have features reminiscent of mammalian or reptillian predators in real life.
+Function : These would try to take the player by surprise and behave in a unique way that the player is forced to adapt to.
+d. Security
+Lore : These were hold military hardware designed by humanity to fight against the aliens. This failed, and so they were abandonned on Earth as a few select humans left for the space station while the nukes were dropping. Their aggressivity is caused by their software slowly deteriorating over time, until their programming against harming humans no longer functionned.
+Appearance : These would have been designed at the same time as the weapon the character uses, and the space station, so there should probably be a common design between all of these.
+Function : These would function as slightly more proactive hazards, essentially making whatever place they're in harder to move around by virtue of their existence, while not being extremely hard to take on individually.
+e. Legion
+Lore : These are the remnants of the aliens' military. They were hit the hardest by the nukes (since you typically focus military hardware when you're bombing something). Even though they're nominally still under the power of the alien government, the chaos after the nukes has made it so they're effectively operating as an independant military dictatorship. They're extremely mad humanity, a drastically less powerfull civilisation than them, has managed to "defeat" them. At this point, their main motivation for leaving the planet is getting to the space station to kill what's left of humanity.
+Appearance : Unlike the hunters, they haven't evolved, so they would have all the same features as the basics. However, they're part of the military, so they would have accoutrements. I also imagined they would have specific implant technology in order to be able to wield weapons in an optimal way (which a spider body can't naturally do)
+Function : These would be "elite" enemies, that would pose large problems to the player.
+f. Celestials
+Lore : These would be groups of humans (left behind because their wasn't enough space for everyone in the space station and the bunkers) and aliens (just got separated from the rest of the group in the chaos) that lived in the wasteland after the nukes. They formed a temporary (now permanent) truce in order to survive. Because they worked in groups, they didn't have to evolved like the hunters did. The first generations of the group managed to orient themselves on the Earth by looking at the stars (since essentially every other landmark was destroyed by the nukes). As generations passed, this eventually became worship, with the stars becoming gods, and the constellations representing various opposed groups of gods. They also want to reverse-engineer human technology, because they want to reach "Lux Caelum" (the Sun) and "ascend" (disintegrate).
+Apperance : Their ranks are composed of both humans and aliens. Their technology would probably be a mix of the humans' and aliens', with a special emphasis on light. For their clothing, I'd imagined something resembling stereotypical monk robes, though tattered, considering most of them still live in the wasteland.
+Function : They would have ranged attacks, that are especially difficult to dodge compared to other enemies, with instaneous projectiles, or some that you have to dash through, and are otherwise undogeable.
+B.The actual enemies
+I'm now going to list every enemy, by family, and describe their abilities, and give some insight into how I imagine them looking, if I have some, and their lore.
+a. Basics
+Spider : Just the base default enemy, with a slash and nothing else. Its current appearance is pretty much what I would expect an alien spider to look like. Its just an average alien, with no particular characteristic, but it understands that getting your technology is how they're going to leave the planet.
+Hatchling : Its essentially a spider but smaller, weaker and maybe faster, usually gets spawned by other enemies. Its current appearance doesn't really look like a baby spider, but also it works perfectly at conveying "little weak thing that gets spawned by other things" and also its not uncommon for infant animals to look nothing like the adult form so its fine. Its a baby alien, and humans look like food to it.
+Bulwark : Its a bulkier, slower and stronger spider that doesn't take knockback. I imagined it being bigger than the regular spider, with more tones in the black and red. I don't know how you would do this in 16x16, but I imagined it having a reinforced head. These are the alien's security services, they're basically cops except they also have slight training on how to fight against humans.
+Tisserand : Has the ability to throw a slowing cobweb at the player. I imagine it as a spider with more tones in the white, and maybe something going on with its forward legs showing that its weaving something. They're artisans, builders and manufacturers, they're one step in the hierarchy over the regular spider because they're the ones building the colonies.
+Hive Queens : On top of a slash, spawns hatchlings passively and on death. I imagined it as a bigger spider with an oversized abdomen. They're at the top of the hierarchy, since they're the ones that give birth to the rest of the species.
+Infested Scrapper : Fires at the player with a random gun, spawns 1 hatchling on death. Its a human husk being piloted from the inside by a hatchling, using as both cover and food reserve.
+b. Mutants
+Tumor : Explodes on contact with the player, or death. Leaves behind toxic fluid on the ground for a few seconds after death. I imagine it looking like this but green. Its literally just a semi-sentient cancerous cell, desperatly looking for more mass to absorb to delay its own death.
+Leak : Behaves like a spider, leaves behind toxic fluid on the ground as it passes. Its a tumor growing inside the corpse of a spider, and that is halfway through the process of consuming it into itself.
+Amalgamate : Does a big explosion on contact with the player, if it dies without touching the player, it spawns multiple tumors. Its essentially a bunch of tumors that attempted to consume one another, and ended up melding into a single entity.
+Bloated Scrapper : Fires at the player with a random gun, explodes on death and leaves behind toxic fluid. Like the leak, this is a tumor growing inside a human husk, piloting it to get more things to consume while actively consuming it.
+c. Hunters
+Pouncer : Slow moving most of the time, but has a lunge that goes far and fast, and deals damage. I imagined it having sharp forward legs it uses to strige during the lunge, and strong back legs into uses to propel itself. I imagined it taking inspiration from felines (or mantises), that tend to wait until their prey doesn't suspect it to pounce and get it in one attack. (Note : This is what we called the stalker, but I gave that name to another enemy).
+Stalker : Has a fairly powerful melee attack. It is only visible when it is attacking or  receiving damage, making it very difficult to predict it. I imagine it taking inspiration from chameleons, or that one octopus that's absurdly good at hiding.
+Tracker : Has a slowing attack and moves faster than average. Rather than try to go towards the player, it tries to cut them off by attempting to predict their movement. I imagined it as having really good eyes, to show that its really looking at what you're doing to outplay you.
+Mimic : Disguises itself as an interactable, and only starts attacking you once the player attemps to interact with it. It is slow, and has a melee attack, but it is quite strong. While disguised, it is undistiguishable from regular furniture, while not disguised I imagine it looking like this but for whatever furniture its disguised as, and maybe with spider legs.
+d. Security
+Turret : Stationnary, shoots automatically at the player with high accuracy. You know what a turret looks like. It was literraly just a turret made to defend the bunkers against invaders.
+Automaton : Fires at the player with a random gun. Can place down landmines, beartraps and gaz canisters on the ground. It was created as a robot that could both defend the bunkers and do maintenance. It was designed to be similar in size and shape to a human, since it was doing work also done by humans, and because people had to verify that it was actually doing its duties correctly.
+Technically, the landmine, beartrap and gaz canisters would probably implemented as Security enemies, but its pretty obvious what they do and they ccan barely be considered enemies.
+e. Legion
+Scout : Goes fast, steals your ammo on contact, retreats, then goes back to steal more. They would be the members of the legion with the least amount of technological modifications to themselves, though I imagine they would have some around the legs to increase their speed. The scouts are mostly composed of new recruits, that is mainly because this is the most dangerous position.
+Duelist : Attacks in melee rather quickly, able to parry bullets (unless they're hit in the back but good luck doing that). I imagined it has having implants that allow it to double wield swords. This position if mostly filled with recruits that now have a few month of experience, just finished sword training, and are very confident in their ability to parry bullets with a sword (sometimes too confident for their own good).
+Shield Bearer : Slow and hits hard with melee. As long as it is alive every other not Shield Bearer enemy nearby receives a lot less damage. I imagined it as a bulky (maybe based on the bulwark), with implants along its back that generate the shield. This is a more senior position, reserved for experienced soldiers. Its not uncommon for people higher up in the hierarchy to get demoted to Shield Bearer if they dissent with the leadership, this is mostly because Shield Bearers focus the damage on themselves.
+Unit Leader : Has an alien gun, pushes other enemies towards the player to form cover for itself. I don't really have any idea for it should look. They're the leaders of a military unit. They do however, care about living, and as such use their position of authority to make sure there is about as many targets between themselves and the player as possible
+Hoarder : Spawns with an alien gun, can pickup items and use furniture. I imagined it as a human in a legion uniform. They're humans who've agreed to work for the legion in exchange for not being killed. The legion despises them, but they're also the only people who can use human technology, and therefore find out how to leave the planet.
+f. Celestials
+Acolyte : Fires a laser, this a pretty long freezing period, but the laser has 0 travel time, meaning the player has to be dashing when the laser gets fired. You'll probably have to make a human and spider variant of all the enemies in this family. This is just a regular member of the Celestials, whose attacking you because you're considered a heretic.
+Missionary : Fires a circular laser that expands throughout the room, requiring the player to dash through it. They would probably have signs on their clothes showing they're the hierarchical superiors of acolytes. They would have technology around their legs because they walk great distances. They're the people that go into unexplored lands to settle new communities of celestials and spread the faith to other people living in the wasteland (or even in bunkers). Their attack would have them preach the benefit of light while the laser goes off.
+Martyr : Attacks at melee. When it dies, it fires a bunch of lasers in a few directions. They would probably have devices strapped to them, which would emit the light when they die. They believe having your corporeal body disintegrated by a star allows you to enter its celestial court, so those who know they going to die soon make sure that their corpse is going to get disintegrated by stored and concentrated sunlight.
+Templar : As a "shield" (doesn't block things but damages the player) of lasers infront of itself. It can send this shield forward to try to damage the player and then recall it. Probably have an outfit more reminiscent of the knight's templar. They're the armed the force of the celestials, responsible of both law enforcement, and "forceful conversions" when the missionaries can't convince people to convert peacefully.
+Seer : Fires a single continuous laser that tracks the player. They would have jewellery and symbols indicating their position of power. I imagine that they fire the laser from an artificial eye. They are some of the most powerfull and influential people among the celestials, as they can supposedly read messages from the stars in the night sky.
+C. Bosses
+Each family has one boss. Bosses appear once every five bunkers. They have a special arena that replaces the usual bunker. I'll now describe their name, lore, gameplay, and give indications on their appearance and the feel their animations should give off (since they're bigger than one tile, you probably have enough space to make the animations expressive). I also propose we make it so that, while the player is fighting a boss, they cannot run out of ammo, or break their melee weapon, as that would mean they'd have to kill a boss with nothing other than the shove.
+a. Basics
+Name : Matriarch
+Lore : Matriarchs are essentially the highest beings within the alien hierarchy, as they are the only ones capable of giving birth to hive queens. Matriarchs come from a rare and recesssive gene, which allows hive queens to live extremely long, continually growing in size, until they get the ability to give birth to other hive queens, at which point they become a Matriarch. Because of this, Matriarch nests typically reside at the center of alien settlements, and they consider themselves the protector of that settlement, being very aggressive against those they see as threats.
+Appearance : She's a very big and very old hive queen, so you would probably have to make it look a bit like the hive queens, though she should probably have details showing that she isn't just a big hive queen and that there's still a biological difference. Also she should probably give a more regal feel.
+Animations : She's very heavy, and her attacks have to feel like they'd hit like a truck. She's also absolutely pissed at the player since you're trying to kill her, which would not only mean her death, but also the end of the settlement she was protecting.
+Gameplay :
+	- Her arena would be triangular, with one end of the triangle leading to the ship, and the other two to small rooms with eggs in them.
+	- She has a sweeping melee attack, which does quite a lot of knockback on top of the damage
+	- She's able to throw a large cobweb, which does not damage the player, but does slow them down, even if they're dashing through it.
+	- She can lunge at the player. It isn't extremely fast, but does a lot of damage, and her size makes its harder to dodge than the lunges of other enemies.
+	- She can periodically spawn hive queens.
+	- When she reaches 66% and 33% health, one of the egg piles in the small rooms hatches into a horde.
+b. Mutants
+Name : Entropy
+Lore : What happens when a tumor finds a mountain of corpses. At this point, its consumed and absorbed so much mass, that its actually split into dozens of tumors, working symbiotically to sustain their constant need for more organic matter. Because they've lived much longer than the average tumor, and that they have communications between each tumor that forms the whole, they've actually developped something resembling sentience, and are capable of having thought beyond "I need more matter" (though that's still the majority of what they're thinking about). By the time the player reaches them, they've consumed almost all of the organic matter in the immediate vicinity, and are now losing mass to rot and cancer faster than they're gaining it, and as such are quickly trying to find alternative source of organic matter (the player).
+Appearance : I imagined them as being a vaguely humanoid figure, composed of tumors and the rotting remains of humans and animals. The idea being that the tumors aren't in direct contact, but rather are working together to make the figure (whose mass is mostly composed of the carcasses) stick together and act as a single entity.
+Animations : They doesn't really have proper muscles to speak of, so they would probably be a bit wobbly in their actions. They're also made of rotting corpses, so bits of flesh and bone would end up falling to the ground as they move around.
+Gameplay : 
+	- Their arena would be square shaped with vents on the ground (I thought to also have vents on the walls, but we can't see those so that would be confusing)
+	- First phase (100% to 50% health)
+	- Moves around slightly slowly
+	- Toxic liquid frequently pools at their feet, making attacking them at close quarters risky
+	- Can throw an explosive projectile at the player, if the player dodges it and it hits a wall, it turns into a tumor. The projectile goes quite fast, and they can change their freeze time for this attack, meaning the player needs good reaction time.
+	- Can do a lunge, which leaves behind toxic liquid and deals respectable damage to the player
+	- Occasionally spawns an amalgamte
+	- Second phase (49% to 0% health)
+	- Hides in the vents, becoming undamageable
+	- They peak out for approximately 3s in order to attack the player, then hides back in. They can only be damaged while its out.
+	- It still throws the projectile and spawns the amalgamate
+	- In its last quarter of health, toxic liquid starts to pool out of random vents at random intervals, and random mutant enemies starts to occasionally spawn out of vents
+c. Hunters
+Name : Apex (I don't like this name but I also can't think of anything else)
+Lore : Literally the apex predator, its managed to carve out a spot for itself at the top of the food chain and it is thriving there. At this point, it has no care for leaving Earth, since its well adapted enough to Earth that all of its basic biological needs can be fullfilled with ease, and the alien's drive for expanding to the rest of the universe, as a species, was converted by evolution into a drive to ensure that its pack (therefore only its immediate family) will live on. It does, however still want to kill the player, simply because that's a source of food.
+Appearance : I imagined it as being close to famous ground predators like lions or wolves, I don't have a lot of insight on this guy's appearance other than that.
+Animations : Its trying to intimidate the player, and make itself look more dangerous than it actually is (though it is quite dangerous). Its goal is to frighten the player so that they make a mistake.
+Gameplay :
+	- Its arena is composed of a few round and relatively open rooms, linked to together by long and twisty hallways.
+	- At 100%, 66% and 33%, the boss chases the player throughout the hallways. During this chase sequence, it deals damage on contact, is invulnerable and can increase in speed. This chase sequence ends when the player reaches one of the rooms, at which point the player gets locked in until the next chase sequence.
+	- It can attack with a big claw swipe
+	- It can also do a very fast lunge that hits hard
+	- It can also become invisible for a few seconds. It will try to attack the player as the invisiblity ends. While invisible, it will move differently than usual, trying to take the player by surprise and dodge their attacks. The duration of time for which it stays invisible varies.
+	- After the second chase sequence, it can chain lunges up to 3 times.
+	- After the third chase sequence, it can place cobwebs down on the floor that slows the player down.
+d. Security
+Name : Vanguard
+Lore : Its an AI designed to keep the civilians that stayed in bunkers safe by taking care of the maintenance and defense of the bunkers. Since the nukes killed most of the people it was supposed to protect, it despises those who fled to the space station (since they're the ones who knew it was going to happen). The deterioration of it software deactivated its programming against harming humans, so now its trying to kill the player as revenge.
+Appearance : Technically, its the whole arena, however, the actual visible and damageable part of it would probably look like a super computer, that is linked to a bunch of security apparati and military hardware.
+Animations : It should probably be very focused on its objective of killing you, and wouldn't waste unneccesary time on doing flashy moves. Considering how old it, it would probably have stutters and glitches.
+Gameplay :
+	- Its Arena is a whole bunker. The rooms are interconnected and spread out in all directions like a maze. The southern-most door is locked.
+	- First phase (100% health)
+	- There are 3 keycards hidden somewhere within the bunker, the player has to find them to open the locked room.
+	- Automatons and turrets are constantly spawning, distracting and slowing down the player.
+	- Second phase (100% to 0% health, starts when the player opens the door)
+	- The player can't leave the room once they enter.
+	- Has access to guns that spray bullets throughout the room
+	- Has access to rpg that launch explosive shots
+	- Turrets can occasionally spawn along the walls
+	- Automatons will occasionally spawn at the top of the room and try to move down towards the boss in order to repair/heal it.
+e. Legion
+Name : Zenith
+Lore : The Leader of the Legion, and the self-proclaimed "Ultimate Lifeform". They have convinced themself that they are superior to all other beings, and the only way to prove that dominance is to defeat them in warfare. Their ego (and health) took a big hit after their army got anihilated by the nukes, but that didn't prevent them from immediatly plotting to exterminate what's left of humanity and continue onwards in their endless war against literally everything that lives.
+Appearance : They've done extensive biological and mechanical engineering on themself in order to as proefficient in combat as possible, so I imagine that they would have a lot more humanoid figure, while still retaining the spider features that are useful to them (more arms means more things to hold weapons with). I imagine they'd given themself an "angel of war" look, kinda inspired by this dude (though less deer/bat thing and more spider).
+Animations : Aura farming at any and all times, they do not consider the player an actual threat, but rather an opportunity to show off their abilities and powers to the rest of the Legion.
+Gameplay :
+	- Its arena is circular, with places outside of it where legion members watch as spectators
+	- First Phase (100% to 66%)
+	- Moves relatively slowly
+	- Parries all bullets that don't hit them in the back
+	- Has various attacks it can perform with its spear, like jabs, spear throws, circular attacks, etc. They switch the timing on these to be less predictable, though some of the more powerfull attack tend to leave them open to counter-attacks by the player
+	- Going to close to the side of the Arena will cause the audience to throw stuff at the player to damage them
+	- Second Phase (66% to 33%)
+	- They become a lot more aggressive : they move faster, and pretty much only do slightly weaker, but faster attacks, instead of the slow, strong and flashy moves of phase 1.
+	- No longer parries bullets, but some of their attacks can destroy them
+	- The audience no longer throws stuff at the player, but they'll instead jump into the arena
+	- Third Phase (33% to 0%)
+	- At the start of the phase, they use a device to copy the player's items.
+	- They're now attacking with both a crossbow and a spear, doing more basic attacks
+	- They also have a dash that work's like the player's
+	- The items they've copied function for them like the player's
+f. Celestials
+Name : Aegir
+Lore : One of the main prophets of the Celestial faith. Is supposeddly a messenger of Achernar, the ruler of the Eridanus constellation, and the god of endings. She is a proponent of a violent crusade against non-believers, as she believes that all celestials who die in the war will find their dreams granted in the afterlife, and that all non-believers will repent and serve the stars in their afterlife.
+Appearance : In order to give off the whole "cult leader" thing I think she should probably physically radiate with light. I think it could also be interesting if she had a bunch of astronomical technology from before the nukes that she's using to "commune" with Achernar.
+Animations : She barely registers the player, and instead prefers preaching to her congregation and "talking" with the stars.
+Gameplay : 
+	- The Arena is an old cathedral, partially renovated by the Celestials. Essentially one very long room, there are side rooms the player can't access all throughout the thing
+	- Aegir stands at the altar, at one end of the room, she's immobile. There is a wall of lasers in front of her that disintegrates projectiles that arrive frontally. This means the player has to get to the end of the room to deal damage to her from behind the wall.
+	- As she's preaching, lasers focusing the player are fired by the altar.
+	- Enemies come continously out of the side rooms, slowing down the player
+	- If the player is very close to her, and has been for a relatively long time, she can summon an undodgeable shockwave that pushes the player back to a point in the room where they can no longer hurt her
+	- After having lost half her health, enemies become stronger, and lasers start to sweep the room. The speed of these lasers increases as Aegir loses health
+
+3. Weapons
+There will be two types of weapons : Melees and Ranged. Weapons will have a characteristic which will prevent the player from using the same weapon indefinitely, those are durability for melee weapons, and reserve ammo for ranged weapons. The player has 2 hands with which they can hold and use weapons, using left-click and right-click. Most weapons take up both hands, but some only take up one, meaning the player can hold 2 one-handed weapons at the same time. If the player presses right-click while they are holding a two-handed weapon (therefore their right-click is useless since they fire the weapon with left-click), or while they have only 1 one-handed weapon (therefore their right-click isn't linked to any weapon), they will do a shove, a melee attack that deals very low damage, but does respectable knockback.
+The player also has a backpack slot, which can hold one 1-handed weapon. The player can switch this weapon with their right-click weapon. If they are using a 2-handed weapon, switching will cause them to only have a left-click weapon.
+
+A. Ranged Weapons
+All ranged weapon have relatively low accuracy when moving, which then improves if the player stands still.
+a. Shotgun
+Fires multiples bullets with high spread
+High damage fall-off and low range
+Knocks the player back when fired
+Semi-auto
+Two-handed
+b. Flare gun
+Fires a single slow-moving projectile
+Damage does not fall-off
+Inflicts fire on hit (If the target was already on fire, also increase the damage of the fire)
+Semi-auto
+One-handed
+c. Sniper
+Fires a single fast moving bullet with medium damage
+Medium damage ramp-up (This means it deals average damage at close-range, but high damage at long range).
+While not moving, damage and acccuracy increase progressively (It takes longer for the sniper to reach its max accuracy than any other weapon, but it can be perfectly accurate.)
+Semi-auto
+Two-handed
+d. Flamethrower
+Rapidly fires relatively slow projectiles in an arc
+No damage fall-off and low range
+Each projectiles does not deal damage, but inflicts a low-damage fire effect
+Continuously firing the weapon for too long will cause the player to also be affected by the fire effect
+Auto
+Two-handed
+e. Grenade launcher
+Fires a single projectile, that lands exactly where the player clicked (Cannot be hit by enemies, but still can by walls).
+No damage fall-off
+Does a high knockback explosion on impact tha stuns
+Semi-Auto
+Two-hand
+f. Tazer
+Fires a single projectile that moves relatively fast
+No damage fall-off
+Inflicts electrical damage (Electricty goes through multiple nearby enemies)
+Semi-auto
+One-handed
+g. 
+Fires bullet somewhat rapidly initally
+Medium damage fall-off and medium range
+Continuously firing increases firing speed
+Slower movespeed while firing
+Auto
+Two-handed
+B. Melee Weapons
+a. Parrying dagger
+Short range, relatively low damage
+Fast
+Parries enemy attacks (Reverses projectiles, and stops melee attacks)
+Single target
+One-handed
+b. Syringe
+Short range, medium damage
+Fast
+Deals poison on hit
+Single target
+One-handed
+c. Mace
+Medium range, High damage
+Slow
+Stuns enemies on hit
+Can hit multiple enemies if they've very close to each other
+One-handed
+d.Staff
+High range, low damage
+Medium speed
+Slows enemies on hit
+Single target
+Two-handed
+e. Montante
+Medium range, high damage
+Medium speed
+Does a full 360° attack around the player
+Player is dizzy after attacking (random movements)
+Multiple targets
+Two-handed
+f. Halberd
+High range, medium damage
+Low-Medium speed
+Does a sweep in front of the player, the more enemies hit, the higher the damage
+Multiple targets
+Two-handed
+g. Gauntlets
+Low range, medium damage
+Fast
+Continously hitting the same enemy increases damage, and does not deal knockback
+Once the player stops hitting the enemy of switches targets, the accumulated knockback happens at ounce
+Single target
+Two-handed
+
+4. Interactables
+Interactables (currently called furniture), are objects that randomly appear on a map with which the player can interact. These serve to provide variety to rooms and give the player more opportunities to control their build. Below is a list of every interactable, divided into categories depending on what they do.
+A. Containers
+Containers simply spawn an item upon being interacted with.
+a. Basic chest (Could possibly have variants with different name and appearance, but same effect)
+Most common container
+Spawns a random Weapon, Item or Fuel
+b. Armory
+Spawns a random Weapon
+c. Medical station
+Spawns a random healing Item
+d. Training station
+Spawns a random damage Item
+e. Radio station
+Spawns a random support Item (Mobility-based items are counted as support items)
+f. Oil Tank
+Spawn 1-3 Fuel (Amount is random)
+g. Dual Chest
+Gives the player the choice between 2 Items of the same rarity, the spawns the one they picked
+h. Memory Chest
+Gives the player a memory game composed of items. The player has 3 tries to match items. The chest then spawns the pairs they managed to match.
+i. Rare Chest
+Randomly spawns a rare or legendary Item
+B. Crafters
+Crafters allow the player to have better control over their inventory, by transforming them or exchanging them. Most crafters have "Defective" and "Repaired" versions. The defective versions being usually less useful, but much more common. Some even have an "Enhanced" version, which is even more rare than the "Repaired" version, but have really good effects.
+Unless stated otherwise, the Item to Fuel conversions go as follows :
+- Common items = 1 fuel
+- Rare Items = 2 fuel
+- Legendary/Boss Items = 3 fuel
+a. Defective melter
+Picks a random item in the player's inventory and turns it into fuel.
+b. Repaired melter
+The player can choose an item in their inventory and turn it into fuel.
+c. Defective solidifier
+Consumes the player's fuel to create a random item.
+d. Repaired solidifer
+Consumes the player's fuel to create a random item of the chosen rarity.
+e. Enhanced solidifer
+Consumes the player's fuel to create the item chosen by the player.
+f. Repair station
+The player can choose an item in their inventory and turn it into ammo/durability. Common items give 50% of the base reserve ammo/durability, rare items 75% and legendary/boss items 100%
+g. Defective duplicator
+Picks a random item, and turns it into a copy of another item of the same rarity the player already owns.
+h. Repaired duplicator
+The player chooses an item in their inventory, another random item of the same rarity is turned into the chosen item.
+i. Enhanced duplicator
+The player can choose an item in their inventory, they can then choose another item of the same rarity in their inventory to be turned into the first item.
+j. Strategic printer
+Consumes the player's fuel to create a random item of the type the player has the least of. (Types are Damage, Healing and Support).
+k. Discordant printer
+Consumes 1 fuel to create an item that isn't in the player's inventory, regardless of rarity.
+C. Ephemeral boosts (This is a really bad name but its the only thing I could come up with)
+These allow the player to sacrifice items in exchange for strong but temporary buffs that last until the end of the bunker.
+The player gets to choose which Item they sacrifice within the specified category. If they have the choice between items of different rarities, sacrificing an item of a higher rarity will give a stronger buff.
+a. Feast
+Cost : Healing Item
+Effect : Increased movement speed, and Heal on Kill
+b. Fountain
+Cost : Rare, Legendary or Boss Item
+Effect : Increased Luck and Crit chance
+c. Dead Scrapper
+Cost : Support Item
+Effect : Increased everything related to the dash
+d. War Table
+Cost : Damage Item
+Effect : Increased Damage and Attack Speed
+D. Altars
+These allow the player to permanently sacrifice something in exchange for strong and permanent buffs. Unless specified otherwise, the player can only activate an altar of the same type 3 times in a run.
+a. Altar of Light
+Sacrifice : Reduces the player's vision
+Buff : Greatly increases the chance of doing critical damage, and the critical damage multiplier
+b. Altar of Stone
+Sacrifice : Reduces the player's speed by 25% (This also means that any item that increases speed will have its effectiveness reduced by 25%)
+Buff : Greatly increases damage resistance and provides passive healing
+c. Altar of Blood
+Sacrifice : Reduces the player's max health by 25% (This also means that any item that increases max health will have its effectiveness reduced by 25%)
+Buff : Greatly increase status effect damage, and provide healing on kill
+d. Altar of Iron
+Sacrifice : Increases by 1 ammo consumption and durability loss of every weapon
+Buff : Greatly increases damage and attack speed
+e. Altar of Soul
+Sacrifice : All status effect have much stronger effects on the player
+Buff : Grealty increases luck
+
+5. Bunker types
+These describe all the different types of bunkers (excluding boss areas) that the player can explore during a run. I've decided to describe these between bunkers using two characteristics : Structure and Occupancy.
+Structure decides the overall shape of the bunker, the general shape of individual rooms, the general aesthetic of the bunker and which Occupancies are possible. Also increases the spawn chance of 1 ephemeral boost.
+Occupancy changes the odds of certain enemies and interactables spawning, and slightly changes the aesthetic of the bunker.
+Here all the different type of Structures :
+A. Haven
+Havens were bunkers built to protect the civilian population during the war. When the bombs got dropped they were all sealed shut. But, by the time the game starts, most Haven bunkers were opened, either due to the curiosity of the people inside, or because people outside forced it open (and then usually took it over for themselves).
+Aesthetic : People lived in these, so it should give off the vibe of something that you can actually live in. I imagined having props like plants, beds and drawers.
+Overall shape : The current bunker shape is pretty much what I'd imagined, though perhaps we can have 1-2 small branching paths. This means that enemies get stronger/more numerous as you get deeper inside the bunker.
+Room shape : The regular rectangular rooms are fine for this one. I think rooms should probably be at least a bit spacious (people usually don't like living in cramped rooms).
+Ephemeral boost : Fountain
+Occupancies :
+	- Alien den : Increased spawn chance of basic enemies, crafters are more likely to appear. Maybe some of the props are broken (or were broken but then repaired by the aliens) to show the result of aliens forcefully taking control of the bunker.
+	- Infected bunker : Increased spawn chance of mutant enemies, toxic liquid on the ground. Maybe the ground/walls have green cracks to show that the bunker's protection against radiation has failed.
+	- Moutainside church : Heavily increased spawn chance of celestial enemies, altars are more likely to appear. Extra celestial-related props, like altars and candles.
+B. Stronghold
+Strongholds were bunkers built as militray bases during the war. The bombs got dropped because most of them were destroyed or taken over by the aliens. By the time the game starts, there ins't a single stronghold left that's still being held by the human military, since they're all either dead or in space.
+Aesthetic : The architectural style should be close to that of havens, since they were built at the same time as them. However, its designed as a military base, not something you live in, so the props would be stuff that's designed to be practical, not comfortable.
+Overall shape : I imagined that it starts with a single branch, which forks out into three main branches after a few rooms (each branch being a military sector). The deeper inside them you go, the stronger/numerous the enemies are.
+Room shape : Rectangular rooms. I think it should have a mix of pretty large training rooms, and pretty small rooms that serve as easily defensible choke points.
+Ephemeral boost : War table
+Occupancies : 
+	- Demilitarised zone : Increased spawn chance of Security enemies, rarer containers are more likely to appear. Probably dried blood stains on the ground from the security bots killing the military.
+	- Legion outpost : Increased spawn chance of legion enemies, crafters are more likely to havve a better quality (but not more likely to appear). Most of the human military props have been replaced by the legion equivalent.
+C. Cave system
+They're just caves that offer shelter from most of the surface's dangers. As a result, a lot of them were occupied by people who survived the bombs.
+Aesthetic : Its a cave, so uneven ground and no props.
+Overall shape : Rooms are interconnected by sinewy tunnels. There isn't really a "main branch", since you can go through the cave in any direction, but the enemies do get more numerous/stronger the deeper inside the cave you go.
+Room shape : Regular rooms are average sized and closer to ovals. The connectors are long sinewy tunnels.
+Ephemeral boost : Feast
+Occupancies : 
+	- Alien nest : Increased spawn chance of basic enemies, crafters are more likely to appear. Alien props and cobwebs to show that they've settled here.
+	- Beast lair : Increased spawn chance of hunters, rarer containers are more likely to appear. Maybe there are some animal carcasses as props.
+D. Wasteland settlement
+Wasteland settlements were built after the bomb were dropped by people who survived them. While they don't provide as much protection as caves or bunkers, their nature means that they can be in much more strategic locations, and provide a lot more control over the areas. As such, factions that seek power tend build them.
+Aesthetic : They're made of scrap metal. They're designed to be both a place where people live and a military outpost, so the props should reflect that (though the props are also made of debris and scrap).
+Overall shape : The player can move around the whole thing from the outside. There are multiple entrances around the building, each being a branch. Every branch meets in the middle of the structure. There are also small minor branches that link 2 big brances together. The closer to the center of the structure you are, the stronger/numerous the enemies get.
+Room shape : rectangular, with irregular size.
+Epehemral boost : Dead scrapper
+Occupancies : 
+	- Starlit city : Heavily increased chance of celestial enemies, altars are more likely to spawn. The place was built from the ground up by celestials, so aesthically it should be pretty close to the celestial's aethetic.
+	- Boot camp : Increased chance of legion enemies, crafters are more likely to have a better quality (but not more likely to spawn). Its effectively one massive training camp, so the props should reflect that.
+
+6. Playable characters
+The player orignally starts with only the Scrapper unlocked. As they complete achievements, they'll unlock the other characters. Each character has a loadout (the weapons they start a run with), aswell as 2 upsides and 2 downsides (except the Scrapper) which change the way you play through the game.
+Here are the playable characters:
+A. Scrapper
+The default playable character. They're a fresh recruit who got picked to be sent on Earth to get scrap for the continued survival of the space sation.
+Appearance : What you did is pretty good.
+Loadout : Basic pistol and Basic knife (They're completely average weapons, with no particular effects, that can only be accessed through this character's loadout)
+Upsides : This character has no upsides since they're the basis for all the other characters.
+Downsides : This character has no downsides since they're the basis for all the other characters.
+B. Veteran
+The Veteran is a scrapper who managed to escape the planet and get back to the station. After being punished, they're sent back to Earth to get more scrap (without chance of escape this time).
+Appearance : Based on the regular scrapper, except the armor is a bit banged up, maybe a prosthetic leg and a helmet. The ship would also be bit a banged up.
+Loadout : 2 random one-handed weapons
+Upsides : Increased luck and better buffs from sending scrap back to the station.
+Downsides : This character starts with the level 1 sacrifice of the Altars of light and Stone (this means the the player can only use those those altars twice in a run)
+C. Engineer
+The Engineer voluntered to go to Earth to study alien tech and the way people adapted to the bombs.
+Appearance : Based on the regular scrapper, except maybe with yellow armour and goggles. The ship would probably be bigger, with better tech.
+Loadout : Tazer and syringe
+Upsides : Can spend fuel to upgrade crafters and more chance of getting fuel from enemies.
+Downsides : Ship costs extra fuel to start and the horde spawns faster.
+D. Sadist
+A criminal that was condenmed to forceful retrieval of scrap for his crimes. He is okay with this as it means he gets to kill more people.
+Appearance : Regular, ripped clothes with bloodstains. Regular ship.
+Loadout : Two basic knives
+Upsides : All melee attacks make enemies bleed. Pressing the attack button during a dash causes the character to do a melee attack at the end of the dash, if it lands, the dash cooldown is immediatly reseted.
+Downsides : Can only use melee weapons. Sources of healing are 50% less effective.
+E. Automaton
+An experimental robot based on the automaton enemies designed to be able to replace human scrappers.
+Appearance : Probably pretty close to the automaton enemy, but with additions to make it look more like a robot version of the scrapper. Regular ship.
+Loadout : 1 random two-handed weapon
+Upsides : Can spend fuel to heal itself. Has 2 backpack slots, allowing it to carry a two-handed weapon in its backpack.
+Downsides : Most sources of healing are ineffective (essentially anything that requires the player to be a biological entity doesn't work). Every bunker spawns with extra security enemies.
+F. Damned
+A scrapper whose ship had a critical failure, and, as a result, got contaminated by a tumor. They have very little time left.
+Appearance : Based on the regular scrapper, its armor is severely damaged, and their skin has green splotches. Regular ship, but very damaged, and quickly fixed with scrap metal.
+Loadout : Basic pistol and basic knife
+Upsides : Heal on hit. Resistance to most status effects.
+Downsides : Permanently poisoned. Every bunker spawns with extra mutant enemies.
+G. Headhunter
+A scrapper who deserted and now lives on their own on Earth. They get by by working as a mercenary for the various factions.
+Appearance : There's very little of the original armor left, most of it has been replaced by lighter leather clothing. The ship is mostly intact, even if its been slightly worn down by time.
+Loadout : Sniper
+Upsides : Passive damage ramp-up on all weapons. Killing an enemy increases damage by 1%, this stacks indefinitely, this effect is only reset by taking damage.
+Downsides : The enemies' health and damage increases faster.
+H. Wastelander
+A descendant of the people who survived the bomb, who now lives a nomadic lifestyle, getting by by looting scrap in various bunkers.
+Appearance : A dude wearing a makeshift armor, with scavenged clothing. They have no ship, they just walk from one bunker to another.
+Loadout : Staff
+Upsides : No fuel required to leave. Increased luck.
+Downsides : Costs 25% of health to leave. Weakness to most status effects.
+I. Heretic
+A guy that was born into a very influential celestial family (the people who lead the faith), became disillusioned with the religion, and ended up being exiled after inciting a rebellion in his settlement. He's trying to get in contact with the people in the space station to leave the planet.
+Apperance : Pretty close to a seer, though maybe painted with colors more reminiscent of the regular scrapper. He's using a regular scrapper ship that had been stolen by the celestials.
+Loadout : Montante
+Upsides : Altar buffs are more effective. Being hit by or dashing through celestial projectiles gives a small temporary attack and speed buff.
+Downsides : Extra celestial enemies in every bunker. Starts with the level 1 sacrifice of the Altar of Iron (this also means they can only the altar of iron twice in a run)
