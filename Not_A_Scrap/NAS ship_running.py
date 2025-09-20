@@ -11,6 +11,7 @@ class App:
         self.animation = Animation()
         self.showing = 'screen'
         self.keyboard = 'zqsd'
+        self.menu = ChoiceKeys()
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
@@ -19,19 +20,8 @@ class App:
             self.animation.loop(6,10,32,24,[0,1])
             self.animation.slide_random([128,105],18,2,FLOORS,[-1,0])
         elif self.showing == 'menu':
-            if in_perimeter(64,48,pyxel.mouse_x,pyxel.mouse_y,14):
-                if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
-                    self.keyboard = 'arrows'
-                    print('changed to arrows')
-            elif in_perimeter(48,80,pyxel.mouse_x,pyxel.mouse_y,14):
-                if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
-                    self.keyboard = 'wasd'
-                    print('changed to wasd')
-
-            elif in_perimeter(80,80,pyxel.mouse_x,pyxel.mouse_y,14):
-                if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
-                    self.keyboard = 'zqsd'
-                    print('changed to zqsd')
+            self.menu.update()
+            self.keyboard = self.menu.keyboard
         
         if pyxel.btnp(pyxel.KEY_F):
             if self.showing == 'screen':
@@ -133,7 +123,27 @@ class Animation:
                 self.slide_blocks.pop(len(self.slide_blocks)-1)
                 self.slide_blocks.insert(0,random.choice(blocks_list))
                 self.slide_pos = 0
-        
+    
+class ChoiceKeys:
+    def __init__(self):
+        self.keyboard = 'zqsd'
+    def update(self):
+        if in_perimeter(64,48,pyxel.mouse_x,pyxel.mouse_y,14):
+            if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+                self.keyboard = 'arrows'
+                print('changed to arrows')
+        elif in_perimeter(48,80,pyxel.mouse_x,pyxel.mouse_y,14):
+            if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+                self.keyboard = 'wasd'
+                print('changed to wasd')
+
+        elif in_perimeter(80,80,pyxel.mouse_x,pyxel.mouse_y,14):
+            if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+                self.keyboard = 'zqsd'
+                print('changed to zqsd')
+    def draw(self):
+        pass
+
 def on_tick(tickrate=60):
     return pyxel.frame_count % tickrate == 0
 
