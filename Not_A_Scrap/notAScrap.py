@@ -655,16 +655,13 @@ class Physics: #This is used to have a common move function
 
         #We handle horizontal and vertical movement separatly to make problem solving easier
 
-        #Calculate the new position and prevent entities from going faster than 1T/f in order to prevent clipping
-        if abs(vector[0]*coef) < TILE_SIZE:
-            new_x = self.owner.x + vector[0]*coef
-        else:
-            new_x = self.owner.x + (pyxel.sgn(vector[0]) * (TILE_SIZE - 0.01))
+        #Calculate the new position
+        new_x = self.owner.x + vector[0]*coef
         new_X = X+pyxel.sgn(vector[0])
 
-        if new_x+TILE_SIZE > new_X*TILE_SIZE:
+        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
             new_x = new_X*TILE_SIZE
-            
+
         if vector[0]!=0:
             next_X_1 = self.world.world_map[Y][new_X]
             if self.owner.y != Y*TILE_SIZE:
@@ -683,12 +680,10 @@ class Physics: #This is used to have a common move function
 
         #We calculate vertical movement in the same way we do horizontal movement
 
-        if abs(vector[1]*coef) < TILE_SIZE:
-            new_y = self.owner.y + vector[1]*coef
-        else:
-            new_y = self.owner.y + (pyxel.sgn(vector[1]) * (TILE_SIZE - 0.01))
+        new_y = self.owner.y + vector[1]*coef
         new_Y = Y+pyxel.sgn(vector[1])
-        if new_y+TILE_SIZE > new_Y*TILE_SIZE:
+        
+        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
             new_y = new_Y*TILE_SIZE
 
         
