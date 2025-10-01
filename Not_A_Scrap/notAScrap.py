@@ -1,4 +1,4 @@
-import pyxel, os, random, math, csv
+import pyxel, os, random, math, csv, vlc
 
 WIDTH = 256
 HEIGHT = 256
@@ -10,6 +10,8 @@ CAM_HEIGHT = 16*8
 FPS = 120
 
 loadedEntities = []
+
+music = vlc.MediaPlayer("Not_A_Scrap/MEGALOVANIA.mp3")
 
 class App: #Puts EVERYTHING together
     def __init__(self):
@@ -38,6 +40,19 @@ class App: #Puts EVERYTHING together
     
 
     def update(self):
+
+        #Test to see if music works
+        if pyxel.btnp(pyxel.KEY_P):
+            music.play()
+        if pyxel.btnp(pyxel.KEY_O):
+            music.stop()
+        if pyxel.btnp(pyxel.KEY_I):
+            music.pause()
+        if pyxel.btnp(pyxel.KEY_U):
+            music.set_time(10*1000) #You input a value in ms, and it puts at that point in the track
+        if pyxel.btnp(pyxel.KEY_Y):
+            music.audio_set_volume(100) #This is a percentage that goes from mute to 0dB (which is just regular volume)
+
         self.camera.update(self.player)
         if self.game_state == "start":
             self.update_in_start()
