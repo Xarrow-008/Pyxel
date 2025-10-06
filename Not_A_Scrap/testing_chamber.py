@@ -33,6 +33,8 @@ class App:
             
         for button in self.button_list:
             button.update()
+        
+        self.player.update()
 
     def draw(self):
         self.screen.draw()
@@ -40,6 +42,7 @@ class App:
         for button in self.button_list:
             pyxel.rect(button.x, button.y, button.width, button.height, button.color)
 
+        self.player.draw()
         draw_mouse_pos()
 
 
@@ -66,19 +69,19 @@ class Player: #Everything relating to the player and its control
         self.x = 10
         self.y = 10
     def update(self):
-        pass
+        self.movement()
     def draw(self):
-        pass
+        pyxel.blt(self.x, self.y, 0, 24, 24, 8, 8, 11)
 
 
     def movement(self):
-        if pyxel.btn(getattr(pyxel,'KEY'+KEYBINDS[self.keyboard][0])):
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
             self.y += -1
-        if pyxel.btn(getattr(pyxel,'KEY'+KEYBINDS[self.keyboard][1])):
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
             self.x += -1
-        if pyxel.btn(getattr(pyxel,'KEY'+KEYBINDS[self.keyboard][2])):
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
             self.y += 1
-        if pyxel.btn(getattr(pyxel,'KEY'+KEYBINDS[self.keyboard][3])):
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
             self.x += 1
 
 class Animation:
