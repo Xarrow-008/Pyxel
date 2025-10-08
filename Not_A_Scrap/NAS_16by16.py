@@ -4,11 +4,14 @@ KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
 
 WIDTH = 32
 HEIGHT = 32
+WID = 256
+HEI = 256
+
 TILE_SIZE = 16
 
 class App:
     def __init__(self):
-        pyxel.init(128,128,fps=120)
+        pyxel.init(WID,HEI,fps=120)
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
         
@@ -17,11 +20,16 @@ class App:
         self.animation = Animation()
         self.showing = 'screen'
         self.keyboard = 'zqsd'
+        self.entities = [Path()]
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
 
     def update(self):
+
+        for entity in self.entities:
+            entity.update()
+
         self.player.update()
             
     def draw(self):
@@ -29,7 +37,12 @@ class App:
             for x in range(WIDTH):
                 block = self.world.map[y][x]
                 draw_block(x*TILE_SIZE,y*TILE_SIZE,0,block)
+        
+        for entity in self.entities:
+            entity.draw()
+        
         self.player.draw()
+        
 
 class Player: #Everything relating to the player and its control
     def __init__(self, map):
@@ -79,9 +92,9 @@ class Player: #Everything relating to the player and its control
             second_step_y += -1
 
 
-        pyxel.blt(self.x, second_step_y, 0, (self.image[0] + self.facing[0]) * 16, (self.image[1] + self.facing[1] - 2) * 16, 16, 16, 11)
-        pyxel.blt(self.x, step_y, 0, (self.image[0] + self.facing[0]) * 16, (self.image[1] + self.facing[1]) * 16, 16, 16, 11)
-        pyxel.blt(self.x, second_step_y, 0, (self.image[0] + self.facing[0]) * 16, (self.image[1] + self.facing[1] + 2) * 16, 16, 16, 11)
+        show(self.x, second_step_y,  (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
+        show(self.x, step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
+        show(self.x, second_step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
 
 
     def movement(self):
@@ -255,6 +268,18 @@ class Actions:
 
         self.dashFrame += 1
         
+class Path:
+    def __init__(self):
+        self.x = 128
+        self.y = 128
+
+        self.image = (0,3)
+    
+    def update(self):
+        pass
+
+    def draw(self):
+        show(self.x,self.y,self.image)
 
 
 class Animation:
@@ -312,5 +337,7 @@ def draw_screen(u, v,camx,camy):
 
 def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
+def show(x,y,img,colkey=11,save=0):
+    pyxel.blt(x,y,save,img[0]*16,img[1]*16,16,16,colkey=11)
 
 App()

@@ -35,13 +35,17 @@ class App:
     def update(self):
 
         self.desk.update()
-
+        self.desk_msg_update()
         for button in self.button_list:
             button.update()
 
         if pyxel.btn(pyxel.KEY_CTRL) and pyxel.btnp(pyxel.KEY_A):
             self.desk.quick_save()
             self.desk.switch = {'to':'folders','argument':{}}
+        if pyxel.btn(pyxel.KEY_CTRL) and pyxel.btnp(pyxel.KEY_S):
+            self.desk.quick_save()
+            if self.desk.can_save:
+                self.desk.msg = {'txt':'saved','time':3}
         
         self.switch_desk_gestion()
 
@@ -56,7 +60,7 @@ class App:
         self.desk.draw_over()
         self.draw_over()
 
-        self.draw_mouse_pos()
+        #self.draw_mouse_pos()
 
     def draw_over(self):
         for button in self.button_list:
@@ -101,11 +105,17 @@ class App:
 
             self.desk.switch = {}
 
+    def desk_msg_update(self):
+        if self.desk.msg['time'] > 0:
+            if on_tick(120):
+                self.desk.msg['time'] += -1      
 
 
 class example_desk:
     def __init__(self,button_list):
         self.switch = {}
+        self.can_save = False
+        self.msg = {'txt':'','time':0}
         self.button_list = button_list
         self.bg_color = 6
     def update(self):
@@ -121,6 +131,7 @@ class example_desk:
 class folders_desk:
     def __init__(self,button_list,argument={'menu':'open'}):
         self.switch = {}
+        self.can_save = False
         self.button_list = button_list
         self.argument = argument
         self.text_zone = text_zone(x=10,y=10,length=20)
@@ -128,7 +139,7 @@ class folders_desk:
         self.open_to = 'drawing'
         
         self.bg_color = 6
-        self.error = {'txt':'','time':0}
+        self.msg = {'txt':'','time':0}
     
     def update(self):
         self.text_zone.update()
@@ -136,17 +147,13 @@ class folders_desk:
         if self.text_zone.enter:
             self.open_file()
             self.text_zone.enter = False
-
-        
-        if self.error['time'] > 0:
-            if on_tick(120):
-                self.error['time'] += -1        
+  
 
     def draw(self):
         pyxel.cls(self.bg_color)
         self.text_zone.draw()
-        if self.error['time'] > 0:
-            pyxel.text(self.text_zone.x,self.text_zone.y + 8,self.error['txt'],8)
+        if self.msg['time'] > 0:
+            pyxel.text(self.text_zone.x,self.text_zone.y + 8,self.msg['txt'],8)
 
     def draw_over(self):
         pass
@@ -159,27 +166,29 @@ class folders_desk:
         for extension in extension_add:
             if not found:
                 try:
-                    file = zipfile.ZipFile(self.text_zone.text + extension)
+                    file = toml.load(self.text_zone.text + extension)
                 except:
                     try:
-                        file = toml.load(self.text_zone.text + extension)
+                        file = zipfile.ZipFile(self.text_zone.text + extension)
                     except:
                         pass
                     else:
-                        found = True 
-                        self.file_info['file_path'] = self.text_zone.text + extension
+                        found = True
+                        file.extractall()
+                        file.close()
+                        self.file_info['file_path'] = 'pyxel_resource.toml'
+                        self.file_info['file_pyxres_name'] = self.text_zone.text + extension
+                        print(self.text_zone.text + extension)
                 else:
-                    found = True
-                    file.extractall()
-                    file.close()
-                    self.file_info['file_path'] = 'pyxel_resource.toml'
-                    self.file_info['file_pyxres_name'] = self.text_zone.text + extension
-                    print(self.text_zone.text + extension)
+                    found = True 
+                    self.file_info['file_path'] = self.text_zone.text + extension
+                print('try')
 
         if not found:
-            self.error = {'txt':'Wrong file name','time': 4}
+            self.msg = {'txt':'Wrong file name','time': 4}
         else:
             self.switch = {'to':self.open_to, 'argument':{'file_info':self.file_info}}
+            print('end')
 
         
     def quick_save(self):
@@ -190,6 +199,8 @@ class load_desk:
     def __init__(self,button_list,file_info,next_desk):
         self.switch = {}
         self.button_list = button_list
+        self.can_save = False
+        self.msg = {'txt':'','time':0}
         self.file_info = file_info #{'file_path':'','file_data':{},'file_pyxres_name':'','file_index':0}
         self.file_data = toml.load(file_info['file_path'])
         self.next_desk = next_desk
@@ -279,6 +290,7 @@ class draw_desk:
     def __init__(self,button_list,file_info={'file_path':'save.toml','file_canvas':None}):
         self.switch = {}
         self.button_list = button_list
+        self.can_save = True
         self.parameters_pos = {'colorpick':(4,113),'zoom':(64,116),'grid':(95,116)}
         self.file_info = file_info
         self.file_data = toml.load(self.file_info['file_path'])
@@ -290,19 +302,18 @@ class draw_desk:
             self.find_save()
         self.draw_area = DrawArea(1,1,125,102,self.starting_canvas,self.parameters_pos,button_list)
         self.bg_color = 6
+        self.msg = {'txt':'','time':0}
     
     def update(self):
         self.draw_area.update()
-        if pyxel.btnp(pyxel.KEY_A):
-            self.quick_save()
-            self.switch = {'to':'folders','argument':{'file_info':self.file_info,'canvas':self.draw_area.canvas}}
-        if pyxel.btn(pyxel.KEY_SHIFT) and pyxel.btnp(pyxel.KEY_S):
-            self.quick_save()
-    
+        
     def draw(self):
         pyxel.cls(6)
 
         self.draw_area.draw()
+
+        if self.msg['time'] > 0:
+            pyxel.text(102,105,self.msg['txt'],1)
     
     def draw_over(self):
         self.draw_area.draw_over()
@@ -489,8 +500,8 @@ class DrawArea:
         self.button_list = button_list
         self.grid_color = grid_color
         self.canvas = canvas
-        self.canvas_width = canvas_max_width(self.canvas)
-        self.canvas_height = len(self.canvas)
+        self.canvas_width = 256
+        self.canvas_height = 256
         self.canvas = canvas_size_fix(self.canvas)
 
         self.colorpick = ColorPick(button_list, parameters_pos['colorpick'][0], parameters_pos['colorpick'][1])
@@ -664,7 +675,8 @@ class DrawArea:
         self.colorpick.draw()
 
     def draw_over(self):
-        pass
+        if mouse_inside(self.x,self.y,self.width,self.height):
+            pyxel.text(pyxel.mouse_x,pyxel.mouse_y+10,str(self.pencil_pos[0])+','+str(self.pencil_pos[1]),15)
 
 
     def canvas_pos(self,pos=(0,0)):

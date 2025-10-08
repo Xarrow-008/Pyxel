@@ -1,4 +1,8 @@
 import pyxel, os, random
+from pynput.keyboard import Key, Listener
+from draw import draw
+
+
 """
 def draw_palette(x, y, col):
     rgb = pyxel.colors[col]
@@ -149,11 +153,36 @@ tup = (10,11)
 
 for coord in square_b_r:
     liste[coord[1]][coord[0]] = 1
-
+'''
 for y in liste:
     print(y)
-
+'''
 dic['x'], dic['y'] = tup
 
-print(dic)
 
+
+tab1 = [0,1,2,3]
+
+def depiler(tab):
+    tab.append(3)
+
+tab = []
+
+def on_press(key):
+    print('{0} pressed'.format(key))
+    if key == Key.f7:
+        draw.App()
+
+
+
+def on_release(key):
+    print('{0} release'.format(
+        key))
+    if key == Key.esc:
+        # Stop listener
+        return False
+
+with Listener(
+        on_press=on_press,
+        on_release=on_release) as listener:
+    listener.join()
