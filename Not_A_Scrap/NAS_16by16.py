@@ -3,10 +3,10 @@ from copy import deepcopy as copy
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
 
-WIDTH = 10
-HEIGHT = 10
-WID = 128
-HEI = 128
+WIDTH = 32
+HEIGHT = 32
+WID = 256
+HEI = 256
 
 TILE_SIZE = 16
 
@@ -47,11 +47,16 @@ class App:
         self.player.draw()
         
 
+
+
 class Player: #Everything relating to the player and its control
     def __init__(self, map):
         self.keyboard = 'zqsd'
         self.x = 10
         self.y = 10
+
+        self.health = 40
+        self.maxHealth = 80
 
         self.actions = Actions(map, self)
         self.actions.init_walk(priority=0)
@@ -98,6 +103,14 @@ class Player: #Everything relating to the player and its control
         show(self.x, second_step_y,  (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
         show(self.x, step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
         show(self.x, second_step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
+
+        #Health bar
+        pyxel.rect(x=0,y=0,w=44,h=10,col=0)
+
+        health_bar_size = int(42*(self.health/self.maxHealth))
+
+        pyxel.rect(x=1,y=1,w=health_bar_size,h=8,col=8)
+        pyxel.text(x=14,y=2,s=str(self.health)+"/"+str(self.maxHealth),col=7)
 
 
     def movement(self):
@@ -149,6 +162,7 @@ class Player: #Everything relating to the player and its control
             self.actions.dash()
         elif pyxel.btnp(pyxel.KEY_SPACE):
             self.actions.start_dash(self.direction)
+        self.actions.dashFrame += 1
             
 
 
@@ -178,11 +192,14 @@ class Player: #Everything relating to the player and its control
                 self.second_step = self.step
                 self.step_frame = 0
 
+
+
+   
 class Actions:
     def __init__(self, map, owner):
         self.map = map
         self.owner = owner
-        self.current_action_priority = 0
+        self.currentActionPriority = 0
 
     def move(self, vector): #We give a movement vector and get the new coordinates of the entity. Used for all kind of movement
         X = int(self.owner.x//TILE_SIZE)
@@ -236,12 +253,11 @@ class Actions:
                 self.owner.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
     def init_walk(self, priority): #Gets the parameters of the "walk" action
-        self.walk_priority = priority
+        self.walkPriority = priority
 
     def walk(self, vector): #Used for regular walking.
-    
-        if self.current_action_priority <= self.walk_priority:
-            self.current_action_priority = self.walk_priority
+        if self.currentActionPriority <= self.walkPriority:
+            self.currentActionPriority = self.walkPriority
 
             self.move(vector)
 
@@ -256,20 +272,29 @@ class Actions:
         self.dashVector = [0,0]
 
     def start_dash(self, vector): #Used for dashing/lunging
-        self.isDashing = True
-        self.dashVector = copy(vector)
+        if self.dashFrame >= self.dashCooldown and self.currentActionPriority <= self.dashPriority:
+            self.currentActionPriority = self.dashPriority
 
+            self.dashFrame = 0
+            self.isDashing = True
+            self.dashVector = copy(vector)
+    
     def dash(self):
         if self.dashFrame < self.dashDuration:
             self.move([self.dashVector[0]*self.dashSpeed, self.dashVector[1]*self.dashSpeed])
 
         else :
+            self.currentActionPriority -= 1
             self.isDashing = False
             self.dashFrame = 0
-            self.owner.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed,pyxel.sgn(self.dashVector[1])*self.dashSpeed]
+            self.owner.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
             self.dashVector = [0,0]
 
         self.dashFrame += 1
+        
+
+
+
         
 class Path:
     def __init__(self,map):
