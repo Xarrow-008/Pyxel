@@ -1,16 +1,19 @@
-import pyxel,os,math,random,copy
+import pyxel,os,math,random
+from copy import deepcopy as copy
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
 
-WIDTH = 32
-HEIGHT = 32
-WID = 256
-HEI = 256
+WIDTH = 10
+HEIGHT = 10
+WID = 128
+HEI = 128
 
 TILE_SIZE = 16
 
 class App:
     def __init__(self):
+
+        os.system('cls')
         pyxel.init(WID,HEI,fps=120)
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
@@ -20,7 +23,7 @@ class App:
         self.animation = Animation()
         self.showing = 'screen'
         self.keyboard = 'zqsd'
-        self.entities = [Path()]
+        self.entities = [Path(self.world.map)]
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
@@ -74,13 +77,13 @@ class Player: #Everything relating to the player and its control
         self.movement()
 
         if self.direction == [0,0]:
-            self.direction = copy.copy(self.last_direction)
-        self.last_direction = copy.copy(self.direction)
+            self.direction = copy(self.last_direction)
+        self.last_direction = copy(self.direction)
         self.dash()
 
         self.image_gestion()
 
-        self.last_facing = copy.copy(self.facing)
+        self.last_facing = copy(self.facing)
         
 
     def draw(self):
@@ -254,7 +257,7 @@ class Actions:
 
     def start_dash(self, vector): #Used for dashing/lunging
         self.isDashing = True
-        self.dashVector = copy.copy(vector)
+        self.dashVector = copy(vector)
 
     def dash(self):
         if self.dashFrame < self.dashDuration:
@@ -269,17 +272,46 @@ class Actions:
         self.dashFrame += 1
         
 class Path:
-    def __init__(self):
+    def __init__(self,map):
         self.x = 128
         self.y = 128
+        self.map = free_space(copy(map))
+
 
         self.image = (0,3)
     
     def update(self):
-        pass
+        x, y = 0,0
+        if pyxel.btnp(pyxel.KEY_E):
+            self.find_new_path(x,y)
 
     def draw(self):
         show(self.x,self.y,self.image)
+
+    def find_new_path(self,targetx,targety):
+        checked = []
+        path_checked = []
+        border = [(self.x//16,self.y//16)]
+        new_border = []
+        cross = [(0,-1),(0,1),(-1,0),(1,0)]
+        while len(border) > 0 and not (targetx,targety) in checked:
+            for pos in border:
+                for addon in cross:
+                    new_pos = (pos[0]+addon[0],pos[1]+addon[1])
+                    if new_pos not in checked:
+                        if is_inside_map(new_pos,self.map):
+                            if self.map[new_pos[1]][new_pos[0]] in Blocks.GROUND:
+                                if new_pos not in new_border:
+                                    new_border.append(new_pos)
+                checked.append(pos)
+            border = copy(new_border)
+            new_border = []
+                
+    
+    
+
+    
+
 
 
 class Animation:
@@ -337,7 +369,34 @@ def draw_screen(u, v,camx,camy):
 
 def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
+
 def show(x,y,img,colkey=11,save=0):
     pyxel.blt(x,y,save,img[0]*16,img[1]*16,16,16,colkey=11)
 
+def free_space(map):
+    new_map = map
+    for y in range(len(map)):
+        for x in range(len(map[y])):
+            block = map[y][x]
+            if block in Blocks.GROUND:
+                new_map[y][x] = 0
+            else:
+                new_map[y][x] = 1
+    return new_map
+   
+def is_inside_map(pos,map):
+    if pos[0] >= len(map[0]) or pos[1] >= len(map):
+        return False
+    if pos[0] < 0 or pos[1] < 0:
+        return False
+    return True
+
+def remove_doubles(list):
+    new_list = []
+    for element in list:
+        if not element in new_list:
+            new_list.append(element)
+    return new_list
+
+    
 App()
