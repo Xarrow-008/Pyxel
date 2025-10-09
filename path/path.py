@@ -8,7 +8,7 @@ class App:
     def __init__(self):
 
         os.system('cls')
-        pyxel.init(100,100,fps=20)
+        pyxel.init(100,100,fps=120)
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
         
