@@ -146,6 +146,7 @@ class Player: #Everything relating to the player and its control
             self.actions.dash()
         elif pyxel.btnp(pyxel.KEY_SPACE):
             self.actions.start_dash(self.direction)
+        self.actions.dashFrame += 1
             
 
 
@@ -179,7 +180,7 @@ class Actions:
     def __init__(self, map, owner):
         self.map = map
         self.owner = owner
-        self.current_action_priority = 0
+        self.currentActionPriority = 0
 
     def move(self, vector): #We give a movement vector and get the new coordinates of the entity. Used for all kind of movement
         X = int(self.owner.x//TILE_SIZE)
@@ -233,12 +234,11 @@ class Actions:
                 self.owner.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
     def init_walk(self, priority): #Gets the parameters of the "walk" action
-        self.walk_priority = priority
+        self.walkPriority = priority
 
     def walk(self, vector): #Used for regular walking.
-    
-        if self.current_action_priority <= self.walk_priority:
-            self.current_action_priority = self.walk_priority
+        if self.currentActionPriority <= self.walkPriority:
+            self.currentActionPriority = self.walkPriority
 
             self.move(vector)
 
@@ -253,17 +253,21 @@ class Actions:
         self.dashVector = [0,0]
 
     def start_dash(self, vector): #Used for dashing/lunging
-        self.isDashing = True
-        self.dashVector = copy.copy(vector)
+        if self.dashFrame >= self.dashCooldown and self.currentActionPriority <= self.dashPriority:
+            self.currentActionPriority = self.dashPriority
 
+            self.dashFrame = 0
+            self.isDashing = True
+            self.dashVector = copy.copy(vector)
     def dash(self):
         if self.dashFrame < self.dashDuration:
             self.move([self.dashVector[0]*self.dashSpeed, self.dashVector[1]*self.dashSpeed])
 
         else :
+            self.currentActionPriority -= 1
             self.isDashing = False
             self.dashFrame = 0
-            self.owner.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed,pyxel.sgn(self.dashVector[1])*self.dashSpeed]
+            self.owner.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
             self.dashVector = [0,0]
 
         self.dashFrame += 1
