@@ -50,6 +50,9 @@ class Player: #Everything relating to the player and its control
         self.x = 10
         self.y = 10
 
+        self.health = 80
+        self.maxHealth = 80
+
         self.actions = Actions(map, self)
         self.actions.init_walk(priority=0)
         self.actions.init_dash(priority=0, cooldown=40, speed=1.5, duration=20)
@@ -95,6 +98,14 @@ class Player: #Everything relating to the player and its control
         show(self.x, second_step_y,  (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
         show(self.x, step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
         show(self.x, second_step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
+
+        #Health bar
+        pyxel.rect(x=0,y=0,w=44,h=10,col=0)
+
+        health_bar_size = int(42*(self.health/self.maxHealth))
+
+        pyxel.rect(x=1,y=1,w=health_bar_size,h=8,col=8)
+        pyxel.text(x=14,y=2,s=str(self.health)+"/"+str(self.maxHealth),col=7)
 
 
     def movement(self):
@@ -259,6 +270,7 @@ class Actions:
             self.dashFrame = 0
             self.isDashing = True
             self.dashVector = copy.copy(vector)
+    
     def dash(self):
         if self.dashFrame < self.dashDuration:
             self.move([self.dashVector[0]*self.dashSpeed, self.dashVector[1]*self.dashSpeed])
