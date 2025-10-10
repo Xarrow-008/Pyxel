@@ -88,6 +88,11 @@ class Player: #Everything relating to the player and its control
         self.image_gestion()
 
         self.last_facing = copy(self.facing)
+
+        if pyxel.btnp(pyxel.KEY_O):
+            self.actions.heal(5,self)
+        if pyxel.btnp(pyxel.KEY_P):
+            self.actions.hurt(5,[1,0],1,self)
         
 
     def draw(self):
@@ -104,41 +109,33 @@ class Player: #Everything relating to the player and its control
         show(self.x, second_step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
 
         #Health bar
-        pyxel.rect(x=1,y=1,w=44,h=10,col=0)
+        pyxel.rect(x=1,y=1,w=42,h=10,col=0)
 
-        health_bar_size = int(42*(self.health/self.maxHealth))
+        health_bar_size = int(40*(self.health/self.maxHealth))
 
         pyxel.rect(x=2,y=2,w=health_bar_size,h=8,col=8)
-        sized_text(x=15, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
+        sized_text(x=12, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
 
 
     def movement(self):
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
             if self.momentum[1] > -self.max_speed:
                 self.momentum[1] -= self.max_speed/self.speed_change_rate
-            else:
-                self.momentum[1] = -self.max_speed
             self.direction[1] = -1
 
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
             if self.momentum[0] > -self.max_speed:
                 self.momentum[0] -= self.max_speed/self.speed_change_rate
-            else:
-                self.momentum[0] = -self.max_speed
             self.direction[0] = -1
 
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
             if self.momentum[1] < self.max_speed:
                 self.momentum[1] += self.max_speed/self.speed_change_rate
-            else:
-                self.momentum[1] = self.max_speed
             self.direction[1] = 1
 
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
             if self.momentum[0] < self.max_speed:
                 self.momentum[0] += self.max_speed/self.speed_change_rate
-            else:
-                self.momentum[0] = self.max_speed
             self.direction[0] = 1
         
         if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper()))):
@@ -153,6 +150,16 @@ class Player: #Everything relating to the player and its control
             self.momentum[0] = 0
         if abs(self.momentum[1]) <= 0.01:
             self.momentum[1] = 0
+
+        if self.max_speed-abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = self.max_speed*pyxel.sgn(self.momentum[0])
+        if self.max_speed-abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = self.max_speed*pyxel.sgn(self.momentum[1])
+
+        if abs(self.momentum[0]) > self.max_speed:
+            self.momentum[0] -= self.momentum[0]/self.speed_change_rate
+        if abs(self.momentum[1]) > self.max_speed:
+            self.momentum[1] -= self.momentum[1]/self.speed_change_rate 
 
         self.actions.walk(self.momentum)
     
@@ -290,8 +297,16 @@ class Actions:
             self.dashVector = [0,0]
 
         self.dashFrame += 1
-        
-        
+
+    def heal(self, value, target):
+        target.health += value
+
+    def hurt(self, value, vector, knockback_coef, target):
+        target.health -= value
+        knockback_value = len(str(value))*10*knockback_coef
+        target.momentum[0] += vector[0]*knockback_value
+        target.momentum[1] += vector[1]*knockback_value
+
 class Path:
     def __init__(self,map):
         self.x = 128
@@ -327,13 +342,6 @@ class Path:
                 checked.append(pos)
             border = copy(new_border)
             new_border = []
-                
-    
-    
-
-    
-
-
 
 class Animation:
     def __init__(self):
