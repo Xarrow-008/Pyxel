@@ -116,6 +116,31 @@ class Player: #Everything relating to the player and its control
         pyxel.rect(x=2,y=2,w=health_bar_size,h=8,col=8)
         sized_text(x=12, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
 
+        #Dash
+        pyxel.rect(x=44,y=1,w=12,h=11,col=13)
+
+        if not self.actions.isDashing:
+            dash_cooldown_progress = int(34*(self.actions.dashFrame/self.actions.dashCooldown))
+            x = 50
+            y = 2
+            for i in range(40):
+                if dash_cooldown_progress >= i:
+                    pyxel.pset(x,y,col=11)
+                else:
+                    pyxel.pset(x,y,col=8)
+                if i in range(0,5) or i in range(35,40):
+                    x += 1
+                elif i in range(6,14):
+                    y += 1
+                elif i in range(15,25):
+                    x -= 1
+                elif i in range(26,34):
+                    y -= 1
+        else:
+            pyxel.rectb(x=45,y=2,w=10,h=99,col=13)
+
+        draw(x=46,y=3,img=0,u=104,v=248,w=8,h=7,colkey=11)
+
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
