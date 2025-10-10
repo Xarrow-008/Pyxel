@@ -109,7 +109,7 @@ class Player: #Everything relating to the player and its control
         health_bar_size = int(42*(self.health/self.maxHealth))
 
         pyxel.rect(x=2,y=2,w=health_bar_size,h=8,col=8)
-        scaled_text(x=15, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,scale=1)
+        sized_text(x=15, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
 
 
     def movement(self):
@@ -419,29 +419,27 @@ def remove_doubles(list):
             new_list.append(element)
     return new_list
 
-def scaled_text(x,y,s,col,scale=1):
+def sized_text(x,y,s,col,size=6):
     alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
     other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}"]
 
     current_x = x
+    scale = size/6
 
     for chr in s:
         if chr in other_characters:
             u = 4*other_characters.index(chr)
-            v = 240
-            w = 3
-            h = 5
+            v = 238
         elif chr in alphabet:
             u = 4*alphabet.index(chr)
-            v = 245
-            w = 3
-            h = 6
+            v = 244
         elif chr.lower() in alphabet:
             u = 4*alphabet.index(chr.lower())
-            v = 251
-            w = 3
-            h = 5
+            v = 250
         
+        w = 3
+        h = 6
+
         pyxel.pal(0,col)
         draw(current_x, y, 0, u, v, w, h, scale=scale, colkey=11)
         pyxel.pal()
