@@ -92,7 +92,7 @@ class Player: #Everything relating to the player and its control
         if pyxel.btnp(pyxel.KEY_O):
             self.actions.heal(5,self)
         if pyxel.btnp(pyxel.KEY_P):
-            self.actions.hurt(5,[1,0],1,self)
+            self.actions.hurt(5,[-0.5,-0.5],1,self)
         
 
     def draw(self):
@@ -118,6 +118,7 @@ class Player: #Everything relating to the player and its control
 
 
     def movement(self):
+        #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
             if self.momentum[1] > -self.max_speed:
                 self.momentum[1] -= self.max_speed/self.speed_change_rate
@@ -138,6 +139,7 @@ class Player: #Everything relating to the player and its control
                 self.momentum[0] += self.max_speed/self.speed_change_rate
             self.direction[0] = 1
         
+        #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
         if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper()))):
             self.momentum[1] -= self.momentum[1]/self.speed_change_rate
             self.direction[1] = 0
@@ -146,16 +148,19 @@ class Player: #Everything relating to the player and its control
             self.momentum[0] -= self.momentum[0]/self.speed_change_rate
             self.direction[0] = 0
         
+        #If the player is almost immobile in a specific direction, we snap their speed to 0
         if abs(self.momentum[0]) <= 0.01:
             self.momentum[0] = 0
         if abs(self.momentum[1]) <= 0.01:
             self.momentum[1] = 0
 
+        #If the player is almost at max speed in a specific direction, we snap their speed to max speed
         if self.max_speed-abs(self.momentum[0]) <= 0.01:
             self.momentum[0] = self.max_speed*pyxel.sgn(self.momentum[0])
         if self.max_speed-abs(self.momentum[1]) <= 0.01:
             self.momentum[1] = self.max_speed*pyxel.sgn(self.momentum[1])
 
+        #If the player is over max speed, we decrease their speed progressively
         if abs(self.momentum[0]) > self.max_speed:
             self.momentum[0] -= self.momentum[0]/self.speed_change_rate
         if abs(self.momentum[1]) > self.max_speed:
@@ -427,7 +432,7 @@ def remove_doubles(list):
             new_list.append(element)
     return new_list
 
-def sized_text(x,y,s,col,size=6):
+def sized_text(x,y,s,col,size=6): #Like pyxel.text, but you can modify the size of the text
     alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
     other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}"]
 
