@@ -1,5 +1,6 @@
 import pyxel,os,math,random
 from enemies import*
+from weapons import*
 from copy import deepcopy as copy
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
@@ -64,8 +65,14 @@ class Player: #Everything relating to the player and its control
         self.actions = Actions(map, self)
         self.actions.init_walk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
         self.actions.init_dash(priority=0, cooldown=40, speed=1.5, duration=20)
+        self.actions.init_ranged_attack()
 
         self.momentum = [0,0]
+
+        self.leftHand = Weapon.RUSTY_PISTOL
+        self.rightHand = Weapon.NONE
+        self.backpack1 = Weapon.NONE
+        self.backpack2 = Weapon.NONE #Only used for the Automaton
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -73,6 +80,9 @@ class Player: #Everything relating to the player and its control
         #We should probably make it so that "facing" and "direction" work the same way (because facing doesn't have diagonals)
         self.direction = [1,0]
         self.last_direction = [1,0]
+
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
 
         self.walking = False
         self.step = False
@@ -86,6 +96,8 @@ class Player: #Everything relating to the player and its control
             self.direction = copy(self.last_direction)
         self.last_direction = copy(self.direction)
         self.dash()
+
+        self.attack()
 
         self.image_gestion()
 
@@ -104,6 +116,7 @@ class Player: #Everything relating to the player and its control
         show(self.x, step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
         show(self.x, second_step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
 
+
         #Health bar
         pyxel.rect(x=1,y=1,w=42,h=10,col=0)
 
@@ -111,6 +124,7 @@ class Player: #Everything relating to the player and its control
 
         pyxel.rect(x=2,y=2,w=health_bar_size,h=8,col=8)
         sized_text(x=12, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
+
 
         #Dash
         pyxel.rect(x=44,y=1,w=12,h=11,col=13)
@@ -136,6 +150,21 @@ class Player: #Everything relating to the player and its control
             pyxel.rectb(x=45,y=2,w=10,h=9,col=13)
 
         draw(x=46,y=3,img=0,u=104,v=248,w=8,h=7,colkey=11)
+
+
+        #Weapons
+        pyxel.rectb(x=1, y=218, w=18, h=18, col=0)
+        pyxel.rect(x=2, y=219, w=16, h=16, col=13)
+        draw(x=2, y=219, img=0, u=self.leftHand["image"][0], v=self.leftHand["image"][1], w=self.leftHand["width"], h=self.leftHand["height"], colkey=11)
+        if self.leftHand != Weapon.NONE:
+            sized_text(x=21, y=224, s=str(self.leftHand["mag_ammo"])+"/"+str(self.leftHand["max_ammo"])+"("+str(self.leftHand["reserve_ammo"])+")", col=7)
+
+
+        pyxel.rectb(x=1, y=237, w=18, h=18, col=0)
+        pyxel.rect(x=2, y=238, w=16, h=16, col=13)
+        draw(x=2, y=238, img=0, u=self.rightHand["image"][0], v=self.rightHand["image"][1], w=self.rightHand["width"], h=self.rightHand["height"], colkey=11)
+        if self.rightHand != Weapon.NONE:
+            sized_text(x=21, y=243, s=str(self.rightHand["mag_ammo"])+"/"+str(self.rightHand["max_ammo"])+" ("+str(self.rightHand["reserve_ammo"])+")", col=7)
 
 
     def movement(self):
@@ -196,6 +225,14 @@ class Player: #Everything relating to the player and its control
             self.actions.start_dash(self.direction)
         self.actions.dashFrame += 1
             
+    def attack(self):
+        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+            self.actions.ranged_attack(self.leftHand, pyxel.mouse_x, pyxel.mouse_y)
+
+        if pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
+            self.actions.ranged_attack(self.rightHand, pyxel.mouse_x, pyxel.mouse_y)
+
+        self.actions.rangedAttackFrame += 1
 
 
     def image_gestion(self):
@@ -400,6 +437,35 @@ class Actions:
     def death(self):
         self.deathList.remove(self.owner)
 
+    def init_ranged_attack(self):
+        self.rangedAttackFrame = 0
+        self.shotsFired = 0
+
+    def ranged_attack(self, weapon, x, y):
+        if self.rangedAttackFrame >= weapon["cooldown"] and weapon["mag_ammo"]:
+
+            self.rangedAttackFrame = 0
+            weapon["mag_ammo"] -= 1
+            self.shotsFired += 1
+
+            for i in range(weapon["bullet_count"]):
+                horizontal = x - (self.owner.x + self.owner.width/2)
+                vertical = y - (self.owner.y + self.owner.height/2)
+                norm = math.sqrt(horizontal**2 + vertical**2)
+
+                if norm != 0:
+                    cos = horizontal/norm
+                    sin = vertical/norm
+                    angle = math.acos(cos) * pyxel.sgn(sin)
+                    lowest_angle = angle - weapon["spread"]*(math.pi/180)
+                    highest_angle = angle + weapon["spread"]*(math.pi/180)
+                    angle = random.uniform(lowest_angle, highest_angle)
+                    cos = math.cos(angle)
+                    sin = math.sin(angle)
+                else:
+                    cos = 0
+                    sin = 0
+
 class Path:
     def __init__(self,map):
         self.x = 128
@@ -534,9 +600,10 @@ def sized_text(x,y,s,col,size=6): #Like pyxel.text, but you can modify the size 
         w = 3
         h = 6
 
-        pyxel.pal(0,col)
-        draw(current_x, y, 0, u, v, w, h, scale=scale, colkey=11)
-        pyxel.pal()
+        if chr != " ":
+            pyxel.pal(0,col)
+            draw(current_x, y, 0, u, v, w, h, scale=scale, colkey=11)
+            pyxel.pal()
 
         current_x += int(4*scale)
     
