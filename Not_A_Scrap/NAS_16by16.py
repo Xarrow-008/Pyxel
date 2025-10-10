@@ -232,6 +232,14 @@ class Player: #Everything relating to the player and its control
         if pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
             self.actions.ranged_attack(self.rightHand, pyxel.mouse_x, pyxel.mouse_y)
 
+        if pyxel.btnp(pyxel.KEY_R):
+            self.leftHand["mag_ammo"] = 0
+            self.rightHand["mag_ammo"] = 0
+            self.actions.rangedAttackFrame = 0
+        
+        self.actions.reload_weapon(self.leftHand)
+        self.actions.reload_weapon(self.rightHand)
+
         self.actions.rangedAttackFrame += 1
 
 
@@ -465,6 +473,16 @@ class Actions:
                 else:
                     cos = 0
                     sin = 0
+
+    def reload_weapon(self, weapon):
+        if self.rangedAttackFrame >= weapon["reload"] and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0:
+            if weapon["reserve_ammo"]>=weapon["max_ammo"]:
+                weapon["mag_ammo"] = weapon["max_ammo"]
+                weapon["reserve_ammo"] -= weapon["max_ammo"]
+            else:
+                weapon["mag_ammo"] = weapon["reserve_ammo"]
+                weapon["reserve_ammo"] = 0
+
 
 class Path:
     def __init__(self,map):

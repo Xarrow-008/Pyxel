@@ -10,7 +10,7 @@ class Weapon:
                     "bullet_speed":0, "range":0,
                     "damage":0, "piercing":0, "knockback_coef":0,
                     "reload":0*FPS, "cooldown":0*FPS,
-                    "mag_ammo":None, "max_ammo":None, "reserve_ammo":None}
+                    "mag_ammo":0, "max_ammo":0, "reserve_ammo":0}
 
     RUSTY_PISTOL = {"name":"Rusty Pistol", "description": "A basic weapon",
                     "hand_number":1, "type":"ranged", "mode":"automatic",
@@ -18,5 +18,5 @@ class Weapon:
                     "spread":0, "bullet_count":1,
                     "bullet_speed":0.5, "range":1,
                     "damage":10, "piercing":0, "knockback_coef":1,
-                    "reload":1*FPS, "cooldown":1*FPS,
+                    "reload":3*FPS, "cooldown":0.1*FPS,
                     "mag_ammo":20, "max_ammo":20, "reserve_ammo":120}
