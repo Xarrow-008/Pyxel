@@ -1,22 +1,36 @@
-import os,random,pyxel
+import os,random,pyxel,math
 from copy import deepcopy as copy
 
 
+WID = 250
+HEI = 250
+FPS = 120
+
+TILE_SIZE = 10
+
+KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
 
 class App:
     def __init__(self):
 
         os.system('cls')
-        pyxel.init(100,100,fps=50)
+        pyxel.init(WID,HEI,fps=FPS)
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
         
-        self.map = [[0 for x in range(10)] for y in range(10)]
-        for y in range(6):
-            self.map[y][5] = 7
+        self.map = [[random.choice([0,0,7]) for x in range(WID//10+1)] for y in range(HEI//10+1)]
+        for y in range(len(self.map)):
+            for x in range(len(self.map[y])):
+                if self.map[y][x] == 7:
+                    if y < 5 and x < 5:
+                        self.map[y][x] = 0
+                    if y > len(self.map)-5 and x > len(self.map[y]) - 5:
+                        self.map[y][x] = 0
+
 
         self.wall_maker = WallMaker(self.map)
-        self.entity = Path(self.map)
+        self.path = Path(self.map)
+        self.pather = None
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
@@ -24,15 +38,26 @@ class App:
     def update(self):
         self.wall_maker.update()
         if self.wall_maker.change:
-            self.entity.__init__(self.map)
+            self.path.__init__(self.map)
+            self.pather = None
             self.wall_maker.change = False
+        elif self.pather == None:
+            self.path.update()
         else:
-            self.entity.update()
+            self.pather.update()
+
+
+        if self.pather == None and self.path.finished:
+            self.pather = Pather(self.path.path,self.map)
+        
+
     
     def draw(self):
         pyxel.cls(0)
         self.wall_maker.draw()
-        self.entity.draw()
+        self.path.draw()
+        if self.pather != None:
+            self.pather.draw()
         
 
 class WallMaker:
@@ -63,8 +88,8 @@ class Path:
         self.x = 1
         self.y = 1
         self.map = map
-        self.targetx = 8
-        self.targety = 0
+        self.targetx = WID//10-1
+        self.targety = HEI//10-1
         self.found = False
 
         self.border = [(self.x,self.y)]
@@ -98,15 +123,15 @@ class Path:
                                     if self.map[new_pos[1]][new_pos[0]] == 0:
                                         self.path_origin[new_pos[1]][new_pos[0]] = pos
                 self.checked.append(pos)
-            print(self.border)
             self.border = copy(self.new_border)
             self.new_border = []
 
         elif not self.found:
             self.path_at = copy(self.path_origin[self.path_at[1]][self.path_at[0]])
-            self.path.append(copy(self.path_at))
+            self.path.insert(0,copy(self.path_at))
             if self.path_at == (self.x,self.y):
                 self.found = True
+                self.finished = True
                 
             
                 
@@ -136,7 +161,7 @@ class Actions:
         self.owner = owner
         self.current_action_priority = 0
 
-    def move(self, vector): #We give a movement vector and get the new coordinates of the entity. Used for all kind of movement
+    def move(self, vector): #We give a movement vector and get the new coordinates of the entity
         X = int(self.owner.x//TILE_SIZE)
         Y = int(self.owner.y//TILE_SIZE)
 
@@ -156,7 +181,7 @@ class Actions:
             else:
                 next_X_2 = Blocks.GROUND
             #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 not in Blocks.WALLS or not collision(new_x, self.owner.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in Blocks.WALLS or not Blocks(new_x, self.owner.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
+            if (next_X_1 not in Blocks.WALLS or not collision(new_x, self.owner.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in Blocks.WALLS or not collision(new_x, self.owner.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
                 self.owner.x = new_x
             #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
             elif (next_X_1 in Blocks.WALLS or next_X_2 in Blocks.WALLS) and new_x+self.owner.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
@@ -181,7 +206,7 @@ class Actions:
             else:
                 next_Y_2 = Blocks.GROUND
             
-            if (next_Y_1 not in Blocks.WALLS or not collision(self.owner.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 not in Blocks.WALLS or not Blocks(self.owner.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
+            if (next_Y_1 not in Blocks.WALLS or not collision(self.owner.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 not in Blocks.WALLS or not collision(self.owner.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
                 self.owner.y = new_y
             elif (next_Y_1 in Blocks.WALLS or next_Y_2 in Blocks.WALLS) and new_y+self.owner.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
                 self.collision_happened = True
@@ -222,7 +247,129 @@ class Actions:
             self.dashVector = [0,0]
 
         self.dashFrame += 1
-     
+
+class Pather:
+    def __init__(self,path,map):
+        self.path = path
+        self.map = map
+
+
+        self.x = 0
+        self.y = 0
+        self.width = 10
+        self.height = 10
+        self.image = (21,24)
+        self.keyboard = 'zqsd'
+        self.path_index = 0
+
+
+        self.momentum = [0,0]
+        self.speed_change_rate = 10 #The higher this is, the more "slippery" the character is
+        self.max_speed = 0.8
+        self.move_to = [0,0]
+        self.actions = Actions(self.map,self)
+
+        self.direction = [0,1]
+
+        self.actions.init_walk(priority=1)
+    def update(self):
+        #self.move_keyboard()
+        self.move_path()
+        self.movement()
+        self.preventOOB()
+
+    def draw(self):
+        draw(self.x, self.y,0,self.image[0]*TILE_SIZE,self.image[1]*TILE_SIZE,self.width,self.height,colkey=11)
+        show(self.path[self.path_index+1][0]*TILE_SIZE,self.path[self.path_index+1][1]*TILE_SIZE,(22,24))
+
+    def movement(self):
+        #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
+        if self.move_to[1] < 0:
+            if self.momentum[1] > -self.max_speed:
+                self.momentum[1] -= self.max_speed/self.speed_change_rate
+            self.direction[1] = -1
+
+        if self.move_to[0] < 0:
+            if self.momentum[0] > -self.max_speed:
+                self.momentum[0] -= self.max_speed/self.speed_change_rate
+            self.direction[0] = -1
+
+        if self.move_to[1] > 0:
+            if self.momentum[1] < self.max_speed:
+                self.momentum[1] += self.max_speed/self.speed_change_rate
+            self.direction[1] = 1
+
+        if self.move_to[0] > 0:
+            if self.momentum[0] < self.max_speed:
+                self.momentum[0] += self.max_speed/self.speed_change_rate
+            self.direction[0] = 1
+        
+        #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
+        if not (self.move_to[1] < 0 or self.move_to[1] > 0):
+            self.momentum[1] -= self.momentum[1]/self.speed_change_rate
+            self.direction[1] = 0
+
+        if not(self.move_to[0] < 0 or self.move_to[0] > 0):
+            self.momentum[0] -= self.momentum[0]/self.speed_change_rate
+            self.direction[0] = 0
+        
+        #If the player is almost immobile in a specific direction, we snap their speed to 0
+        if abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = 0
+        if abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = 0
+
+        #If the player is almost at max speed in a specific direction, we snap their speed to max speed
+        if self.max_speed-abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = self.max_speed*pyxel.sgn(self.momentum[0])
+        if self.max_speed-abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = self.max_speed*pyxel.sgn(self.momentum[1])
+
+        #If the player is over max speed, we decrease their speed progressively
+        if abs(self.momentum[0]) > self.max_speed:
+            self.momentum[0] -= self.momentum[0]/self.speed_change_rate
+        if abs(self.momentum[1]) > self.max_speed:
+            self.momentum[1] -= self.momentum[1]/self.speed_change_rate 
+
+        self.actions.walk(self.momentum)
+    
+    def move_keyboard(self):
+        self.move_to = [0,0]
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
+            self.move_to[1] = -1
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
+            self.move_to[0] = -1
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
+            self.move_to[1] = 1
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
+            self.move_to[0] = 1
+        
+    def move_path(self):
+        self.move_to = [0,0]
+        if not self.path_index == len(self.path)-2:
+            self.move_to[0] = self.path[self.path_index+1][0]*TILE_SIZE - self.x
+            self.move_to[1] = self.path[self.path_index+1][1]*TILE_SIZE - self.y
+
+            distance_current = distance(self.x,self.y,self.path[self.path_index][0]*TILE_SIZE,self.path[self.path_index][1]*TILE_SIZE)
+            distance_next = distance(self.x,self.y,self.path[self.path_index+1][0]*TILE_SIZE,self.path[self.path_index+1][1]*TILE_SIZE)
+            if distance_next < distance_current:
+                self.path_index += 1
+
+    def preventOOB(self):
+        if self.x < 0:
+            self.x = 0
+        if self.y < 0:
+            self.y = 0
+        
+        if self.x + self.width > WID:
+            self.x = WID - self.width
+        if self.y + self.height > HEI:
+            self.y = HEI - self.height
+
+
+class Blocks:
+    WALLS = [7]
+    GROUND = [0]
 
 
 def is_inside_map(pos,map):
@@ -232,7 +379,6 @@ def is_inside_map(pos,map):
         return False
     return True
     
-
 def remove_doubles(list):
     new_list = []
     for element in list:
@@ -240,8 +386,20 @@ def remove_doubles(list):
             new_list.append(element)
     return new_list
 
+def show(x,y,img,colkey=11,save=0):
+    pyxel.blt(x,y,save,img[0]*TILE_SIZE,img[1]*TILE_SIZE,TILE_SIZE,TILE_SIZE,colkey=11)
 
+def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
+    return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
 
+def draw(x, y, img, u, v, w, h, colkey=None, rotate=None, scale=1):
+    pyxel.blt(x+w//2*(scale-1), y+h//2*(scale-1), img, u, v, w, h, colkey=colkey, rotate=rotate, scale=scale)
+
+def in_perimeter(x1,y1,x2,y2,distance): #makes a square and checks if coords are inside of it
+    return (x1-x2<distance and x1-x2>-distance) and (y1-y2<distance and y1-y2>-distance)
+
+def distance(x1,y1,x2,y2): #looks at distance with pythagorean theorem
+    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
 
 App()
