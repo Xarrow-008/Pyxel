@@ -427,12 +427,6 @@ def is_inside_map(pos,map):
         return False
     return True
 
-def remove_doubles(list):
-    new_list = []
-    for element in list:
-        if not element in new_list:
-            new_list.append(element)
-    return new_list
 
 def sized_text(x,y,s,col,size=6): #Like pyxel.text, but you can modify the size of the text
     alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]

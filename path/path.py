@@ -7,45 +7,85 @@ class App:
     def __init__(self):
 
         os.system('cls')
-        pyxel.init(100,100,fps=20)
+        pyxel.init(100,100,fps=50)
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
         
-        self.entity = Path()
+        self.map = [[0 for x in range(10)] for y in range(10)]
+        for y in range(6):
+            self.map[y][5] = 7
+
+        self.wall_maker = WallMaker(self.map)
+        self.entity = Path(self.map)
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
 
     def update(self):
-        self.entity.update()
+        self.wall_maker.update()
+        if self.wall_maker.change:
+            self.entity.__init__(self.map)
+            self.wall_maker.change = False
+        else:
+            self.entity.update()
     
     def draw(self):
         pyxel.cls(0)
+        self.wall_maker.draw()
         self.entity.draw()
         
 
+class WallMaker:
+    def __init__(self,map):
+        self.change = True
+        self.map = map
+    def update(self):
+        if pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+            x = pyxel.mouse_x//10
+            y = pyxel.mouse_y//10
+            self.map[y][x] = 7
+
+            self.change = True
+
+        if pyxel.btn(pyxel.KEY_E) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
+            x = pyxel.mouse_x//10
+            y = pyxel.mouse_y//10
+            self.map[y][x] = 0
+
+            self.change = True
+    def draw(self):
+        pass
+
+
+
 class Path:
-    def __init__(self):
+    def __init__(self,map):
         self.x = 1
         self.y = 1
+        self.map = map
         self.targetx = 8
         self.targety = 0
+        self.found = False
 
         self.border = [(self.x,self.y)]
         self.new_border = []
         self.checked = []
-        self.path_check = [[self.border[0]]]
+        self.path_origin = copy(self.map)
+        self.path_at = (self.targetx,self.targety)
+        self.path = [copy(self.path_at)]
         self.finished = False
 
+        self.lines = []
+        self.line_length = 1
+        self.line_direction = 0
         self.color = False
 
-        self.map = [[0 for x in range(10)] for y in range(10)]
 
-        for y in range(6):
-            self.map[y][5] = 7
 
     def update(self):
         cross = [(0,-1),(0,1),(-1,0),(1,0)]
+        if pyxel.frame_count % 2 == 0:
+            cross.reverse()
         if (self.targetx,self.targety) not in self.checked:
             for pos in self.border:
                 for addon in cross:
@@ -55,17 +95,19 @@ class Path:
                             if self.map[new_pos[1]][new_pos[0]] == 0:
                                 if new_pos not in self.new_border:
                                     self.new_border.append(new_pos)
+                                    if self.map[new_pos[1]][new_pos[0]] == 0:
+                                        self.path_origin[new_pos[1]][new_pos[0]] = pos
                 self.checked.append(pos)
             print(self.border)
             self.border = copy(self.new_border)
             self.new_border = []
-        
-        if pyxel.btnp(pyxel.KEY_A):
-            self.color = not self.color
-        if self.color:
-            pyxel.colors[6] = 5373971
-        else:
-            pyxel.colors[6] = 3456789
+
+        elif not self.found:
+            self.path_at = copy(self.path_origin[self.path_at[1]][self.path_at[0]])
+            self.path.append(copy(self.path_at))
+            if self.path_at == (self.x,self.y):
+                self.found = True
+                
             
                 
     def draw(self):
@@ -77,19 +119,17 @@ class Path:
         for pos in self.checked:
             pyxel.rect(pos[0]*10,pos[1]*10,10,10,6)
 
+        
+        if (self.targetx,self.targety) in self.checked:
+            for pos in self.path:
+                pyxel.rect(pos[0]*10,pos[1]*10,10,10,1)
+
         if self.finished:
             pyxel.rect(self.targetx*10,self.targety*10,10,10,11)
         else:
             pyxel.rect(self.targetx*10,self.targety*10,10,10,9)
 
 
-def is_inside_map(pos,map):
-    if pos[0] >= len(map[0]) or pos[1] >= len(map):
-        return False
-    if pos[0] < 0 or pos[1] < 0:
-        return False
-    return True
-    
 class Actions:
     def __init__(self, map, owner):
         self.map = map
@@ -185,7 +225,14 @@ class Actions:
      
 
 
-     
+def is_inside_map(pos,map):
+    if pos[0] >= len(map[0]) or pos[1] >= len(map):
+        return False
+    if pos[0] < 0 or pos[1] < 0:
+        return False
+    return True
+    
+
 def remove_doubles(list):
     new_list = []
     for element in list:
