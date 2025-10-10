@@ -21,11 +21,12 @@ class App:
         pyxel.colors[2] = 5373971
         
         self.world = World()
-        self.player = Player(self.world.map)
+        self.entities = [Path(self.world.map)]
+        self.player = Player(self.world.map, self.entities)
         self.animation = Animation()
         self.showing = 'screen'
         self.keyboard = 'zqsd'
-        self.entities = [Path(self.world.map)]
+        
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
@@ -38,7 +39,7 @@ class App:
         self.player.update()
 
         if pyxel.btnp(pyxel.KEY_M):
-            Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities)
+            Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities, self.player)
             
     def draw(self):
         for y in range(HEIGHT):
@@ -54,7 +55,7 @@ class App:
 
 
 class Player: #Everything relating to the player and its control
-    def __init__(self, map):
+    def __init__(self, map, entities):
         self.keyboard = 'zqsd'
         self.x = 10
         self.y = 10
@@ -62,7 +63,7 @@ class Player: #Everything relating to the player and its control
         self.health = 80
         self.maxHealth = 80
 
-        self.actions = Actions(map, self)
+        self.actions = Actions(map, entities, self, self)
         self.actions.init_walk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
         self.actions.init_dash(priority=0, cooldown=40, speed=1.5, duration=20)
         self.actions.init_ranged_attack()
@@ -227,10 +228,10 @@ class Player: #Everything relating to the player and its control
             
     def attack(self):
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            self.actions.ranged_attack(self.leftHand, pyxel.mouse_x, pyxel.mouse_y)
+            self.actions.ranged_attack(self.leftHand, pyxel.mouse_x, pyxel.mouse_y, "player")
 
         if pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
-            self.actions.ranged_attack(self.rightHand, pyxel.mouse_x, pyxel.mouse_y)
+            self.actions.ranged_attack(self.rightHand, pyxel.mouse_x, pyxel.mouse_y, "player")
 
         if pyxel.btnp(pyxel.KEY_R):
             self.leftHand["mag_ammo"] = 0
@@ -270,7 +271,7 @@ class Player: #Everything relating to the player and its control
                 self.step_frame = 0
 
 class Enemy:
-    def __init__(self, x, y, template, map, entities):
+    def __init__(self, x, y, template, map, entities, player):
         self.x = x
         self.y = y
 
@@ -283,7 +284,7 @@ class Enemy:
 
         self.momentum = [0,0]
 
-        self.actions = Actions(map, self)
+        self.actions = Actions(map, entities, player, self)
 
         #We initialise all of the enemies abilities
         for ability in template["abilities"].items():
@@ -322,13 +323,57 @@ class Enemy:
 
         self.actions.walk(self.momentum)
 
+class Projectile :
+    def __init__(self, weapon, x, y, vector, map, entities, player, team):
+        self.x = x
+        self.y = y
 
+        self.vector = vector
+
+        self.image = weapon["bullet_image"]
+        self.width = weapon["bullet_width"]
+        self.height = weapon["bullet_height"]
+
+        self.damage = weapon["damage"]
+        self.piercing = weapon["piercing"]
+        self.knockbackCoef = weapon["knockback_coef"]
+
+        self.range = weapon["range"]
+
+        self.team = team
+
+        self.actions = Actions(map, entities, player, self)
+        self.actions.init_walk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
+        self.actions.init_death()
+        self.actions.add_death_list(entities)
+
+        entities.append(self)
+
+    def update(self):
+        self.actions.walk([self.vector[0]*self.actions.maxSpeed, self.vector[1]*self.actions.maxSpeed])
+
+        if self.team == "player":
+            self.actions.collision([0, 0, 0, 0], [self.damage, self.vector, self.knockbackCoef, self.piercing], [0, 0, 0, -1])
+        if self.team == "enemy":
+            self.actions.collision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.vector, self.knockbackCoef, self.piercing])
+
+        self.range -= math.sqrt((self.vector[0]*self.actions.maxSpeed)**2 + (self.vector[1]*self.actions.maxSpeed)**2)
+        if self.range <= 0:
+            self.actions.death()
+
+
+
+    def draw(self):
+        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
    
 class Actions:
-    def __init__(self, map, owner):
+    def __init__(self, map, entities, player, owner):
         self.map = map
+        self.entities = entities
+        self.player = player
         self.owner = owner
         self.currentActionPriority = 0
+        self.collision_happened = False
 
     def move(self, vector): #We give a movement vector and get the new coordinates of the entity. Used for all kind of movement
         X = int(self.owner.x//TILE_SIZE)
@@ -432,7 +477,7 @@ class Actions:
     def hurt(self, value, vector, knockback_coef, target):
         target.health -= value
         if hasattr(target.actions, "maxSpeed"):
-            knockback_value = len(str(value))*10*knockback_coef*target.actions.knockbackCoef
+            knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
             target.momentum[0] += vector[0]*knockback_value
             target.momentum[1] += vector[1]*knockback_value
 
@@ -449,7 +494,7 @@ class Actions:
         self.rangedAttackFrame = 0
         self.shotsFired = 0
 
-    def ranged_attack(self, weapon, x, y):
+    def ranged_attack(self, weapon, x, y, team):
         if self.rangedAttackFrame >= weapon["cooldown"] and weapon["mag_ammo"]:
 
             self.rangedAttackFrame = 0
@@ -473,6 +518,7 @@ class Actions:
                 else:
                     cos = 0
                     sin = 0
+                Projectile(weapon, self.owner.x, self.owner.y, [cos,sin], self.map, self.entities, self.player, team)
 
     def reload_weapon(self, weapon):
         if self.rangedAttackFrame >= weapon["reload"] and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0:
@@ -483,6 +529,29 @@ class Actions:
                 weapon["mag_ammo"] = weapon["reserve_ammo"]
                 weapon["reserve_ammo"] = 0
 
+    def collision(self, wall, enemy, player):
+
+        if wall[3] != -1:
+            if self.collision_happened:
+                if wall[0] == 0:
+                    self.death()
+
+        if enemy[3] != -1:
+            for entity in self.entities:
+                if type(entity) == Enemy and collision(self.owner.x, self.owner.y, entity.x, entity.y, [self.owner.width, self.owner.height], [entity.width, entity.height]):
+                    self.hurt(enemy[0], enemy[1], enemy[2], entity)
+                    if enemy[3] == 0:
+                        self.death()
+                    else:
+                        self.owner.piercing -= 1
+
+        if player[3] != -1 :          
+            if collision(self.owner.x, self.owner.y, self.player.x, self.player.y, [self.owner.width, self.owner.height], [self.player.width, self.player.height]):
+                self.hurt(player[0], player[1], player[2], self.player)
+                if player[3] == 0:
+                    self.death()
+                else :
+                    self.owner.piercing -= 1
 
 class Path:
     def __init__(self,map):
