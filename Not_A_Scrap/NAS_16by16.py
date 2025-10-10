@@ -1,4 +1,5 @@
 import pyxel,os,math,random
+from enemies import*
 from copy import deepcopy as copy
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
@@ -34,6 +35,9 @@ class App:
             entity.update()
 
         self.player.update()
+
+        if pyxel.btnp(pyxel.KEY_M):
+            Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities)
             
     def draw(self):
         for y in range(HEIGHT):
@@ -54,16 +58,14 @@ class Player: #Everything relating to the player and its control
         self.x = 10
         self.y = 10
 
-        self.health = 40
+        self.health = 80
         self.maxHealth = 80
 
         self.actions = Actions(map, self)
-        self.actions.init_walk(priority=0)
+        self.actions.init_walk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
         self.actions.init_dash(priority=0, cooldown=40, speed=1.5, duration=20)
 
         self.momentum = [0,0]
-        self.speed_change_rate = 20 #The higher this is, the more "slippery" the character is
-        self.max_speed = 0.5
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -88,12 +90,6 @@ class Player: #Everything relating to the player and its control
         self.image_gestion()
 
         self.last_facing = copy(self.facing)
-
-        if pyxel.btnp(pyxel.KEY_O):
-            self.actions.heal(5,self)
-        if pyxel.btnp(pyxel.KEY_P):
-            self.actions.hurt(5,[-0.5,-0.5],1,self)
-        
 
     def draw(self):
         step_y = self.y
@@ -145,32 +141,32 @@ class Player: #Everything relating to the player and its control
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
-            if self.momentum[1] > -self.max_speed:
-                self.momentum[1] -= self.max_speed/self.speed_change_rate
+            if self.momentum[1] > -self.actions.maxSpeed:
+                self.momentum[1] -= self.actions.maxSpeed/self.actions.speedChangeRate
             self.direction[1] = -1
 
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
-            if self.momentum[0] > -self.max_speed:
-                self.momentum[0] -= self.max_speed/self.speed_change_rate
+            if self.momentum[0] > -self.actions.maxSpeed:
+                self.momentum[0] -= self.actions.maxSpeed/self.actions.speedChangeRate
             self.direction[0] = -1
 
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
-            if self.momentum[1] < self.max_speed:
-                self.momentum[1] += self.max_speed/self.speed_change_rate
+            if self.momentum[1] < self.actions.maxSpeed:
+                self.momentum[1] += self.actions.maxSpeed/self.actions.speedChangeRate
             self.direction[1] = 1
 
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
-            if self.momentum[0] < self.max_speed:
-                self.momentum[0] += self.max_speed/self.speed_change_rate
+            if self.momentum[0] < self.actions.maxSpeed:
+                self.momentum[0] += self.actions.maxSpeed/self.actions.speedChangeRate
             self.direction[0] = 1
         
         #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
         if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper()))):
-            self.momentum[1] -= self.momentum[1]/self.speed_change_rate
+            self.momentum[1] -= self.momentum[1]/self.actions.speedChangeRate
             self.direction[1] = 0
 
         if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper()))):
-            self.momentum[0] -= self.momentum[0]/self.speed_change_rate
+            self.momentum[0] -= self.momentum[0]/self.actions.speedChangeRate
             self.direction[0] = 0
         
         #If the player is almost immobile in a specific direction, we snap their speed to 0
@@ -180,16 +176,16 @@ class Player: #Everything relating to the player and its control
             self.momentum[1] = 0
 
         #If the player is almost at max speed in a specific direction, we snap their speed to max speed
-        if self.max_speed-abs(self.momentum[0]) <= 0.01:
-            self.momentum[0] = self.max_speed*pyxel.sgn(self.momentum[0])
-        if self.max_speed-abs(self.momentum[1]) <= 0.01:
-            self.momentum[1] = self.max_speed*pyxel.sgn(self.momentum[1])
+        if self.actions.maxSpeed-abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = self.actions.maxSpeed*pyxel.sgn(self.momentum[0])
+        if self.actions.maxSpeed-abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = self.actions.maxSpeed*pyxel.sgn(self.momentum[1])
 
         #If the player is over max speed, we decrease their speed progressively
-        if abs(self.momentum[0]) > self.max_speed:
-            self.momentum[0] -= self.momentum[0]/self.speed_change_rate
-        if abs(self.momentum[1]) > self.max_speed:
-            self.momentum[1] -= self.momentum[1]/self.speed_change_rate 
+        if abs(self.momentum[0]) > self.actions.maxSpeed:
+            self.momentum[0] -= self.momentum[0]/self.actions.speedChangeRate
+        if abs(self.momentum[1]) > self.actions.maxSpeed:
+            self.momentum[1] -= self.momentum[1]/self.actions.speedChangeRate 
 
         self.actions.walk(self.momentum)
     
@@ -228,6 +224,58 @@ class Player: #Everything relating to the player and its control
                 self.second_step = self.step
                 self.step_frame = 0
 
+class Enemy:
+    def __init__(self, x, y, template, map, entities):
+        self.x = x
+        self.y = y
+
+        self.width = template["width"]
+        self.height = template["height"]
+        self.image = template["image"]
+
+        self.health = template["health"]
+        self.maxHealth = template["max_health"]
+
+        self.momentum = [0,0]
+
+        self.actions = Actions(map, self)
+
+        #We initialise all of the enemies abilities
+        for ability in template["abilities"].items():
+            initialiser = getattr(self.actions, "init_"+ability[0])
+            parameters = ability[1].values()
+            initialiser(*parameters)
+
+        entities.append(self)
+        self.actions.add_death_list(entities)
+
+    def update(self):
+        if pyxel.btnp(pyxel.KEY_O):
+            self.actions.heal(5,self)
+        if pyxel.btnp(pyxel.KEY_P):
+            self.actions.hurt(5,[0,0],1,self)
+
+        self.movement()
+
+        if self.health <= 0:
+            self.actions.death()
+
+
+    def draw(self):
+        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
+
+    def movement(self):
+
+        #These two lines are temporary and will be removed once we have pathing. They're just there to make sure the speed decreases
+        self.momentum[0] -= self.momentum[0]/self.actions.speedChangeRate
+        self.momentum[1] -= self.momentum[1]/self.actions.speedChangeRate
+
+        if abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = 0
+        if abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = 0
+
+        self.actions.walk(self.momentum)
 
 
    
@@ -288,8 +336,11 @@ class Actions:
                 self.collision_happened = True
                 self.owner.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
-    def init_walk(self, priority): #Gets the parameters of the "walk" action
+    def init_walk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
         self.walkPriority = priority
+        self.maxSpeed = maxSpeed
+        self.speedChangeRate = speedChangeRate
+        self.knockbackCoef = knockbackCoef
 
     def walk(self, vector): #Used for regular walking.
         if self.currentActionPriority <= self.walkPriority:
@@ -335,9 +386,19 @@ class Actions:
 
     def hurt(self, value, vector, knockback_coef, target):
         target.health -= value
-        knockback_value = len(str(value))*10*knockback_coef
-        target.momentum[0] += vector[0]*knockback_value
-        target.momentum[1] += vector[1]*knockback_value
+        if hasattr(target.actions, "maxSpeed"):
+            knockback_value = len(str(value))*10*knockback_coef*target.actions.knockbackCoef
+            target.momentum[0] += vector[0]*knockback_value
+            target.momentum[1] += vector[1]*knockback_value
+
+    def init_death(self):
+        pass
+
+    def add_death_list(self, list):
+        self.deathList = list
+
+    def death(self):
+        self.deathList.remove(self.owner)
 
 class Path:
     def __init__(self,map):
@@ -451,7 +512,6 @@ def is_inside_map(pos,map):
     if pos[0] < 0 or pos[1] < 0:
         return False
     return True
-
 
 def sized_text(x,y,s,col,size=6): #Like pyxel.text, but you can modify the size of the text
     alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
