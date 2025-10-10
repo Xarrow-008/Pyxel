@@ -137,7 +137,7 @@ class Player: #Everything relating to the player and its control
                 elif i in range(26,34):
                     y -= 1
         else:
-            pyxel.rectb(x=45,y=2,w=10,h=99,col=13)
+            pyxel.rectb(x=45,y=2,w=10,h=9,col=13)
 
         draw(x=46,y=3,img=0,u=104,v=248,w=8,h=7,colkey=11)
 
