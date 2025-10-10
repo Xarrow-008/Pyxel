@@ -305,6 +305,8 @@ class Actions:
 
     def heal(self, value, target):
         target.health += value
+        if target.health > target.maxHealth:
+            target.health = target.maxHealth
 
     def hurt(self, value, vector, knockback_coef, target):
         target.health -= value
