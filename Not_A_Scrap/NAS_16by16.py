@@ -288,6 +288,7 @@ class Enemy:
 
         #We initialise all of the enemies abilities
         for ability in template["abilities"].items():
+            
             initialiser = getattr(self.actions, "init_"+ability[0])
             parameters = ability[1].values()
             initialiser(*parameters)
@@ -303,7 +304,7 @@ class Enemy:
 
         self.movement()
 
-        if self.health <= 0:
+        if self.health <= 0 and not self.actions.dead:
             self.actions.death()
 
 
@@ -344,7 +345,7 @@ class Projectile :
 
         self.actions = Actions(map, entities, player, self)
         self.actions.init_walk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
-        self.actions.init_death()
+        self.actions.init_death(spawn_item=False)
         self.actions.add_death_list(entities)
 
         entities.append(self)
@@ -481,14 +482,18 @@ class Actions:
             target.momentum[0] += vector[0]*knockback_value
             target.momentum[1] += vector[1]*knockback_value
 
-    def init_death(self):
-        pass
+    def init_death(self, spawn_item):
+        self.deathItemSpawn = spawn_item
+
+        self.dead = False
 
     def add_death_list(self, list):
         self.deathList = list
 
     def death(self):
-        self.deathList.remove(self.owner)
+        if self.dead == False:
+            self.deathList.remove(self.owner)
+            self.dead = True
 
     def init_ranged_attack(self):
         self.rangedAttackFrame = 0
