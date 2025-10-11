@@ -29,8 +29,8 @@ class App:
 
 
         self.wall_maker = WallMaker(self.map)
-        self.path = Path(self.map)
-        self.pather = None
+        self.hider = Hider(self.map)
+        self.pather = Pather(self.map,self.hider.pos)
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
@@ -38,26 +38,30 @@ class App:
     def update(self):
         self.wall_maker.update()
         if self.wall_maker.change:
-            self.path.__init__(self.map)
-            self.pather = None
+            self.hider.__init__(self.map)
+            self.pather.__init__(self.map,self.hider.pos)
             self.wall_maker.change = False
-        elif self.pather == None:
-            self.path.update()
         else:
+            self.hider.update()
             self.pather.update()
+        
 
 
-        if self.pather == None and self.path.finished:
-            self.pather = Pather(self.path.path,self.map)
         
 
     
     def draw(self):
         pyxel.cls(0)
+        self.walls_draw()
         self.wall_maker.draw()
-        self.path.draw()
-        if self.pather != None:
-            self.pather.draw()
+        self.pather.draw()
+        self.hider.draw()
+    
+    def walls_draw(self):
+        for y in range(len(self.map)):
+            for x in range(len(self.map[y])):
+                color = self.map[y][x]
+                pyxel.rect(x*10,y*10,10,10,color)
         
 
 class WallMaker:
@@ -88,8 +92,6 @@ class Path:
         self.x = 1
         self.y = 1
         self.map = map
-        self.targetx = WID//10-1
-        self.targety = HEI//10-1
         self.found = False
 
         self.border = [(self.x,self.y)]
@@ -100,9 +102,6 @@ class Path:
         self.path = [copy(self.path_at)]
         self.finished = False
 
-        self.lines = []
-        self.line_length = 1
-        self.line_direction = 0
         self.color = False
 
 
@@ -133,13 +132,8 @@ class Path:
                 self.found = True
                 self.finished = True
                 
-            
-                
+                  
     def draw(self):
-        for y in range(len(self.map)):
-            for x in range(len(self.map[y])):
-                color = self.map[y][x]
-                pyxel.rect(x*10,y*10,10,10,color)
 
         for pos in self.checked:
             pyxel.rect(pos[0]*10,pos[1]*10,10,10,6)
@@ -249,8 +243,7 @@ class Actions:
         self.dashFrame += 1
 
 class Pather:
-    def __init__(self,path,map):
-        self.path = path
+    def __init__(self,map,hider_pos):
         self.map = map
 
 
@@ -261,26 +254,36 @@ class Pather:
         self.image = (21,24)
         self.keyboard = 'zqsd'
         self.path_index = 0
+        self.can_move = False
+        self.target = hider_pos
+        self.last_target = (self.x,self.y)
 
 
         self.momentum = [0,0]
         self.speed_change_rate = 10 #The higher this is, the more "slippery" the character is
-        self.max_speed = 0.8
+        self.max_speed = 0.5
         self.move_to = [0,0]
         self.actions = Actions(self.map,self)
 
         self.direction = [0,1]
 
         self.actions.init_walk(priority=1)
+    
     def update(self):
         #self.move_keyboard()
-        self.move_path()
+        if self.target != self.last_target:
+            self.find_path(int(self.target[0]//TILE_SIZE),int(self.target[1]//TILE_SIZE))
+
+
+        if self.can_move:
+            self.move_path()
         self.movement()
         self.preventOOB()
+        self.last_target = copy(self.target)
 
     def draw(self):
         draw(self.x, self.y,0,self.image[0]*TILE_SIZE,self.image[1]*TILE_SIZE,self.width,self.height,colkey=11)
-        show(self.path[self.path_index+1][0]*TILE_SIZE,self.path[self.path_index+1][1]*TILE_SIZE,(22,24))
+        #show(self.path[self.path_index+1][0]*TILE_SIZE,self.path[self.path_index+1][1]*TILE_SIZE,(22,24))
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -346,7 +349,7 @@ class Pather:
         
     def move_path(self):
         self.move_to = [0,0]
-        if not self.path_index == len(self.path)-2:
+        if not self.path_index >= len(self.path)-2:
             self.move_to[0] = self.path[self.path_index+1][0]*TILE_SIZE - self.x
             self.move_to[1] = self.path[self.path_index+1][1]*TILE_SIZE - self.y
 
@@ -354,6 +357,40 @@ class Pather:
             distance_next = distance(self.x,self.y,self.path[self.path_index+1][0]*TILE_SIZE,self.path[self.path_index+1][1]*TILE_SIZE)
             if distance_next < distance_current:
                 self.path_index += 1
+        else:
+            self.can_move = False
+
+    def find_path(self,targetx,targety):
+        border = [(int(self.x//TILE_SIZE),int(self.y//TILE_SIZE))]
+        new_border = []
+        checked = []
+        path_origin = copy(self.map)
+        path_at = (targetx,targety)
+        self.path = [copy(path_at)]
+        cross = [(0,-1),(0,1),(-1,0),(1,0)]
+        while len(border) > 0 and (targetx,targety) not in checked:
+            cross.reverse()
+            for pos in border:
+                for addon in cross:
+                    new_pos = (pos[0]+addon[0],pos[1]+addon[1])
+                    if new_pos not in checked:
+                        if is_inside_map(new_pos, self.map):
+                            if self.map[new_pos[1]][new_pos[0]] == 0:
+                                if new_pos not in new_border:
+                                    new_border.append(new_pos)
+                                    if self.map[new_pos[1]][new_pos[0]] == 0:
+                                        path_origin[new_pos[1]][new_pos[0]] = pos
+                checked.append(pos)
+            border = copy(new_border)
+            new_border = []
+        if (targetx,targety) in checked:
+            while path_at != (self.x//TILE_SIZE,self.y//TILE_SIZE):
+                path_at = copy(path_origin[path_at[1]][path_at[0]])
+                self.path.insert(0,copy(path_at))
+
+        self.path_index = 0
+        self.can_move = True
+        
 
     def preventOOB(self):
         if self.x < 0:
@@ -366,6 +403,117 @@ class Pather:
         if self.y + self.height > HEI:
             self.y = HEI - self.height
 
+class Hider:
+    def __init__(self,map):
+        self.map = map
+
+        self.x = WID-10
+        self.y = HEI-10
+        self.pos = [self.x,self.y]
+        self.width = 10
+        self.height = 10
+        self.image = (21,24)
+        self.keyboard = 'zqsd'
+
+
+        self.momentum = [0,0]
+        self.speed_change_rate = 20 #The higher this is, the more "slippery" the character is
+        self.max_speed = 0.8
+        self.move_to = [0,0]
+        self.actions = Actions(self.map,self)
+
+        self.direction = [0,1]
+
+        self.actions.init_walk(priority=1)
+
+
+    def update(self):
+        self.move_keyboard()
+        self.movement()
+        self.preventOOB()
+
+        self.update_pos()
+
+    def draw(self):
+        show(self.x,self.y,self.image)
+
+    def movement(self):
+        #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
+        if self.move_to[1] < 0:
+            if self.momentum[1] > -self.max_speed:
+                self.momentum[1] -= self.max_speed/self.speed_change_rate
+            self.direction[1] = -1
+
+        if self.move_to[0] < 0:
+            if self.momentum[0] > -self.max_speed:
+                self.momentum[0] -= self.max_speed/self.speed_change_rate
+            self.direction[0] = -1
+
+        if self.move_to[1] > 0:
+            if self.momentum[1] < self.max_speed:
+                self.momentum[1] += self.max_speed/self.speed_change_rate
+            self.direction[1] = 1
+
+        if self.move_to[0] > 0:
+            if self.momentum[0] < self.max_speed:
+                self.momentum[0] += self.max_speed/self.speed_change_rate
+            self.direction[0] = 1
+        
+        #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
+        if not (self.move_to[1] < 0 or self.move_to[1] > 0):
+            self.momentum[1] -= self.momentum[1]/self.speed_change_rate
+            self.direction[1] = 0
+
+        if not(self.move_to[0] < 0 or self.move_to[0] > 0):
+            self.momentum[0] -= self.momentum[0]/self.speed_change_rate
+            self.direction[0] = 0
+        
+        #If the player is almost immobile in a specific direction, we snap their speed to 0
+        if abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = 0
+        if abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = 0
+
+        #If the player is almost at max speed in a specific direction, we snap their speed to max speed
+        if self.max_speed-abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = self.max_speed*pyxel.sgn(self.momentum[0])
+        if self.max_speed-abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = self.max_speed*pyxel.sgn(self.momentum[1])
+
+        #If the player is over max speed, we decrease their speed progressively
+        if abs(self.momentum[0]) > self.max_speed:
+            self.momentum[0] -= self.momentum[0]/self.speed_change_rate
+        if abs(self.momentum[1]) > self.max_speed:
+            self.momentum[1] -= self.momentum[1]/self.speed_change_rate 
+
+        self.actions.walk(self.momentum)
+    
+    def move_keyboard(self):
+        self.move_to = [0,0]
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
+            self.move_to[1] = -1
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
+            self.move_to[0] = -1
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
+            self.move_to[1] = 1
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
+            self.move_to[0] = 1
+        
+    def preventOOB(self):
+        if self.x < 0:
+            self.x = 0
+        if self.y < 0:
+            self.y = 0
+        
+        if self.x + self.width > WID:
+            self.x = WID - self.width
+        if self.y + self.height > HEI:
+            self.y = HEI - self.height
+
+    def update_pos(self):
+        if not in_perimeter(self.x,self.y,self.pos[0],self.pos[1],20):
+            self.pos[0] = self.x
+            self.pos[1] = self.y
 
 class Blocks:
     WALLS = [7]
