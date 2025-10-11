@@ -347,16 +347,17 @@ class Projectile :
         self.actions.init_walk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
         self.actions.init_death(spawn_item=False)
         self.actions.add_death_list(entities)
+        if self.team == "player":
+            self.actions.init_collision([0, 0, 0, 0], [self.damage, self.vector, self.knockbackCoef, self.piercing], [0, 0, 0, -1])
+        if self.team == "enemy":
+            self.actions.init_collision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.vector, self.knockbackCoef, self.piercing])
 
         entities.append(self)
 
     def update(self):
         self.actions.walk([self.vector[0]*self.actions.maxSpeed, self.vector[1]*self.actions.maxSpeed])
 
-        if self.team == "player":
-            self.actions.collision([0, 0, 0, 0], [self.damage, self.vector, self.knockbackCoef, self.piercing], [0, 0, 0, -1])
-        if self.team == "enemy":
-            self.actions.collision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.vector, self.knockbackCoef, self.piercing])
+        self.actions.collision()
 
         self.range -= math.sqrt((self.vector[0]*self.actions.maxSpeed)**2 + (self.vector[1]*self.actions.maxSpeed)**2)
         if self.range <= 0:
@@ -534,29 +535,34 @@ class Actions:
                 weapon["mag_ammo"] = weapon["reserve_ammo"]
                 weapon["reserve_ammo"] = 0
 
-    def collision(self, wall, enemy, player):
+    def init_collision(self, wall, enemy, player):
+        self.wallCollision = wall
+        self.enemyCollision = enemy
+        self.playerCollision = player
 
-        if wall[3] != -1:
+    def collision(self):
+
+        if self.wallCollision[3] != -1:
             if self.collision_happened:
-                if wall[0] == 0:
+                if self.wallCollision[0] == 0:
                     self.death()
 
-        if enemy[3] != -1:
+        if self.enemyCollision[3] != -1:
             for entity in self.entities:
                 if type(entity) == Enemy and collision(self.owner.x, self.owner.y, entity.x, entity.y, [self.owner.width, self.owner.height], [entity.width, entity.height]):
-                    self.hurt(enemy[0], enemy[1], enemy[2], entity)
-                    if enemy[3] == 0:
+                    self.hurt(self.enemyCollision[0], self.enemyCollision[1], self.enemyCollision[2], entity)
+                    if self.enemyCollision[3] == 0:
                         self.death()
                     else:
-                        self.owner.piercing -= 1
+                        self.enemyCollision[3] -= 1
 
-        if player[3] != -1 :          
+        if self.playerCollision[3] != -1 :          
             if collision(self.owner.x, self.owner.y, self.player.x, self.player.y, [self.owner.width, self.owner.height], [self.player.width, self.player.height]):
-                self.hurt(player[0], player[1], player[2], self.player)
-                if player[3] == 0:
+                self.hurt(self.playerCollision[0], self.playerCollision[1], self.playerCollision[2], self.player)
+                if self.playerCollision[3] == 0:
                     self.death()
                 else :
-                    self.owner.piercing -= 1
+                    self.playerCollision[3] -= 1
 
 class Path:
     def __init__(self,map):
