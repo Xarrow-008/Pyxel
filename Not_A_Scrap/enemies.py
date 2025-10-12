@@ -1,4 +1,5 @@
 TILE_SIZE = 16
+FPS = 120
 
 class EnemyTemplate:
 
@@ -7,5 +8,6 @@ class EnemyTemplate:
              "health":100, "max_health":100,
              "abilities":{
                  "walk":{"priority":0, "max_speed":1, "speedChangeRate":10, "knockback_coef":1},
-                 "death":{"spawn_item":True}
+                 "death":{"spawn_item":True},
+                 "hitstun":{"duration":0.5*FPS}
              }}

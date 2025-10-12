@@ -297,19 +297,24 @@ class Enemy:
         self.actions.add_death_list(entities)
 
     def update(self):
-        if pyxel.btnp(pyxel.KEY_O):
-            self.actions.heal(5,self)
-        if pyxel.btnp(pyxel.KEY_P):
-            self.actions.hurt(5,[0,0],1,self)
 
         self.movement()
+
+        if hasattr(self.actions, "isHitStun"):
+            self.actions.hitstun()
 
         if self.health <= 0 and not self.actions.dead:
             self.actions.death()
 
 
     def draw(self):
-        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
+        if hasattr(self.actions, "isHitStun"):
+            if not self.actions.isHitStun:
+                draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
+            else:
+                draw(self.x, self.y, 0, self.image[0]+TILE_SIZE, self.image[1], self.width, self.height, colkey=11)
+        else:
+            draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
 
@@ -325,7 +330,7 @@ class Enemy:
         self.actions.walk(self.momentum)
 
 class Projectile :
-    def __init__(self, weapon, x, y, vector, map, entities, player, team):
+    def __init__(self, weapon, x, y, vector, map, entities, player, team, shot):
         self.x = x
         self.y = y
 
@@ -342,6 +347,8 @@ class Projectile :
         self.range = weapon["range"]
 
         self.team = team
+
+        self.shot = shot
 
         self.actions = Actions(map, entities, player, self)
         self.actions.init_walk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
@@ -476,12 +483,23 @@ class Actions:
         if target.health > target.maxHealth:
             target.health = target.maxHealth
 
-    def hurt(self, value, vector, knockback_coef, target):
-        target.health -= value
-        if hasattr(target.actions, "maxSpeed"):
-            knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
-            target.momentum[0] += vector[0]*knockback_value
-            target.momentum[1] += vector[1]*knockback_value
+    def hurt(self, value, vector, knockback_coef, target, shot):
+        if hasattr(target.actions, "isHitStun"):
+            if not target.actions.isHitStun or target.hitBy == shot:
+                target.health -= value
+                target.actions.isHitStun = True
+                target.actions.hitStunFrame = 0
+                target.hitBy = shot
+                if hasattr(target.actions, "maxSpeed"):
+                    knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
+                    target.momentum[0] += vector[0]*knockback_value
+                    target.momentum[1] += vector[1]*knockback_value
+        else:
+            target.health -= value
+            if hasattr(target.actions, "maxSpeed"):
+                knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
+                target.momentum[0] += vector[0]*knockback_value
+                target.momentum[1] += vector[1]*knockback_value
 
     def init_death(self, spawn_item):
         self.deathItemSpawn = spawn_item
@@ -524,7 +542,7 @@ class Actions:
                 else:
                     cos = 0
                     sin = 0
-                Projectile(weapon, self.owner.x, self.owner.y, [cos,sin], self.map, self.entities, self.player, team)
+                Projectile(weapon, self.owner.x, self.owner.y, [cos,sin], self.map, self.entities, self.player, team, self.shotsFired)
 
     def reload_weapon(self, weapon):
         if self.rangedAttackFrame >= weapon["reload"] and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0:
@@ -550,7 +568,7 @@ class Actions:
         if self.enemyCollision[3] != -1:
             for entity in self.entities:
                 if type(entity) == Enemy and collision(self.owner.x, self.owner.y, entity.x, entity.y, [self.owner.width, self.owner.height], [entity.width, entity.height]):
-                    self.hurt(self.enemyCollision[0], self.enemyCollision[1], self.enemyCollision[2], entity)
+                    self.hurt(self.enemyCollision[0], self.enemyCollision[1], self.enemyCollision[2], entity, self.owner.shot)
                     if self.enemyCollision[3] == 0:
                         self.death()
                     else:
@@ -558,11 +576,23 @@ class Actions:
 
         if self.playerCollision[3] != -1 :          
             if collision(self.owner.x, self.owner.y, self.player.x, self.player.y, [self.owner.width, self.owner.height], [self.player.width, self.player.height]):
-                self.hurt(self.playerCollision[0], self.playerCollision[1], self.playerCollision[2], self.player)
+                self.hurt(self.playerCollision[0], self.playerCollision[1], self.playerCollision[2], self.player, self.owner.shot)
                 if self.playerCollision[3] == 0:
                     self.death()
                 else :
                     self.playerCollision[3] -= 1
+
+    def init_hitstun(self, duration):
+        self.hitStunDuration = duration
+        self.isHitStun = False
+        self.hitStunFrame = 0
+        self.hitBy = 0
+
+    def hitstun(self):
+        if self.hitStunFrame >= self.hitStunDuration and self.isHitStun:
+            self.isHitStun = False
+        else:
+            self.hitStunFrame += 1
 
 class Path:
     def __init__(self,map):
