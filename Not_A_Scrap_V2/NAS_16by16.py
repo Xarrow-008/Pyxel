@@ -65,8 +65,8 @@ class Player: #Everything relating to the player and its control
 
         self.actions = Actions(map, entities, self, self)
         self.actions.init_walk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
-        self.actions.init_dash(priority=0, cooldown=40, speed=1.5, duration=20)
-        self.actions.init_ranged_attack()
+        self.actions.init_dash(priority=1, cooldown=40, speed=1.5, duration=20)
+        self.actions.init_ranged_attack(priority=0)
 
         self.momentum = [0,0]
 
@@ -470,7 +470,7 @@ class Actions:
             self.move([self.dashVector[0]*self.dashSpeed, self.dashVector[1]*self.dashSpeed])
 
         else :
-            self.currentActionPriority -= 1
+            self.currentActionPriority = 0
             self.isDashing = False
             self.dashFrame = 0
             self.owner.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
@@ -514,12 +514,15 @@ class Actions:
             self.deathList.remove(self.owner)
             self.dead = True
 
-    def init_ranged_attack(self):
+    def init_ranged_attack(self, priority):
+        self.rangedAttackPriority = priority
         self.rangedAttackFrame = 0
         self.shotsFired = 0
 
     def ranged_attack(self, weapon, x, y, team):
-        if self.rangedAttackFrame >= weapon["cooldown"] and weapon["mag_ammo"]:
+        if self.rangedAttackPriority >= self.currentActionPriority and self.rangedAttackFrame >= weapon["cooldown"] and weapon["mag_ammo"]:
+
+            self.currentActionPriority = self.rangedAttackPriority
 
             self.rangedAttackFrame = 0
             weapon["mag_ammo"] -= 1
@@ -568,19 +571,21 @@ class Actions:
         if self.enemyCollision[3] != -1:
             for entity in self.entities:
                 if type(entity) == Enemy and collision(self.owner.x, self.owner.y, entity.x, entity.y, [self.owner.width, self.owner.height], [entity.width, entity.height]):
-                    self.hurt(self.enemyCollision[0], self.enemyCollision[1], self.enemyCollision[2], entity, self.owner.shot)
-                    if self.enemyCollision[3] == 0:
-                        self.death()
-                    else:
-                        self.enemyCollision[3] -= 1
+                    if (hasattr(entity.actions, "isHitStun") and not entity.actions.isHitStun) or not hasattr(entity.actions, "isHitStun"):
+                        self.hurt(self.enemyCollision[0], self.enemyCollision[1], self.enemyCollision[2], entity, self.owner.shot)
+                        if self.enemyCollision[3] == 0:
+                            self.death()
+                        else:
+                            self.enemyCollision[3] -= 1
 
         if self.playerCollision[3] != -1 :          
             if collision(self.owner.x, self.owner.y, self.player.x, self.player.y, [self.owner.width, self.owner.height], [self.player.width, self.player.height]):
-                self.hurt(self.playerCollision[0], self.playerCollision[1], self.playerCollision[2], self.player, self.owner.shot)
-                if self.playerCollision[3] == 0:
-                    self.death()
-                else :
-                    self.playerCollision[3] -= 1
+                if not player.actions.isHitStun:
+                    self.hurt(self.playerCollision[0], self.playerCollision[1], self.playerCollision[2], self.player, self.owner.shot)
+                    if self.playerCollision[3] == 0:
+                        self.death()
+                    else :
+                        self.playerCollision[3] -= 1
 
     def init_hitstun(self, duration):
         self.hitStunDuration = duration

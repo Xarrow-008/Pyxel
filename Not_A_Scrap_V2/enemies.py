@@ -9,5 +9,5 @@ class EnemyTemplate:
              "abilities":{
                  "walk":{"priority":0, "max_speed":1, "speedChangeRate":10, "knockback_coef":1},
                  "death":{"spawn_item":True},
-                 "hitstun":{"duration":0.5*FPS}
+                 "hitstun":{"duration":3*FPS}
              }}
