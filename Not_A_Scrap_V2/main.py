@@ -80,8 +80,8 @@ class inMission:
             self.player.actions.frozen -= 1
             return True
         for entity in self.entities:
-            if hasattr(entity, "hitFeezeFrame") and entity.frozen != 0:
-                entity.frozen -= 1
+            if hasattr(entity.actions, "frozen") and entity.actions.frozen != 0:
+                entity.actions.frozen -= 1
                 return True
         return False
 
