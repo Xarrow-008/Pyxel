@@ -38,7 +38,7 @@ class Game:
         self.player = Player(self.world.map, self.entities)
         self.animation = Animation()
         
-        self.place = inMission()
+        self.place = inMission(self.world, self.entities, self.player, self.animation)
 
     def update(self):
         self.place.update()
@@ -47,6 +47,12 @@ class Game:
         self.place.draw()
 
 class inMission:
+    def __init__(self, world, entities, player, animation):
+        self.world = world
+        self.entities = entities
+        self.player = player
+        self.animation = animation
+
     def update(self):
         for entity in self.entities:
             entity.update()
