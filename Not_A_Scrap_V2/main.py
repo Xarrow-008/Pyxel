@@ -53,14 +53,16 @@ class inMission:
         self.player = player
         self.animation = animation
 
+
     def update(self):
-        for entity in self.entities:
-            entity.update()
+        if not self.freeze_frame_active():
+            for entity in self.entities:
+                entity.update()
 
-        self.player.update()
+            self.player.update()
 
-        if pyxel.btnp(pyxel.KEY_M):
-            Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities, self.player)
+            if pyxel.btnp(pyxel.KEY_M):
+                Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities, self.player)
 
     def draw(self):
         for y in range(HEIGHT):
@@ -72,6 +74,17 @@ class inMission:
             entity.draw()
         
         self.player.draw()   
+
+    def freeze_frame_active(self):
+        if self.player.actions.frozen != 0:
+            self.player.actions.frozen -= 1
+            return True
+        for entity in self.entities:
+            if hasattr(entity, "hitFeezeFrame") and entity.frozen != 0:
+                entity.frozen -= 1
+                return True
+        return False
+
 
 class Player: #Everything relating to the player and its control
     def __init__(self, map, entities):
@@ -86,6 +99,7 @@ class Player: #Everything relating to the player and its control
         self.actions.init_walk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
         self.actions.init_dash(priority=1, cooldown=40, speed=1.5, duration=20)
         self.actions.init_ranged_attack(priority=0)
+        self.actions.init_hitstun(duration=1*FPS, freeze_frame=1*FPS)
 
         self.momentum = [0,0]
 
@@ -122,6 +136,9 @@ class Player: #Everything relating to the player and its control
         self.image_gestion()
 
         self.last_facing = copy(self.facing)
+
+        if pyxel.btnp(pyxel.KEY_O):
+            self.actions.hurt(-5, [0,0], 1, self, 0)
 
     def draw(self):
         step_y = self.y
@@ -185,7 +202,6 @@ class Player: #Everything relating to the player and its control
         draw(x=2, y=238, img=0, u=self.rightHand["image"][0], v=self.rightHand["image"][1], w=self.rightHand["width"], h=self.rightHand["height"], colkey=11)
         if self.rightHand != Weapon.NONE:
             sized_text(x=21, y=243, s=str(self.rightHand["mag_ammo"])+"/"+str(self.rightHand["max_ammo"])+" ("+str(self.rightHand["reserve_ammo"])+")", col=7)
-
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -261,7 +277,6 @@ class Player: #Everything relating to the player and its control
         self.actions.reload_weapon(self.rightHand)
 
         self.actions.rangedAttackFrame += 1
-
 
     def image_gestion(self):
         self.walking = False
@@ -508,6 +523,7 @@ class Actions:
                 target.health -= value
                 target.actions.isHitStun = True
                 target.actions.hitStunFrame = 0
+                target.actions.frozen = target.actions.hitFreezeFrame
                 target.hitBy = shot
                 if hasattr(target.actions, "maxSpeed"):
                     knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
@@ -606,8 +622,11 @@ class Actions:
                     else :
                         self.playerCollision[3] -= 1
 
-    def init_hitstun(self, duration):
+    def init_hitstun(self, duration, freeze_frame):
         self.hitStunDuration = duration
+        self.hitFreezeFrame = freeze_frame
+        self.frozen = 0
+
         self.isHitStun = False
         self.hitStunFrame = 0
         self.hitBy = 0
