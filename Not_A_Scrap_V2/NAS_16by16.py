@@ -20,19 +20,34 @@ class App:
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
         
-        self.world = World()
-        self.entities = [Path(self.world.map)]
-        self.player = Player(self.world.map, self.entities)
-        self.animation = Animation()
-        self.showing = 'screen'
-        self.keyboard = 'zqsd'
-        
+        self.state = Game()      
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
 
     def update(self):
+        self.state.update()
+            
+    def draw(self):
+        self.state.draw()    
 
+class Game:
+    def __init__(self):
+        self.world = World()
+        self.entities = [Path(self.world.map)]
+        self.player = Player(self.world.map, self.entities)
+        self.animation = Animation()
+        
+        self.place = inMission()
+
+    def update(self):
+        self.place.update()
+
+    def draw(self):
+        self.place.draw()
+
+class inMission:
+    def update(self):
         for entity in self.entities:
             entity.update()
 
@@ -40,7 +55,7 @@ class App:
 
         if pyxel.btnp(pyxel.KEY_M):
             Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities, self.player)
-            
+
     def draw(self):
         for y in range(HEIGHT):
             for x in range(WIDTH):
@@ -50,9 +65,7 @@ class App:
         for entity in self.entities:
             entity.draw()
         
-        self.player.draw()        
-
-
+        self.player.draw()   
 
 class Player: #Everything relating to the player and its control
     def __init__(self, map, entities):
