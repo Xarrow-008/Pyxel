@@ -554,6 +554,10 @@ class DrawArea:
             elif self.tool == 'select':
                 self.set_select_zone()
             
+            elif self.tool == 'rectangle':
+                self.set_select_zone()
+                self.paint_rectangle()
+
             if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT) or (pyxel.btnp(pyxel.KEY_X) and not pyxel.btn(pyxel.KEY_LCTRL)):
                 self.colorpick.current_color = self.canvas[self.pencil_pos[1]][self.pencil_pos[0]]
 
@@ -564,6 +568,9 @@ class DrawArea:
             self.lclick = False
         if pyxel.btnp(pyxel.KEY_B):
             self.tool = 'brush'
+            self.lclick = False
+        if pyxel.btnp(pyxel.KEY_R):
+            self.tool = 'rectangle'
             self.lclick = False
 
         if self.tool == 'select':
@@ -623,6 +630,18 @@ class DrawArea:
                                 pyxel.pset(posx, posy, 0)
 
 
+        if self.tool == 'rectangle':
+            if self.select_holding:
+                for y in range(self.pencil_pos[1] - self.select_start[1]+1):
+                    for x in range(self.pencil_pos[0] - self.select_start[0]+1):
+                        for size_y in range(self.zoom):
+                            for size_x in range(self.zoom):
+                                posx = self.x + (self.select_start[0] + x)*self.zoom + size_x
+                                posy = self.y + (self.select_start[1] + y)*self.zoom + size_y
+                                if point_inside(posx,posy,self.x,self.y,self.width,self.height):
+                                    pyxel.pset(posx, posy, self.color)
+        
+        
         if self.grid:
             for x in range(1,self.canvas_width//self.grid_size+1):
                 xpos = self.x + (self.grid_size * x - self.cam[0]) * self.zoom
@@ -671,7 +690,7 @@ class DrawArea:
             self.draw_asset_in(self.x + (self.select_zone['x'] + self.select_zone['w']) * self.zoom -6 + self.zoom - self.cam[0]*self.zoom,
                 self.y + (self.select_zone['y'] + self.select_zone['h']) * self.zoom -6 + self.zoom - self.cam[1]*self.zoom, 0, 'border_BR')
 
-        
+
         self.colorpick.draw()
 
     def draw_over(self):
@@ -818,6 +837,11 @@ class DrawArea:
         self.select_zone['content'] = temp
         self.paste_select()
 
+    def paint_rectangle(self):
+        if not self.lclick and self.last_lclick:
+            for y in range(self.pencil_pos[1] - self.select_start[1]+1):
+                for x in range(self.pencil_pos[0] - self.select_start[0]+1):
+                    self.canvas[y+self.select_start[1]][x+self.select_start[0]] = self.color
 
     def draw_asset_in(self,x, y, img, asset_name):
         if (point_inside(x,y,self.x,self.y,self.width,self.height) and

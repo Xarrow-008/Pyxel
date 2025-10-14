@@ -1,6 +1,5 @@
 import pyxel, os, random
 from pynput.keyboard import Key, Listener
-from draw import draw
 
 
 """
@@ -146,17 +145,10 @@ def rect_in_list(x, y, w, h):
             all_pos.append((x+in_x,y+in_y))
     return all_pos
 
-square_b_r = rect_in_list(1,1,2,2)
-
-dic = {'x':0,'y':0}
-tup = (10,11)
-
-for coord in square_b_r:
-    liste[coord[1]][coord[0]] = 1
-'''
+"""
 for y in liste:
     print(y)
-'''
+
 dic['x'], dic['y'] = tup
 
 
@@ -186,3 +178,6 @@ with Listener(
         on_press=on_press,
         on_release=on_release) as listener:
     listener.join()
+"""
+for i in range(1):
+    print('yaa')
