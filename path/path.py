@@ -18,19 +18,13 @@ class App:
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
         
-        self.map = [[random.choice([0,0,7]) for x in range(WID//10+1)] for y in range(HEI//10+1)]
-        for y in range(len(self.map)):
-            for x in range(len(self.map[y])):
-                if self.map[y][x] == 7:
-                    if y < 5 and x < 5:
-                        self.map[y][x] = 0
-                    if y > len(self.map)-5 and x > len(self.map[y]) - 5:
-                        self.map[y][x] = 0
+        self.map = [[random.choice([0,0,0,0,0,0,0,0,0,7]) for x in range(WID//10+1)] for y in range(HEI//10+1)]
+        self.empty_space()
 
 
         self.wall_maker = WallMaker(self.map)
         self.hider = Hider(self.map)
-        self.pather = Pather(self.map,self.hider.pos)
+        self.pather = Pather(self.map)
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
@@ -39,11 +33,11 @@ class App:
         self.wall_maker.update()
         if self.wall_maker.change:
             self.hider.__init__(self.map)
-            self.pather.__init__(self.map,self.hider.pos)
+            self.pather.__init__(self.map)
             self.wall_maker.change = False
         else:
             self.hider.update()
-            self.pather.update()
+            self.pather.update(self.hider.x,self.hider.y)
         
 
 
@@ -63,6 +57,14 @@ class App:
                 color = self.map[y][x]
                 pyxel.rect(x*10,y*10,10,10,color)
         
+    def empty_space(self):
+        for y in range(len(self.map)):
+            for x in range(len(self.map[y])):
+                if self.map[y][x] == 7:
+                    if y < 5 and x < 5:
+                        self.map[y][x] = 0
+                    if y > len(self.map)-5 and x > len(self.map[y]) - 5:
+                        self.map[y][x] = 0
 
 class WallMaker:
     def __init__(self,map):
@@ -97,9 +99,6 @@ class Path:
         self.border = [(self.x,self.y)]
         self.new_border = []
         self.checked = []
-        self.path_origin = copy(self.map)
-        self.path_at = (self.targetx,self.targety)
-        self.path = [copy(self.path_at)]
         self.finished = False
 
         self.color = False
@@ -107,47 +106,28 @@ class Path:
 
 
     def update(self):
-        cross = [(0,-1),(0,1),(-1,0),(1,0)]
-        if pyxel.frame_count % 2 == 0:
-            cross.reverse()
-        if (self.targetx,self.targety) not in self.checked:
+            print(len(self.border))
+            cross = [(0,-1),(0,1),(-1,0),(1,0)]
             for pos in self.border:
                 for addon in cross:
                     new_pos = (pos[0]+addon[0],pos[1]+addon[1])
                     if new_pos not in self.checked:
-                        if is_inside_map(new_pos, self.map):
-                            if self.map[new_pos[1]][new_pos[0]] == 0:
-                                if new_pos not in self.new_border:
+                        if new_pos not in self.new_border:
+                            if self.is_visible(new_pos):
+                                if self.map[new_pos[1]][new_pos[0]] == 0:
                                     self.new_border.append(new_pos)
-                                    if self.map[new_pos[1]][new_pos[0]] == 0:
-                                        self.path_origin[new_pos[1]][new_pos[0]] = pos
                 self.checked.append(pos)
             self.border = copy(self.new_border)
             self.new_border = []
-
-        elif not self.found:
-            self.path_at = copy(self.path_origin[self.path_at[1]][self.path_at[0]])
-            self.path.insert(0,copy(self.path_at))
-            if self.path_at == (self.x,self.y):
-                self.found = True
-                self.finished = True
-                
                   
     def draw(self):
 
         for pos in self.checked:
             pyxel.rect(pos[0]*10,pos[1]*10,10,10,6)
 
-        
-        if (self.targetx,self.targety) in self.checked:
-            for pos in self.path:
-                pyxel.rect(pos[0]*10,pos[1]*10,10,10,1)
 
-        if self.finished:
-            pyxel.rect(self.targetx*10,self.targety*10,10,10,11)
-        else:
-            pyxel.rect(self.targetx*10,self.targety*10,10,10,9)
-
+    def is_visible(self,pos):
+        return pos[0] >= 0 and pos[0] < WID//TILE_SIZE and pos[1] >= 0 and pos[1] < HEI//TILE_SIZE
 
 class Actions:
     def __init__(self, map, owner):
@@ -243,7 +223,7 @@ class Actions:
         self.dashFrame += 1
 
 class Pather:
-    def __init__(self,map,hider_pos):
+    def __init__(self,map):
         self.map = map
 
 
@@ -254,14 +234,14 @@ class Pather:
         self.image = (21,24)
         self.keyboard = 'zqsd'
         self.path_index = 0
-        self.can_move = False
-        self.target = hider_pos
-        self.last_target = (self.x,self.y)
+        self.can_move = True
+        self.path = [(self.x//TILE_SIZE,self.y//TILE_SIZE) for i in range(2)]
+        self.path_at = copy(self.path[0])
 
 
         self.momentum = [0,0]
         self.speed_change_rate = 10 #The higher this is, the more "slippery" the character is
-        self.max_speed = 0.5
+        self.max_speed = 0.8
         self.move_to = [0,0]
         self.actions = Actions(self.map,self)
 
@@ -269,21 +249,24 @@ class Pather:
 
         self.actions.init_walk(priority=1)
     
-    def update(self):
+    def update(self,targetx,targety):
         #self.move_keyboard()
-        if self.target != self.last_target:
-            self.find_path(int(self.target[0]//TILE_SIZE),int(self.target[1]//TILE_SIZE))
+        if self.target_has_moved(targetx,targety) and not self.target_is_close(targetx,targety):
+            self.find_path(int(targetx//TILE_SIZE),int(targety//TILE_SIZE))
 
 
         if self.can_move:
-            self.move_path()
+            if not self.target_is_close(targetx,targety):
+                self.move_path()
+            else:
+                self.move_towards_target(targetx,targety)
         self.movement()
         self.preventOOB()
-        self.last_target = copy(self.target)
 
     def draw(self):
+        for pos in self.path:
+            show(pos[0]*TILE_SIZE,pos[1]*TILE_SIZE,(0,0))
         draw(self.x, self.y,0,self.image[0]*TILE_SIZE,self.image[1]*TILE_SIZE,self.width,self.height,colkey=11)
-        #show(self.path[self.path_index+1][0]*TILE_SIZE,self.path[self.path_index+1][1]*TILE_SIZE,(22,24))
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -360,13 +343,18 @@ class Pather:
         else:
             self.can_move = False
 
+    def move_towards_target(self,x,y):
+        self.move_to[0] = x - self.x
+        self.move_to[1] = y - self.y
+
     def find_path(self,targetx,targety):
-        border = [(int(self.x//TILE_SIZE),int(self.y//TILE_SIZE))]
+        start = (self.path[self.path_index][0],self.path[self.path_index][1])
+        border = [copy(start)]
         new_border = []
         checked = []
         path_origin = copy(self.map)
-        path_at = (targetx,targety)
-        self.path = [copy(path_at)]
+        self.path_at = (targetx,targety)
+        self.path = [copy(self.path_at)]
         cross = [(0,-1),(0,1),(-1,0),(1,0)]
         while len(border) > 0 and (targetx,targety) not in checked:
             cross.reverse()
@@ -378,19 +366,23 @@ class Pather:
                             if self.map[new_pos[1]][new_pos[0]] == 0:
                                 if new_pos not in new_border:
                                     new_border.append(new_pos)
-                                    if self.map[new_pos[1]][new_pos[0]] == 0:
-                                        path_origin[new_pos[1]][new_pos[0]] = pos
+                                    path_origin[new_pos[1]][new_pos[0]] = pos
                 checked.append(pos)
             border = copy(new_border)
             new_border = []
         if (targetx,targety) in checked:
-            while path_at != (self.x//TILE_SIZE,self.y//TILE_SIZE):
-                path_at = copy(path_origin[path_at[1]][path_at[0]])
-                self.path.insert(0,copy(path_at))
+            while self.path_at != start:
+                self.path_at = copy(path_origin[self.path_at[1]][self.path_at[0]])
+                self.path.insert(0,copy(self.path_at))
 
         self.path_index = 0
         self.can_move = True
         
+    def target_has_moved(self,x,y):
+        return distance(x//TILE_SIZE,y//TILE_SIZE,*self.path[-1]) > 1
+
+    def target_is_close(self,x,y):
+        return distance(self.x,self.y,x,y) < 2*TILE_SIZE
 
     def preventOOB(self):
         if self.x < 0:
@@ -409,7 +401,6 @@ class Hider:
 
         self.x = WID-10
         self.y = HEI-10
-        self.pos = [self.x,self.y]
         self.width = 10
         self.height = 10
         self.image = (21,24)
@@ -432,7 +423,6 @@ class Hider:
         self.movement()
         self.preventOOB()
 
-        self.update_pos()
 
     def draw(self):
         show(self.x,self.y,self.image)
@@ -510,10 +500,6 @@ class Hider:
         if self.y + self.height > HEI:
             self.y = HEI - self.height
 
-    def update_pos(self):
-        if not in_perimeter(self.x,self.y,self.pos[0],self.pos[1],20):
-            self.pos[0] = self.x
-            self.pos[1] = self.y
 
 class Blocks:
     WALLS = [7]
