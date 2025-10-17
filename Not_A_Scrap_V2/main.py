@@ -34,7 +34,7 @@ class App:
 class Game:
     def __init__(self):
         self.world = World()
-        self.entities = [Path(self.world.map)]
+        self.entities = []
         self.player = Player(self.world.map, self.entities)
         self.animation = Animation()
         

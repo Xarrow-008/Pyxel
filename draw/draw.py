@@ -1,4 +1,5 @@
-import pyxel, os, random, copy, toml, zipfile, csv
+import pyxel, os, random, toml, zipfile, csv
+from copy import deepcopy as copy
 
 ASSETS = {'arrow_left':(0,0), 'arrow_right':(1,0), 'arrow_up':(2,0), 'arrow_down':(3,0), 'cursor':(4,0),
           'pause':(0,1), 'play':(1,1), 'minus':(2,1), 'plus':(3,1),
@@ -103,6 +104,12 @@ class App:
                 else:
                     self.desk = load_desk(self.button_list,argument['file_info'],self.desk.switch['to'])
 
+            elif self.desk.switch['to'] == 'animation':
+                if 'file_canvas' in argument['file_info'].keys():
+                    self.desk = animation_desk(self.button_list,argument['file_info'])
+                else:
+                    self.desk = load_desk(self.button_list,argument['file_info'],self.desk.switch['to'])
+
             self.desk.switch = {}
 
     def desk_msg_update(self):
@@ -135,6 +142,8 @@ class folders_desk:
         self.button_list = button_list
         self.argument = argument
         self.text_zone = text_zone(x=10,y=10,length=20)
+        self.button_list.append(Button(name='drawing',color=2,x=self.text_zone.x,y=self.text_zone.y+10,width=30,height=7))
+        self.button_list.append(Button(name='animation',color=2,x=self.text_zone.x+32,y=self.text_zone.y+10,width=38,height=7))
         self.file_info = {'file_path':'','file_data':{},'file_pyxres_name':'','file_index':0}
         self.open_to = 'drawing'
         
@@ -144,9 +153,15 @@ class folders_desk:
     def update(self):
         self.text_zone.update()
         
+        if is_pressed(self.button_list,'drawing'):
+            self.open_to = 'drawing'
+        if is_pressed(self.button_list,'animation'):
+            self.open_to = 'animation'
+
         if self.text_zone.enter:
             self.open_file()
             self.text_zone.enter = False
+        
   
 
     def draw(self):
@@ -156,7 +171,15 @@ class folders_desk:
             pyxel.text(self.text_zone.x,self.text_zone.y + 8,self.msg['txt'],8)
 
     def draw_over(self):
-        pass
+        for button in self.button_list:
+            pyxel.text(button.x+1,button.y+1,button.name,9)
+        self.draw_button_highlight()
+
+    def draw_button_highlight(self):
+        for button in self.button_list:
+            if button.name == self.open_to:
+                draw_rectangle(button.x, button.y, button.width-1, button.height-1)
+            
     
     def open_file(self):
 
@@ -344,6 +367,8 @@ class animation_desk:
         self.switch = {}
         self.button_list = button_list
         self.starting_canvas = BASE_CANVAS
+        self.can_save = True
+        self.msg = {'txt':'','time':0}
         self.parameters_pos = {'colorpick':(4,113),'zoom':(101,28),'grid':(101,3)}
         self.file_info = file_info
         
@@ -357,7 +382,7 @@ class animation_desk:
         self.start_frame = 0
         self.animation = []
         self.framerate = 10
-        self.frames = [{'all_canvas':copy.deepcopy(self.draw_area.past_canvas),'index':0,'coming_back':False}]
+        self.frames = [{'all_canvas':copy(self.draw_area.past_canvas),'index':0,'coming_back':False}]
         self.frames_index = 0
 
         self.button_list.append(Button(name='last_frame',color=5,x=26,y=100,width=10,height=10,icon='arrow_left'))
@@ -365,7 +390,7 @@ class animation_desk:
         self.button_list.append(Button('next_frame',5,54,100,10,10,'arrow_right'))
         self.button_list.append(Button('speed_down',5,101,48,10,10,'minus'))
         self.button_list.append(Button('speed_up',5,116,48,10,10,'plus'))
-        self.base_canvas = copy.deepcopy(self.frames[0]['all_canvas'])
+        self.base_canvas = copy(self.frames[0]['all_canvas'])
         self.bg_color = 7
 
     def update(self):
@@ -390,7 +415,7 @@ class animation_desk:
             if is_pressed(self.button_list,'next_frame') or pyxel.btnp(pyxel.KEY_3):
                 self.save()
                 if self.frames_index >= len(self.frames)-1:
-                    self.frames.append({'all_canvas':copy.deepcopy(self.base_canvas),'index':0,'coming_back':False})
+                    self.frames.append({'all_canvas':copy(self.base_canvas),'index':0,'coming_back':False})
 
                 self.frames_index += 1
                 self.load()
@@ -409,14 +434,14 @@ class animation_desk:
     def save(self):
         self.frames[self.frames_index]['coming_back'] = self.draw_area.coming_back
         self.frames[self.frames_index]['index'] = self.draw_area.canvas_index
-        self.draw_area.past_canvas[self.draw_area.canvas_index] = copy.deepcopy(self.draw_area.canvas)
-        self.frames[self.frames_index]['all_canvas'] = copy.deepcopy(self.draw_area.past_canvas)
+        self.draw_area.past_canvas[self.draw_area.canvas_index] = copy(self.draw_area.canvas)
+        self.frames[self.frames_index]['all_canvas'] = copy(self.draw_area.past_canvas)
 
     def load(self):
         self.draw_area.coming_back = self.frames[self.frames_index]['coming_back']
         self.draw_area.canvas_index = self.frames[self.frames_index]['index']
-        self.draw_area.past_canvas = copy.deepcopy(self.frames[self.frames_index]['all_canvas'])
-        self.draw_area.canvas = copy.deepcopy(self.draw_area.past_canvas[self.draw_area.canvas_index])
+        self.draw_area.past_canvas = copy(self.frames[self.frames_index]['all_canvas'])
+        self.draw_area.canvas = copy(self.draw_area.past_canvas[self.draw_area.canvas_index])
 
     def parameters_gestion(self):
         if is_pressed(self.button_list,'speed_down'):
@@ -511,12 +536,12 @@ class DrawArea:
         self.button_list.append(Button('zoom_in',5, parameters_pos['zoom'][0] + 15, parameters_pos['zoom'][1],10,10,'plus'))
         self.button_list.append(Button('grid_on/off',5,parameters_pos['grid'][0],parameters_pos['grid'][1],10,10,'grid/crossed'))
         self.grid = True
-        self.grid_size = 8
+        self.grid_size = 16
         self.canvas_hold_pos = (0,0)
         self.cam = [0,0]
         self.slide_holding = False
 
-        self.past_canvas = [copy.deepcopy(self.canvas)]
+        self.past_canvas = [copy(self.canvas)]
         self.canvas_index = 0
         self.change_canvas = False
         self.coming_back = False
@@ -558,6 +583,9 @@ class DrawArea:
                 self.set_select_zone()
                 self.paint_rectangle()
 
+            elif self.tool == 'fill':
+                self.fill_space()
+
             if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT) or (pyxel.btnp(pyxel.KEY_X) and not pyxel.btn(pyxel.KEY_LCTRL)):
                 self.colorpick.current_color = self.canvas[self.pencil_pos[1]][self.pencil_pos[0]]
 
@@ -572,6 +600,10 @@ class DrawArea:
         if pyxel.btnp(pyxel.KEY_R):
             self.tool = 'rectangle'
             self.lclick = False
+        if pyxel.btnp(pyxel.KEY_F):
+            self.tool = 'fill'
+            self.lclick = False
+
 
         if self.tool == 'select':
             if pyxel.btn(pyxel.KEY_LCTRL) and pyxel.btnp(pyxel.KEY_C):
@@ -617,8 +649,8 @@ class DrawArea:
 
 
     def draw(self):
-        for y in range(self.height//self.zoom+1):
-            for x in range(self.width//self.zoom+1):
+        for y in range(self.visible_height()):
+            for x in range(self.visible_width()):
                 for size_y in range(self.zoom):
                     for size_x in range(self.zoom):
                         posx = self.x + x*self.zoom + size_x
@@ -636,8 +668,8 @@ class DrawArea:
                     for x in range(self.pencil_pos[0] - self.select_start[0]+1):
                         for size_y in range(self.zoom):
                             for size_x in range(self.zoom):
-                                posx = self.x + (self.select_start[0] + x)*self.zoom + size_x
-                                posy = self.y + (self.select_start[1] + y)*self.zoom + size_y
+                                posx = self.x + (self.select_start[0] + x - self.cam[0])*self.zoom + size_x
+                                posy = self.y + (self.select_start[1] + y - self.cam[1])*self.zoom + size_y
                                 if point_inside(posx,posy,self.x,self.y,self.width,self.height):
                                     pyxel.pset(posx, posy, self.color)
         
@@ -742,29 +774,29 @@ class DrawArea:
                 for i in range(self.canvas_index):
                     self.past_canvas.pop(0)
                 self.canvas_index = 0
-            self.past_canvas.insert(0,copy.deepcopy(self.canvas))
+            self.past_canvas.insert(0,copy(self.canvas))
             self.coming_back = False
         
         if pyxel.btn(pyxel.KEY_CTRL) and pyxel.btnp(pyxel.KEY_Z):
             if len(self.past_canvas) > 1 and self.canvas_index < len(self.past_canvas)-1:
                 self.canvas_index += 1
                 self.coming_back = True
-                self.canvas = copy.deepcopy(self.past_canvas[self.canvas_index])
+                self.canvas = copy(self.past_canvas[self.canvas_index])
 
         if pyxel.btn(pyxel.KEY_CTRL) and pyxel.btnp(pyxel.KEY_Y):
             if self.canvas_index > 0:
                 self.canvas_index += -1
-                self.canvas = copy.deepcopy(self.past_canvas[self.canvas_index])
+                self.canvas = copy(self.past_canvas[self.canvas_index])
                 self.coming_back = True
 
 
     def set_select_zone(self):
         if self.lclick: 
             if not self.select_holding: #first click
-                self.select_start = copy.deepcopy(self.pencil_pos)
+                self.select_start = copy(self.pencil_pos)
                 self.select_holding = True
             else:
-                self.select_zone['x'], self.select_zone['y'] = copy.deepcopy(self.select_start)
+                self.select_zone['x'], self.select_zone['y'] = copy(self.select_start)
                 self.select_zone['w'], self.select_zone['h'] = self.pencil_pos[0] - self.select_start[0], self.pencil_pos[1] - self.select_start[1]
         else:
             self.select_holding = False 
@@ -843,6 +875,34 @@ class DrawArea:
                 for x in range(self.pencil_pos[0] - self.select_start[0]+1):
                     self.canvas[y+self.select_start[1]][x+self.select_start[0]] = self.color
 
+    def fill_space(self):
+        if self.last_lclick and not self.lclick:
+            start = copy(self.pencil_pos)
+            start_color = self.canvas[self.pencil_pos[1]][self.pencil_pos[0]]
+            border = [copy(start)]
+            new_border = []
+            checked = []
+            cross = [(0,-1),(0,1),(-1,0),(1,0)]
+            breaking = False
+            while len(border) > 0 and not breaking:
+                print(len(border))
+                if len(border) > 100 or len(checked) > 800:
+                    breaking = True
+                for pos in border:
+                    for addon in cross:
+                        new_pos = (pos[0]+addon[0],pos[1]+addon[1])
+                        if new_pos not in checked:
+                            if new_pos not in new_border:
+                                if self.is_visible(new_pos):
+                                    if self.canvas[new_pos[1]][new_pos[0]] == start_color:
+                                        new_border.append(new_pos)
+                    checked.append(pos)
+                border = copy(new_border)
+                new_border = []
+            if not breaking or True:
+                for pos in checked:
+                    self.canvas[pos[1]][pos[0]] = self.color
+
     def draw_asset_in(self,x, y, img, asset_name):
         if (point_inside(x,y,self.x,self.y,self.width,self.height) and
             point_inside(x+3,y+3,self.x,self.y,self.width,self.height)):
@@ -889,6 +949,14 @@ class DrawArea:
         if self.select_zone['y'] + self.select_zone['h'] > self.canvas_height-1:
             self.select_zone['h'] = self.canvas_height-1 - self.select_zone['y']
 
+    def visible_width(self):
+        return self.width//self.zoom+1
+
+    def visible_height(self):
+        return self.height//self.zoom+1
+
+    def is_visible(self,pos):
+        return pos[0] <= self.visible_width() + self.cam[0] and pos[1] <= self.visible_height() + self.cam[1] and pos[0] >= self.cam[0] and pos[1] >= self.cam[1]
 
 class text_zone:
     def __init__(self, x, y, length):
@@ -1012,7 +1080,7 @@ class ColorPick:
         for i in range(len(corners)):
             pyxel.pset(corners[i][0],corners[i][1],color_below_corners[i])
     
-
+    
 def is_pressed(button_list,name,pos='N/A'):
     for button in button_list:
         if button.pressed and button.name == name:

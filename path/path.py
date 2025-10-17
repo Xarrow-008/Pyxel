@@ -18,7 +18,7 @@ class App:
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
         
-        self.map = [[random.choice([0,0,0,0,0,0,0,0,0,0,7]) for x in range(WID//10+1)] for y in range(HEI//10+1)]
+        self.map = [[random.choice([0,0,0,0,0,0,0,0,0,7]) for x in range(WID//10+1)] for y in range(HEI//10+1)]
         self.empty_space()
 
 
@@ -99,9 +99,6 @@ class Path:
         self.border = [(self.x,self.y)]
         self.new_border = []
         self.checked = []
-        self.path_origin = copy(self.map)
-        self.path_at = (self.targetx,self.targety)
-        self.path = [copy(self.path_at)]
         self.finished = False
 
         self.color = False
@@ -109,47 +106,28 @@ class Path:
 
 
     def update(self):
-        cross = [(0,-1),(0,1),(-1,0),(1,0)]
-        if pyxel.frame_count % 2 == 0:
-            cross.reverse()
-        if (self.targetx,self.targety) not in self.checked:
+            print(len(self.border))
+            cross = [(0,-1),(0,1),(-1,0),(1,0)]
             for pos in self.border:
                 for addon in cross:
                     new_pos = (pos[0]+addon[0],pos[1]+addon[1])
                     if new_pos not in self.checked:
-                        if is_inside_map(new_pos, self.map):
-                            if self.map[new_pos[1]][new_pos[0]] == 0:
-                                if new_pos not in self.new_border:
+                        if new_pos not in self.new_border:
+                            if self.is_visible(new_pos):
+                                if self.map[new_pos[1]][new_pos[0]] == 0:
                                     self.new_border.append(new_pos)
-                                    if self.map[new_pos[1]][new_pos[0]] == 0:
-                                        self.path_origin[new_pos[1]][new_pos[0]] = pos
                 self.checked.append(pos)
             self.border = copy(self.new_border)
             self.new_border = []
-
-        elif not self.found:
-            self.path_at = copy(self.path_origin[self.path_at[1]][self.path_at[0]])
-            self.path.insert(0,copy(self.path_at))
-            if self.path_at == (self.x,self.y):
-                self.found = True
-                self.finished = True
-                
                   
     def draw(self):
 
         for pos in self.checked:
             pyxel.rect(pos[0]*10,pos[1]*10,10,10,6)
 
-        
-        if (self.targetx,self.targety) in self.checked:
-            for pos in self.path:
-                pyxel.rect(pos[0]*10,pos[1]*10,10,10,1)
 
-        if self.finished:
-            pyxel.rect(self.targetx*10,self.targety*10,10,10,11)
-        else:
-            pyxel.rect(self.targetx*10,self.targety*10,10,10,9)
-
+    def is_visible(self,pos):
+        return pos[0] >= 0 and pos[0] < WID//TILE_SIZE and pos[1] >= 0 and pos[1] < HEI//TILE_SIZE
 
 class Actions:
     def __init__(self, map, owner):
@@ -273,13 +251,15 @@ class Pather:
     
     def update(self,targetx,targety):
         #self.move_keyboard()
-        if self.target_has_moved(targetx,targety):
+        if self.target_has_moved(targetx,targety) and not self.target_is_close(targetx,targety):
             self.find_path(int(targetx//TILE_SIZE),int(targety//TILE_SIZE))
 
 
         if self.can_move:
-            self.move_path()
-            #self.move_towards_player(targetx,targety)
+            if not self.target_is_close(targetx,targety):
+                self.move_path()
+            else:
+                self.move_towards_target(targetx,targety)
         self.movement()
         self.preventOOB()
 
@@ -363,7 +343,7 @@ class Pather:
         else:
             self.can_move = False
 
-    def move_towards_player(self,x,y):
+    def move_towards_target(self,x,y):
         self.move_to[0] = x - self.x
         self.move_to[1] = y - self.y
 
@@ -386,8 +366,7 @@ class Pather:
                             if self.map[new_pos[1]][new_pos[0]] == 0:
                                 if new_pos not in new_border:
                                     new_border.append(new_pos)
-                                    if self.map[new_pos[1]][new_pos[0]] == 0:
-                                        path_origin[new_pos[1]][new_pos[0]] = pos
+                                    path_origin[new_pos[1]][new_pos[0]] = pos
                 checked.append(pos)
             border = copy(new_border)
             new_border = []
@@ -401,6 +380,9 @@ class Pather:
         
     def target_has_moved(self,x,y):
         return distance(x//TILE_SIZE,y//TILE_SIZE,*self.path[-1]) > 1
+
+    def target_is_close(self,x,y):
+        return distance(self.x,self.y,x,y) < 2*TILE_SIZE
 
     def preventOOB(self):
         if self.x < 0:
