@@ -80,7 +80,7 @@ class inMission:
             self.player.actions.frozen -= 1
             return True
         for entity in self.entities:
-            if hasattr(entity.actions, "frozen") and entity.actions.frozen != 0:
+            if type(entity) != Path and hasattr(entity.actions, "frozen") and entity.actions.frozen != 0:
                 entity.actions.frozen -= 1
                 return True
         return False
@@ -164,7 +164,7 @@ class Player: #Everything relating to the player and its control
 
 
         #Dash
-        pyxel.rect(x=44,y=1,w=12,h=11,col=13)
+        pyxel.rect(x=44,y=1,w=13,h=11,col=0)
 
         if not self.actions.isDashing:
             dash_cooldown_progress = int(34*(self.actions.dashFrame/self.actions.dashCooldown))
