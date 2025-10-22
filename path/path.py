@@ -18,7 +18,7 @@ class App:
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
         
-        self.map = [[random.choice([0,0,0,0,0,0,0,0,0,7]) for x in range(WID//10+1)] for y in range(HEI//10+1)]
+        self.map = [[random.choice([0,0,0,0,0,0,0,0,0,0]) for x in range(WID//10+1)] for y in range(HEI//10+1)]
         self.empty_space()
 
 
@@ -106,19 +106,18 @@ class Path:
 
 
     def update(self):
-            print(len(self.border))
-            cross = [(0,-1),(0,1),(-1,0),(1,0)]
-            for pos in self.border:
-                for addon in cross:
-                    new_pos = (pos[0]+addon[0],pos[1]+addon[1])
-                    if new_pos not in self.checked:
-                        if new_pos not in self.new_border:
-                            if self.is_visible(new_pos):
-                                if self.map[new_pos[1]][new_pos[0]] == 0:
-                                    self.new_border.append(new_pos)
-                self.checked.append(pos)
-            self.border = copy(self.new_border)
-            self.new_border = []
+        cross = [(0,-1),(0,1),(-1,0),(1,0)]
+        for pos in self.border:
+            for addon in cross:
+                new_pos = (pos[0]+addon[0],pos[1]+addon[1])
+                if new_pos not in self.checked:
+                    if new_pos not in self.new_border:
+                        if self.is_visible(new_pos):
+                            if self.map[new_pos[1]][new_pos[0]] == 0:
+                                self.new_border.append(new_pos)
+            self.checked.append(pos)
+        self.border = copy(self.new_border)
+        self.new_border = []
                   
     def draw(self):
 

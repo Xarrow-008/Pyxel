@@ -1,4 +1,4 @@
-import pyxel, os, random
+import pyxel, os, random, toml, pyperclip, pathlib
 from pynput.keyboard import Key, Listener
 
 
@@ -132,12 +132,6 @@ def str_to_int(string):
 
         
 
-#print(string_to_list('[1,2,3,4,5,18]'))
-
-
-#print(str_to_int('jdnbvdfdgzhsnb15j dcbjghkhedj'))
-liste = [[8,8,8],[8,8,8],[8,8,8],[8,8,8],[8,8,8],[8,8,8]]
-
 def rect_in_list(x, y, w, h): 
     all_pos = []
     for in_y in range(h):
@@ -145,20 +139,9 @@ def rect_in_list(x, y, w, h):
             all_pos.append((x+in_x,y+in_y))
     return all_pos
 
-"""
-for y in liste:
-    print(y)
-
-dic['x'], dic['y'] = tup
 
 
 
-tab1 = [0,1,2,3]
-
-def depiler(tab):
-    tab.append(3)
-
-tab = []
 
 def on_press(key):
     print('{0} pressed'.format(key))
@@ -174,6 +157,7 @@ def on_release(key):
         # Stop listener
         return False
 
+"""
 with Listener(
         on_press=on_press,
         on_release=on_release) as listener:
@@ -407,3 +391,37 @@ class Actions:
             self.isHitStun = False
         else:
             self.hitStunFrame += 1
+
+def empty_save_anim():
+    dic = {'animations':[{'width':16,'height':16,'frames':[]}]}
+    file = open('draw/save_anim.toml','w')
+    toml.dump(dic,file)
+    file.close()
+
+
+def copy_press(txt):
+    pyperclip.copy(txt)
+
+canvas = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 2, 2, 2, 2, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 2, 2, 2, 2, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 2, 2, 2, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
+
+def get_canvas(string):
+    liste = []
+    i = 1
+    index = -1
+    while i != len(string):
+        #print(string[i], i, end=' | ')
+        if string[i] == '[':
+            liste.append([])
+            index += 1
+        if string[i].isdigit():
+            liste[index].append(int(string[i]))
+            
+        i += 1
+    return liste
+
+print(get_canvas('[[0,0],[0,1,2,3,2][0,9,8]]')[1])
+"""
+folder = pathlib.Path('')
+for item in folder.iterdir():
+    print(str(item))
+"""

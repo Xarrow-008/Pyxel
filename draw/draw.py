@@ -1,4 +1,4 @@
-import pyxel, os, random, toml, zipfile, csv
+import pyxel, os, random, toml, zipfile, csv, pyperclip
 from copy import deepcopy as copy
 
 ASSETS = {'arrow_left':(0,0), 'arrow_right':(1,0), 'arrow_up':(2,0), 'arrow_down':(3,0), 'cursor':(4,0),
@@ -7,7 +7,7 @@ ASSETS = {'arrow_left':(0,0), 'arrow_right':(1,0), 'arrow_up':(2,0), 'arrow_down
           'border_UL':(0,3), 'border_UR':(1,3), 'border_BL':(2,3), 'border_BR':(3,3),
           'border_UP':(0,4), 'border_DOWN':(1,4), 'border_LEFT':(2,4), 'border_RIGHT':(3,4)}
 
-BASE_CANVAS = [[0 for x in range(32)] for y in range(32)]
+BASE_CANVAS = [[11 for x in range(16)] for y in range(16)]
 
 LETTERS = 'AZERTYUIOPQSDFGHJKLMWXCVBN'
 PONCTUATION = [' ', ',', ';', ':', '!', '&', '', '"', "'", '(', '-', '', '_', '', '', ')', '=']
@@ -183,7 +183,7 @@ class folders_desk:
     
     def open_file(self):
 
-        extension_add = ['', '.pyxres', '.toml']
+        extension_add = ['.toml', '.pyxres', '']
 
         found = False
         for extension in extension_add:
@@ -324,6 +324,9 @@ class draw_desk:
             self.starting_canvas = BASE_CANVAS
             self.find_save()
         self.draw_area = DrawArea(1,1,125,102,self.starting_canvas,self.parameters_pos,button_list)
+        self.draw_area.canvas_width = 256
+        self.draw_area.canvas_height = 256
+        self.draw_area.canvas = canvas_size_fix(self.draw_area.canvas)
         self.bg_color = 6
         self.msg = {'txt':'','time':0}
     
@@ -360,23 +363,21 @@ class draw_desk:
         if not 'file_index' in self.file_info.keys():
             self.file_data['images'].append({'width': 256, 'height': 256, 'imgsrc': 0, 'data': BASE_CANVAS})
             self.file_info['file_index'] = len(self.file_data['images']) - 1
-        
+
 
 class animation_desk:
     def __init__(self,button_list,file_info={'file_path':'save.toml','file_canvas':None}):
         self.switch = {}
         self.button_list = button_list
-        self.starting_canvas = BASE_CANVAS
         self.can_save = True
         self.msg = {'txt':'','time':0}
         self.parameters_pos = {'colorpick':(4,113),'zoom':(101,28),'grid':(101,3)}
         self.file_info = file_info
-        
-        if file_info['file_canvas'] != None or file_info['file_canvas'] == [[0]]:
-            self.starting_canvas = file_info['file_canvas']
-        else:
-            self.starting_canvas = BASE_CANVAS
+
+        self.starting_canvas = copy(BASE_CANVAS)
         self.draw_area = DrawArea(1,1,95,95,self.starting_canvas,self.parameters_pos,button_list)
+        self.draw_area.canvas_width = 16
+        self.draw_area.canvas_height = 16
 
         self.playing = False
         self.start_frame = 0
@@ -463,6 +464,15 @@ class animation_desk:
     def draw_over(self):
         self.draw_area.draw_over()
 
+    def quick_save(self):
+        data = toml.load('save_anim.toml')
+        if data['animations'][-1]['frames'] != []:
+            data['animations'].append({'animations':[{'width':16,'height':16,'frames':[]}]})
+        for frame in self.frames:
+            data['animations'][-1]['frames'].append(frame['all_canvas'][0])
+        file = open('save_anim.toml','w')
+        toml.dump(data,file)
+        file.close()
 
 class button_maker_desk:
     def __init__(self,button_list):
@@ -525,9 +535,6 @@ class DrawArea:
         self.button_list = button_list
         self.grid_color = grid_color
         self.canvas = canvas
-        self.canvas_width = 256
-        self.canvas_height = 256
-        self.canvas = canvas_size_fix(self.canvas)
 
         self.colorpick = ColorPick(button_list, parameters_pos['colorpick'][0], parameters_pos['colorpick'][1])
         self.color = 0
@@ -608,10 +615,15 @@ class DrawArea:
         if self.tool == 'select':
             if pyxel.btn(pyxel.KEY_LCTRL) and pyxel.btnp(pyxel.KEY_C):
                 self.copy_select()
+                if pyxel.btn(pyxel.KEY_SHIFT):
+                    pyperclip.copy(self.select_zone['content'])
             if pyxel.btn(pyxel.KEY_LCTRL) and pyxel.btnp(pyxel.KEY_X):
                 self.copy_select()
                 self.delete_select()
+                self.canvas_change = True
             if pyxel.btn(pyxel.KEY_LCTRL) and pyxel.btnp(pyxel.KEY_V):
+                if pyxel.btn(pyxel.KEY_SHIFT):
+                    self.press_copy()
                 self.paste_select() 
                 self.change_canvas = True
 
@@ -807,6 +819,13 @@ class DrawArea:
             for x in range(self.select_zone['w']+1):
                 self.select_zone['content'][y][x] = self.canvas[self.select_zone['y'] + y][self.select_zone['x'] + x]
 
+    def press_copy(self):
+        canvas = get_canvas(pyperclip.paste())
+        if is_canvas(canvas):
+            self.select_zone['w'] = len(canvas[0])
+            self.select_zone['h'] = len(canvas)
+            self.select_zone['content'] = canvas
+
     def paste_select(self):
         for y in range(len(self.select_zone['content'])):
             if self.select_zone['y'] + y < self.canvas_height:
@@ -958,6 +977,7 @@ class DrawArea:
     def is_visible(self,pos):
         return pos[0] <= self.visible_width() + self.cam[0] and pos[1] <= self.visible_height() + self.cam[1] and pos[0] >= self.cam[0] and pos[1] >= self.cam[1]
 
+
 class text_zone:
     def __init__(self, x, y, length):
         self.x = x
@@ -1080,6 +1100,7 @@ class ColorPick:
         for i in range(len(corners)):
             pyxel.pset(corners[i][0],corners[i][1],color_below_corners[i])
     
+
     
 def is_pressed(button_list,name,pos='N/A'):
     for button in button_list:
@@ -1179,5 +1200,20 @@ def canvas_size_fix(canvas):
             for x in range(missing_x):
                 new_canvas[y].append(canvas[y][-1])
     return new_canvas
+
+def get_canvas(string):
+    liste = []
+    i = 1
+    index = -1
+    while i != len(string):
+        #print(string[i], i, end=' | ')
+        if string[i] == '[':
+            liste.append([])
+            index += 1
+        if string[i].isdigit():
+            liste[index].append(int(string[i]))
+            
+        i += 1
+    return liste
 
 App()
