@@ -419,9 +419,17 @@ def get_canvas(string):
         i += 1
     return liste
 
-print(get_canvas('[[0,0],[0,1,2,3,2][0,9,8]]')[1])
-"""
-folder = pathlib.Path('')
+#print(get_canvas('[[0,0],[0,1,2,3,2][0,9,8]]')[1])
+
+def get_divider(file):
+    divider = 0
+    for i in range(len(file)):
+        if file[i] == '/' or file[i] == "\\":
+            divider = i+1
+    return divider
+
+pather = 'not_a_scrap_v2'
+
+folder = pathlib.Path(pather)
 for item in folder.iterdir():
-    print(str(item))
-"""
+    print(item.parts[-1])

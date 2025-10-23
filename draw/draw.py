@@ -1,4 +1,4 @@
-import pyxel, os, random, toml, zipfile, csv, pyperclip
+import pyxel, os, random, toml, zipfile, csv, pyperclip, pathlib
 from copy import deepcopy as copy
 
 ASSETS = {'arrow_left':(0,0), 'arrow_right':(1,0), 'arrow_up':(2,0), 'arrow_down':(3,0), 'cursor':(4,0),
@@ -168,7 +168,7 @@ class folders_desk:
         pyxel.cls(self.bg_color)
         self.text_zone.draw()
         if self.msg['time'] > 0:
-            pyxel.text(self.text_zone.x,self.text_zone.y + 8,self.msg['txt'],8)
+            pyxel.text(self.text_zone.x,self.text_zone.y + 18,self.msg['txt'],8)
 
     def draw_over(self):
         for button in self.button_list:
@@ -184,34 +184,32 @@ class folders_desk:
     def open_file(self):
 
         extension_add = ['.toml', '.pyxres', '']
-
         found = False
-        for extension in extension_add:
-            if not found:
-                try:
-                    file = toml.load(self.text_zone.text + extension)
-                except:
-                    try:
-                        file = zipfile.ZipFile(self.text_zone.text + extension)
-                    except:
-                        pass
-                    else:
-                        found = True
-                        file.extractall()
-                        file.close()
-                        self.file_info['file_path'] = 'pyxel_resource.toml'
-                        self.file_info['file_pyxres_name'] = self.text_zone.text + extension
-                        print(self.text_zone.text + extension)
-                else:
-                    found = True 
-                    self.file_info['file_path'] = self.text_zone.text + extension
-                print('try')
 
-        if not found:
-            self.msg = {'txt':'Wrong file name','time': 4}
-        else:
+        div = get_divider(self.text_zone.text)
+        folder = pathlib.Path(self.text_zone.text[:div])
+
+        for item in folder.iterdir():
+            if not found:
+                for addon in extension_add:
+                    if self.text_zone.text[div:] + addon == item.parts[-1].lower():
+                        name = self.text_zone.text + addon
+                        found = True
+        
+        if found:
+            if name[-7:] == '.pyxres':
+                file = zipfile.ZipFile(name)
+                file.extractall()
+                file.close()
+                self.file_info['file_path'] = 'pyxel_resource.toml'
+                self.file_info['file_pyxres_name'] = name
+            else:
+                self.file_info['file_path'] = name
+
             self.switch = {'to':self.open_to, 'argument':{'file_info':self.file_info}}
-            print('end')
+        else:
+            self.msg = {'txt':'Wrong file name','time': 4}
+                
 
         
     def quick_save(self):
@@ -224,7 +222,7 @@ class load_desk:
         self.button_list = button_list
         self.can_save = False
         self.msg = {'txt':'','time':0}
-        self.file_info = file_info #{'file_path':'','file_data':{},'file_pyxres_name':'','file_index':0}
+        self.file_info = file_info #{'file_path':'','file_data':{},'file_pyxres_name':'','file_index':0}            
         self.file_data = toml.load(file_info['file_path'])
         self.next_desk = next_desk
         self.selected_save = 0
@@ -318,15 +316,15 @@ class draw_desk:
         self.file_info = file_info
         self.file_data = toml.load(self.file_info['file_path'])
 
-        if file_info['file_canvas'] != None or file_info['file_canvas'] == [[0]]:
+        if file_info['file_canvas'] != None:
             self.starting_canvas = file_info['file_canvas']
         else:
-            self.starting_canvas = BASE_CANVAS
+            self.starting_canvas = [[0]]
             self.find_save()
+        self.starting_canvas = canvas_size_fix(self.starting_canvas)
         self.draw_area = DrawArea(1,1,125,102,self.starting_canvas,self.parameters_pos,button_list)
         self.draw_area.canvas_width = 256
         self.draw_area.canvas_height = 256
-        self.draw_area.canvas = canvas_size_fix(self.draw_area.canvas)
         self.bg_color = 6
         self.msg = {'txt':'','time':0}
     
@@ -594,7 +592,10 @@ class DrawArea:
                 self.fill_space()
 
             if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT) or (pyxel.btnp(pyxel.KEY_X) and not pyxel.btn(pyxel.KEY_LCTRL)):
-                self.colorpick.current_color = self.canvas[self.pencil_pos[1]][self.pencil_pos[0]]
+                try:
+                    self.colorpick.current_color = self.canvas[self.pencil_pos[1]][self.pencil_pos[0]]
+                finally:
+                    pass
 
             self.slide_canvas_gestion()
         
@@ -904,7 +905,6 @@ class DrawArea:
             cross = [(0,-1),(0,1),(-1,0),(1,0)]
             breaking = False
             while len(border) > 0 and not breaking:
-                print(len(border))
                 if len(border) > 100 or len(checked) > 800:
                     breaking = True
                 for pos in border:
@@ -975,7 +975,8 @@ class DrawArea:
         return self.height//self.zoom+1
 
     def is_visible(self,pos):
-        return pos[0] <= self.visible_width() + self.cam[0] and pos[1] <= self.visible_height() + self.cam[1] and pos[0] >= self.cam[0] and pos[1] >= self.cam[1]
+        return (pos[0] <= self.visible_width() + self.cam[0] and pos[1] <= self.visible_height() + self.cam[1]
+                 and pos[0] >= self.cam[0] and pos[1] >= self.cam[1] and pos[0] < len(self.canvas[0]) and pos[1] < len(self.canvas))
 
 
 class text_zone:
@@ -1215,5 +1216,12 @@ def get_canvas(string):
             
         i += 1
     return liste
+
+def get_divider(file):
+    divider = 0
+    for i in range(len(file)):
+        if file[i] == '/' or file[i] == "\\":
+            divider = i+1
+    return divider
 
 App()
