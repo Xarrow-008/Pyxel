@@ -46,6 +46,10 @@ class Game:
     def draw(self):
         self.place.draw()
 
+freeze_start = 0
+freeze_duration = 0
+freeze_frame = 0
+
 class inMission:
     def __init__(self, world, entities, player, animation):
         self.world = world
@@ -53,9 +57,9 @@ class inMission:
         self.player = player
         self.animation = animation
 
-
     def update(self):
-        if not self.freeze_frame_active():
+        global freeze_start, freeze_duration, freeze_frame
+        if timer(freeze_start, freeze_duration, freeze_frame):
             for entity in self.entities:
                 entity.update()
 
@@ -63,6 +67,7 @@ class inMission:
 
             if pyxel.btnp(pyxel.KEY_M):
                 Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities, self.player)
+        freeze_frame += 1
 
     def draw(self):
         for y in range(HEIGHT):
@@ -74,16 +79,6 @@ class inMission:
             entity.draw()
         
         self.player.draw()   
-
-    def freeze_frame_active(self):
-        if self.player.actions.frozen != 0:
-            self.player.actions.frozen -= 1
-            return True
-        for entity in self.entities:
-            if type(entity) != Path and hasattr(entity.actions, "frozen") and entity.actions.frozen != 0:
-                entity.actions.frozen -= 1
-                return True
-        return False
 
 
 class Player: #Everything relating to the player and its control
@@ -138,7 +133,7 @@ class Player: #Everything relating to the player and its control
         self.last_facing = copy(self.facing)
 
         if pyxel.btnp(pyxel.KEY_O):
-            self.actions.hurt(-5, [0,0], 1, self, 0)
+            self.actions.hurt(5, [0,0], 1, self, 0)
 
     def draw(self):
         step_y = self.y
@@ -518,17 +513,21 @@ class Actions:
             target.health = target.maxHealth
 
     def hurt(self, value, vector, knockback_coef, target, shot):
+        global freeze_start, freeze_duration, freeze_frame
+
         if hasattr(target.actions, "isHitStun"):
             if not target.actions.isHitStun or target.hitBy == shot:
                 target.health -= value
                 target.actions.isHitStun = True
                 target.actions.hitStunFrame = 0
-                target.actions.frozen = target.actions.hitFreezeFrame
+                freeze_start = freeze_frame
+                freeze_duration = self.hitFreezeFrame
                 target.hitBy = shot
                 if hasattr(target.actions, "maxSpeed"):
                     knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
                     target.momentum[0] += vector[0]*knockback_value
                     target.momentum[1] += vector[1]*knockback_value
+
         else:
             target.health -= value
             if hasattr(target.actions, "maxSpeed"):
@@ -623,12 +622,15 @@ class Actions:
                         self.playerCollision[3] -= 1
 
     def init_hitstun(self, duration, freeze_frame):
-        self.hitStunDuration = duration
         self.hitFreezeFrame = freeze_frame
         self.frozen = 0
 
+        self.hitStunDuration = duration
         self.isHitStun = False
+
+        self.hitStunStartFrame = 0
         self.hitStunFrame = 0
+        
         self.hitBy = 0
 
     def hitstun(self):
@@ -704,6 +706,9 @@ class World:
 
 def on_tick(tickrate=60):
     return pyxel.frame_count % tickrate == 0
+
+def timer(start_frame, duration, counter):
+    return counter - start_frame >= duration
 
 def in_perimeter(x1,y1,x2,y2,distance): #makes a square and checks if coords are inside of it
     return (x1-x2<distance and x1-x2>-distance) and (y1-y2<distance and y1-y2>-distance)
