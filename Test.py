@@ -1,5 +1,6 @@
-import pyxel, os, random, toml, pyperclip, pathlib
+import toml, pyperclip, pathlib
 from pynput.keyboard import Key, Listener
+from utility import *
 
 
 """
@@ -130,8 +131,6 @@ def str_to_int(string):
             return number
     return number
 
-        
-
 def rect_in_list(x, y, w, h): 
     all_pos = []
     for in_y in range(h):
@@ -139,16 +138,10 @@ def rect_in_list(x, y, w, h):
             all_pos.append((x+in_x,y+in_y))
     return all_pos
 
-
-
-
-
 def on_press(key):
     print('{0} pressed'.format(key))
     if key == Key.f7:
         draw.App()
-
-
 
 def on_release(key):
     print('{0} release'.format(
@@ -398,7 +391,6 @@ def empty_save_anim():
     toml.dump(dic,file)
     file.close()
 
-
 def copy_press(txt):
     pyperclip.copy(txt)
 
@@ -433,3 +425,14 @@ pather = 'not_a_scrap_v2'
 folder = pathlib.Path(pather)
 for item in folder.iterdir():
     print(item.parts[-1])
+
+def is_in_folder(dir,name):
+    folder = pathlib.Path(dir)
+    for item in folder.iterdir():
+        if item.parts[-1] == name:
+            return True
+    return False
+
+print(is_in_folder(pather,'main.py'))
+        
+print(random.randint(0,1))

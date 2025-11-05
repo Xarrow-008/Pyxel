@@ -144,6 +144,8 @@ class folders_desk:
         self.text_zone = text_zone(x=10,y=10,length=20)
         self.button_list.append(Button(name='drawing',color=2,x=self.text_zone.x,y=self.text_zone.y+10,width=30,height=7))
         self.button_list.append(Button(name='animation',color=2,x=self.text_zone.x+32,y=self.text_zone.y+10,width=38,height=7))
+        self.shortcuts = []
+        self.find_shortcuts(['save.toml', '../notascrap.pyxres'])
         self.file_info = {'file_path':'','file_data':{},'file_pyxres_name':'','file_index':0}
         self.open_to = 'drawing'
         
@@ -158,8 +160,12 @@ class folders_desk:
         if is_pressed(self.button_list,'animation'):
             self.open_to = 'animation'
 
+        for shortcut in self.shortcuts:
+            if is_pressed(self.button_list,shortcut):
+                self.load_file(shortcut)
+
         if self.text_zone.enter:
-            self.open_file()
+            self.find_file()
             self.text_zone.enter = False
         
   
@@ -181,36 +187,52 @@ class folders_desk:
                 draw_rectangle(button.x, button.y, button.width-1, button.height-1)
             
     
-    def open_file(self):
+    def find_file(self):
 
         extension_add = ['.toml', '.pyxres', '']
         found = False
 
         div = get_divider(self.text_zone.text)
-        folder = pathlib.Path(self.text_zone.text[:div])
+        path = self.text_zone.text[:div]
+        name = ''
 
-        for item in folder.iterdir():
-            if not found:
-                for addon in extension_add:
-                    if self.text_zone.text[div:] + addon == item.parts[-1].lower():
-                        name = self.text_zone.text + addon
-                        found = True
+        for addon in extension_add:
+            file_name = self.text_zone.text[div:] + addon
+            if is_in_folder(path,file_name) and not found:
+                name = self.text_zone.text + addon
+                found = True
         
         if found:
-            if name[-7:] == '.pyxres':
-                file = zipfile.ZipFile(name)
-                file.extractall()
-                file.close()
-                self.file_info['file_path'] = 'pyxel_resource.toml'
-                self.file_info['file_pyxres_name'] = name
-            else:
-                self.file_info['file_path'] = name
-
-            self.switch = {'to':self.open_to, 'argument':{'file_info':self.file_info}}
+            self.load_file(name)
         else:
             self.msg = {'txt':'Wrong file name','time': 4}
-                
 
+    def load_file(self,name):
+        if name[-7:] == '.pyxres':
+            file = zipfile.ZipFile(name)
+            file.extractall()
+            file.close()
+            self.file_info['file_path'] = 'pyxel_resource.toml'
+            self.file_info['file_pyxres_name'] = name
+        else:
+            self.file_info['file_path'] = name
+
+        self.switch = {'to':self.open_to, 'argument':{'file_info':self.file_info}}
+
+    def find_shortcuts(self,file_list):
+        pos_x = 4
+        pos_y = 40
+        for file in file_list:
+            div = get_divider(file)
+            if is_in_folder(file[:div],file[div:]):
+                width = 2 + len(file)*4
+                if pos_x + width > 124 and width < 120:
+                    pos_x = 4
+                    pos_y += 40
+                self.button_list.append(Button(file, 2, pos_x, pos_y, width, 25))
+                self.shortcuts.append(file)
+                pos_x += width + 5
+                
         
     def quick_save(self):
         pass
@@ -1224,4 +1246,12 @@ def get_divider(file):
             divider = i+1
     return divider
 
-App()
+def is_in_folder(dir,name):
+    folder = pathlib.Path(dir)
+    for item in folder.iterdir():
+        if item.parts[-1].lower() == name.lower():
+            return True
+    return False
+
+if __name__ == '__main__':
+    App()
