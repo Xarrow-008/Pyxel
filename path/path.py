@@ -15,7 +15,7 @@ class App:
 
         os.system('cls')
         pyxel.init(WID,HEI,fps=FPS)
-        pyxel.load('../notAScrap.pyxres')
+        pyxel.load('pather.pyxres')
         pyxel.colors[2] = 5373971
         
         self.map = [[random.choice([0,0,0,0,0,0,0,0,0,0]) for x in range(WID//10+1)] for y in range(HEI//10+1)]
@@ -23,8 +23,7 @@ class App:
 
 
         self.wall_maker = WallMaker(self.map)
-        self.hider = Hider(self.map)
-        self.pather = Pather(self.map)
+        self.controller = Controller(self.map)
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
@@ -32,24 +31,16 @@ class App:
     def update(self):
         self.wall_maker.update()
         if self.wall_maker.change:
-            self.hider.__init__(self.map)
-            self.pather.__init__(self.map)
+            self.controller.walls_changed = True
             self.wall_maker.change = False
-        else:
-            self.hider.update()
-            self.pather.update(self.hider.x,self.hider.y)
-        
-
-
-        
+        self.controller.update()
 
     
     def draw(self):
         pyxel.cls(0)
         self.walls_draw()
         self.wall_maker.draw()
-        self.pather.draw()
-        self.hider.draw()
+        self.controller.draw()
     
     def walls_draw(self):
         for y in range(len(self.map)):
@@ -66,6 +57,39 @@ class App:
                     if y > len(self.map)-5 and x > len(self.map[y]) - 5:
                         self.map[y][x] = 0
 
+        
+
+class Controller:
+    def __init__(self,map):
+        self.map = map
+
+        self.hider = Hider(self.map)
+        self.pather = Pather(self.map)
+
+        self.walls_changed = False
+    def update(self):
+        if self.walls_changed:
+            self.hider.__init__(self.map)
+            self.pather.__init__(self.map)
+            self.walls_changed = False
+        else:
+            self.pather.update(self.hider.x,self.hider.y)
+            self.check_weapons()
+            self.hider.update()
+
+
+    def draw(self):
+        self.pather.draw()
+        self.hider.draw()
+
+    def check_weapons(self):
+        if self.hider.stun_around:
+            self.hider.stun_around = False
+            if distance(self.hider.x,self.hider.y,self.pather.x,self.pather.y) < 20:
+                self.pather.stun(120)
+        
+
+        
 class WallMaker:
     def __init__(self,map):
         self.change = True
@@ -74,7 +98,10 @@ class WallMaker:
         if pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
             x = pyxel.mouse_x//10
             y = pyxel.mouse_y//10
-            self.map[y][x] = 7
+            try:
+                self.map[y][x] = 7
+            except:
+                pass
 
             self.change = True
 
@@ -84,6 +111,7 @@ class WallMaker:
             self.map[y][x] = 0
 
             self.change = True
+
     def draw(self):
         pass
 
@@ -230,12 +258,12 @@ class Pather:
         self.y = 0
         self.width = 10
         self.height = 10
-        self.image = (21,24)
+        self.image = (0,2)
         self.keyboard = 'zqsd'
         self.path_index = 0
-        self.can_move = True
         self.path = [(self.x//TILE_SIZE,self.y//TILE_SIZE) for i in range(2)]
         self.path_at = copy(self.path[0])
+        self.path_img = (0,3)
 
 
         self.momentum = [0,0]
@@ -244,28 +272,33 @@ class Pather:
         self.move_to = [0,0]
         self.actions = Actions(self.map,self)
 
+        self.freeze_start = 0
+        self.freeze_duration = 0
+
         self.direction = [0,1]
 
         self.actions.init_walk(priority=1)
     
     def update(self,targetx,targety):
         #self.move_keyboard()
-        if self.target_has_moved(targetx,targety) and not self.target_is_close(targetx,targety):
-            self.find_path(int(targetx//TILE_SIZE),int(targety//TILE_SIZE))
 
 
-        if self.can_move:
+        if self.can_move():
+            if self.target_has_moved(targetx,targety) and not self.target_is_close(targetx,targety):
+                self.find_path(int(targetx//TILE_SIZE),int(targety//TILE_SIZE))
+
             if not self.target_is_close(targetx,targety):
                 self.move_path()
             else:
                 self.move_towards_target(targetx,targety)
-        self.movement()
+            self.movement()
+        
         self.preventOOB()
 
     def draw(self):
         for pos in self.path:
-            show(pos[0]*TILE_SIZE,pos[1]*TILE_SIZE,(0,0))
-        draw(self.x, self.y,0,self.image[0]*TILE_SIZE,self.image[1]*TILE_SIZE,self.width,self.height,colkey=11)
+            show(pos[0]*TILE_SIZE,pos[1]*TILE_SIZE,self.path_img)
+        draw_n(self.x, self.y,0,self.image[0]*TILE_SIZE,self.image[1]*TILE_SIZE,self.width,self.height,colkey=11)
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -339,8 +372,6 @@ class Pather:
             distance_next = distance(self.x,self.y,self.path[self.path_index+1][0]*TILE_SIZE,self.path[self.path_index+1][1]*TILE_SIZE)
             if distance_next < distance_current:
                 self.path_index += 1
-        else:
-            self.can_move = False
 
     def move_towards_target(self,x,y):
         self.move_to[0] = x - self.x
@@ -375,7 +406,6 @@ class Pather:
                 self.path.insert(0,copy(self.path_at))
 
         self.path_index = 0
-        self.can_move = True
         
     def target_has_moved(self,x,y):
         return distance(x//TILE_SIZE,y//TILE_SIZE,*self.path[-1]) > 1
@@ -394,6 +424,16 @@ class Pather:
         if self.y + self.height > HEI:
             self.y = HEI - self.height
 
+    def can_move(self):
+        return not self.is_stunned()
+
+    def is_stunned(self):
+        return self.freeze_start + self.freeze_duration > pyxel.frame_count
+
+    def stun(self,duration):
+        self.freeze_start = pyxel.frame_count
+        self.freeze_duration = duration
+
 class Hider:
     def __init__(self,map):
         self.map = map
@@ -402,7 +442,7 @@ class Hider:
         self.y = HEI-10
         self.width = 10
         self.height = 10
-        self.image = (21,24)
+        self.image = (1,2)
         self.keyboard = 'zqsd'
 
 
@@ -411,6 +451,10 @@ class Hider:
         self.max_speed = 0.8
         self.move_to = [0,0]
         self.actions = Actions(self.map,self)
+        
+        self.anims = []
+
+        self.stun_around = False
 
         self.direction = [0,1]
 
@@ -421,10 +465,24 @@ class Hider:
         self.move_keyboard()
         self.movement()
         self.preventOOB()
+        self.weapons_use()
+        self.update_anims()
 
+    def weapons_use(self):
+        if pyxel.btnp(pyxel.KEY_SPACE):
+            self.stun_around = True
+            self.anims.append(Animation((-20,-10),0,'10 cycles'))
+
+    def update_anims(self):
+        for anim in self.anims:
+            anim.update()
+            if anim.is_dead():
+                self.anims.remove(anim)
 
     def draw(self):
         show(self.x,self.y,self.image)
+        for anim in self.anims:
+            anim.draw(self.x,self.y)
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -504,6 +562,55 @@ class Blocks:
     WALLS = [7]
     GROUND = [0]
 
+class Animation:
+    def __init__(self,relative_pos,settings,lifetime):
+        self.start = pyxel.frame_count
+        self.settings = settings
+        self.lifetime = lifetime
+        self.relative_pos = relative_pos
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'heigth':TILE_SIZE,'vector':(1,0),'length':3,'duration':30}
+
+        self.apply_settings()
+
+        self.frame = 0
+
+        self.img = (0,0)
+        self.kill = False
+    def update(self):
+        self.frame = pyxel.frame_count - self.start
+        if self.frame <= self.lifetime:
+            self.get_img()
+    def draw(self,x,y):
+        show(x + self.relative_pos[0], y + self.relative_pos[1], self.img, colkey=0)
+    def get_img(self):
+        frame_anim = (self.frame // self.settings['duration']) % self.settings['length']
+        x = self.settings['u'] + self.settings['vector'][0]*frame_anim
+        y = self.settings['v'] + self.settings['vector'][1]*frame_anim
+        self.img = (x,y)
+
+    def apply_settings(self):
+        if type(self.settings) is dict:
+            for setting in self.default_set.keys():
+                if not setting in self.settings:
+                    self.settings[setting] = self.default_set[setting]
+        else:
+            self.settings = self.default_set
+
+        nb = 1
+        if type(self.lifetime) is str:
+            if self.lifetime[-6:] == 'cycles':
+                for i in range(1,len(self.lifetime)):
+                    if self.lifetime[:i].isdigit():
+                        nb = int(self.lifetime[:i])
+
+        
+        self.lifetime = self.settings['duration']*self.settings['length']*nb
+        #print(nb, self.lifetime)
+
+    def is_dead(self):
+        return pyxel.frame_count > self.start + self.lifetime or self.kill
+                
+
 
 def is_inside_map(pos,map):
     if pos[0] >= len(map[0]) or pos[1] >= len(map):
@@ -511,21 +618,14 @@ def is_inside_map(pos,map):
     if pos[0] < 0 or pos[1] < 0:
         return False
     return True
-    
-def remove_doubles(list):
-    new_list = []
-    for element in list:
-        if not element in new_list:
-            new_list.append(element)
-    return new_list
 
 def show(x,y,img,colkey=11,save=0):
-    pyxel.blt(x,y,save,img[0]*TILE_SIZE,img[1]*TILE_SIZE,TILE_SIZE,TILE_SIZE,colkey=11)
+    pyxel.blt(x,y,save,img[0]*TILE_SIZE,img[1]*TILE_SIZE,TILE_SIZE,TILE_SIZE,colkey=colkey)
 
 def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
 
-def draw(x, y, img, u, v, w, h, colkey=None, rotate=None, scale=1):
+def draw_n(x, y, img, u, v, w, h, colkey=None, rotate=None, scale=1):
     pyxel.blt(x+w//2*(scale-1), y+h//2*(scale-1), img, u, v, w, h, colkey=colkey, rotate=rotate, scale=scale)
 
 def in_perimeter(x1,y1,x2,y2,distance): #makes a square and checks if coords are inside of it

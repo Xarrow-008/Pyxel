@@ -436,3 +436,5 @@ def is_in_folder(dir,name):
 print(is_in_folder(pather,'main.py'))
         
 print(random.randint(0,1))
+
+print(int('1556789'[:0])+2)
