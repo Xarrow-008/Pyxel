@@ -31,6 +31,11 @@ class App:
     def draw(self):
         self.state.draw()    
 
+freeze_start = 0
+freeze_duration = 0
+freeze_frame = 0
+game_frame = 0
+
 class Game:
     def __init__(self):
         self.world = World()
@@ -41,14 +46,18 @@ class Game:
         self.place = inMission(self.world, self.entities, self.player, self.animation)
 
     def update(self):
-        self.place.update()
+        global freeze_frame, game_frame
+        if self.isFrozen():
+            self.place.update()
+            game_frame += 1
+        freeze_frame += 1
 
     def draw(self):
         self.place.draw()
 
-freeze_start = 0
-freeze_duration = 0
-freeze_frame = 0
+    def isFrozen(self):
+        global freeze_start, freeze_duration, freeze_frame, game_frame
+        return timer(freeze_start, freeze_duration, freeze_frame)
 
 class inMission:
     def __init__(self, world, entities, player, animation):
@@ -58,16 +67,13 @@ class inMission:
         self.animation = animation
 
     def update(self):
-        global freeze_start, freeze_duration, freeze_frame
-        if timer(freeze_start, freeze_duration, freeze_frame):
-            for entity in self.entities:
-                entity.update()
+        for entity in self.entities:
+            entity.update()
 
-            self.player.update()
+        self.player.update()
 
-            if pyxel.btnp(pyxel.KEY_M):
-                Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities, self.player)
-        freeze_frame += 1
+        if pyxel.btnp(pyxel.KEY_M):
+            Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities, self.player)
 
     def draw(self):
         for y in range(HEIGHT):
@@ -79,7 +85,6 @@ class inMission:
             entity.draw()
         
         self.player.draw()   
-
 
 class Player: #Everything relating to the player and its control
     def __init__(self, map, entities):
@@ -102,6 +107,9 @@ class Player: #Everything relating to the player and its control
         self.rightHand = Weapon.NONE
         self.backpack1 = Weapon.NONE
         self.backpack2 = Weapon.NONE #Only used for the Automaton
+
+        self.leftHandStartFrame = 0
+        self.rightHandStartFrame = 0
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -162,7 +170,7 @@ class Player: #Everything relating to the player and its control
         pyxel.rect(x=44,y=1,w=13,h=11,col=0)
 
         if not self.actions.isDashing:
-            dash_cooldown_progress = int(34*(self.actions.dashFrame/self.actions.dashCooldown))
+            dash_cooldown_progress = int(34*((game_frame-self.actions.dashStartFrame)/self.actions.dashCooldown))
             x = 50
             y = 2
             for i in range(40):
@@ -254,24 +262,31 @@ class Player: #Everything relating to the player and its control
             self.actions.dash()
         elif pyxel.btnp(pyxel.KEY_SPACE):
             self.actions.start_dash(self.direction)
-        self.actions.dashFrame += 1
             
     def attack(self):
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            self.actions.ranged_attack(self.leftHand, pyxel.mouse_x, pyxel.mouse_y, "player")
+            self.actions.ranged_attack("leftHand", pyxel.mouse_x, pyxel.mouse_y, "player")
 
         if pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
-            self.actions.ranged_attack(self.rightHand, pyxel.mouse_x, pyxel.mouse_y, "player")
+            self.actions.ranged_attack("rightHand", pyxel.mouse_x, pyxel.mouse_y, "player")
 
-        if pyxel.btnp(pyxel.KEY_R):
+        if pyxel.btnp(pyxel.KEY_R) and not self.actions.isReloading:
             self.leftHand["mag_ammo"] = 0
             self.rightHand["mag_ammo"] = 0
-            self.actions.rangedAttackFrame = 0
+            self.leftHandStartFrame = game_frame
+            self.rightHandStartFrame = game_frame
+            self.actions.isReloading = True
         
-        self.actions.reload_weapon(self.leftHand)
-        self.actions.reload_weapon(self.rightHand)
+        if self.leftHand["mag_ammo"] == 0 and not self.actions.isReloading:
+            self.leftHandStartFrame = game_frame
+            self.actions.isReloading = True
 
-        self.actions.rangedAttackFrame += 1
+        if self.rightHand["mag_ammo"] == 0 and not self.actions.isReloading:
+            self.rightHandStratFrame = game_frame
+            self.actions.isReloading = True
+
+        self.actions.reload_weapon("leftHand")
+        self.actions.reload_weapon("rightHand")
 
     def image_gestion(self):
         self.walking = False
@@ -483,29 +498,33 @@ class Actions:
         self.dashDuration = duration
 
         self.isDashing = False
-        self.dashFrame = 0
+        self.dashStartFrame = 0
         self.dashVector = [0,0]
 
     def start_dash(self, vector): #Used for dashing/lunging
-        if self.dashFrame >= self.dashCooldown and self.currentActionPriority <= self.dashPriority:
+        if self.canStartDash():
             self.currentActionPriority = self.dashPriority
 
-            self.dashFrame = 0
+            self.dashStartFrame = game_frame
             self.isDashing = True
             self.dashVector = copy(vector)
     
+    def canStartDash(self):
+        return timer(self.dashStartFrame, self.dashCooldown, game_frame) and self.currentActionPriority <= self.dashPriority
+
     def dash(self):
-        if self.dashFrame < self.dashDuration:
+        if self.dashOngoing():
             self.move([self.dashVector[0]*self.dashSpeed, self.dashVector[1]*self.dashSpeed])
 
         else :
             self.currentActionPriority = 0
             self.isDashing = False
-            self.dashFrame = 0
+            self.dashStartFrame = game_frame
             self.owner.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
             self.dashVector = [0,0]
 
-        self.dashFrame += 1
+    def dashOngoing(self):
+        return not timer(self.dashStartFrame, self.dashDuration, game_frame)
 
     def heal(self, value, target):
         target.health += value
@@ -513,15 +532,18 @@ class Actions:
             target.health = target.maxHealth
 
     def hurt(self, value, vector, knockback_coef, target, shot):
-        global freeze_start, freeze_duration, freeze_frame
+        global freeze_start, freeze_duration, freeze_frame, game_frame
 
         if hasattr(target.actions, "isHitStun"):
             if not target.actions.isHitStun or target.hitBy == shot:
                 target.health -= value
+
                 target.actions.isHitStun = True
-                target.actions.hitStunFrame = 0
+                target.actions.hitStunStartFrame = game_frame
+
                 freeze_start = freeze_frame
-                freeze_duration = self.hitFreezeFrame
+                freeze_duration = target.actions.hitFreezeFrame
+
                 target.hitBy = shot
                 if hasattr(target.actions, "maxSpeed"):
                     knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
@@ -550,15 +572,20 @@ class Actions:
 
     def init_ranged_attack(self, priority):
         self.rangedAttackPriority = priority
-        self.rangedAttackFrame = 0
         self.shotsFired = 0
 
-    def ranged_attack(self, weapon, x, y, team):
-        if self.rangedAttackPriority >= self.currentActionPriority and self.rangedAttackFrame >= weapon["cooldown"] and weapon["mag_ammo"]:
+        self.isReloading = False
+
+    def ranged_attack(self, hand, x, y, team):
+        weapon = getattr(self.owner, hand)
+        if self.canRangedAttack(hand):
 
             self.currentActionPriority = self.rangedAttackPriority
 
-            self.rangedAttackFrame = 0
+            setattr(self.owner, hand+"StartFrame", getattr(self.owner, hand+"StartFrame")+weapon["cooldown"])
+            if getattr(self.owner, hand+"StartFrame") < game_frame:
+                setattr(self.owner, hand+"StartFrame", game_frame)
+
             weapon["mag_ammo"] -= 1
             self.shotsFired += 1
 
@@ -581,14 +608,26 @@ class Actions:
                     sin = 0
                 Projectile(weapon, self.owner.x, self.owner.y, [cos,sin], self.map, self.entities, self.player, team, self.shotsFired)
 
-    def reload_weapon(self, weapon):
-        if self.rangedAttackFrame >= weapon["reload"] and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0:
+    def canRangedAttack(self, hand):
+        weapon = getattr(self.owner, hand)
+        startFrame = getattr(self.owner, hand+"StartFrame")
+        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon["cooldown"], game_frame) and weapon["mag_ammo"]>0
+
+    def reload_weapon(self, hand):
+        weapon = getattr(self.owner, hand)
+        if self.canReloadWeapon(hand):
+            self.isReloading = False
             if weapon["reserve_ammo"]>=weapon["max_ammo"]:
                 weapon["mag_ammo"] = weapon["max_ammo"]
                 weapon["reserve_ammo"] -= weapon["max_ammo"]
             else:
                 weapon["mag_ammo"] = weapon["reserve_ammo"]
                 weapon["reserve_ammo"] = 0
+
+    def canReloadWeapon(self, hand):
+        weapon = getattr(self.owner, hand)
+        startFrame = getattr(self.owner, hand+"StartFrame")
+        return timer(startFrame, weapon["reload"], game_frame) and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0
 
     def init_collision(self, wall, enemy, player):
         self.wallCollision = wall
@@ -622,22 +661,19 @@ class Actions:
                         self.playerCollision[3] -= 1
 
     def init_hitstun(self, duration, freeze_frame):
+        global game_frame
         self.hitFreezeFrame = freeze_frame
         self.frozen = 0
 
         self.hitStunDuration = duration
+        self.hitStunStartFrame = 0
         self.isHitStun = False
 
-        self.hitStunStartFrame = 0
-        self.hitStunFrame = 0
-        
         self.hitBy = 0
 
     def hitstun(self):
-        if self.hitStunFrame >= self.hitStunDuration and self.isHitStun:
+        if timer(self.hitStunStartFrame, self.hitStunDuration, game_frame):
             self.isHitStun = False
-        else:
-            self.hitStunFrame += 1
 
 class Path:
     def __init__(self,map):
