@@ -282,16 +282,16 @@ class Pather:
     def update(self,targetx,targety):
         #self.move_keyboard()
 
-
         if self.can_move():
             if self.target_has_moved(targetx,targety) and not self.target_is_close(targetx,targety):
                 self.find_path(int(targetx//TILE_SIZE),int(targety//TILE_SIZE))
 
-            if not self.target_is_close(targetx,targety):
+            if not self.target_is_close(targetx,targety) or not self.end_of_path():
                 self.move_path()
             else:
                 self.move_towards_target(targetx,targety)
             self.movement()
+
         else:
             self.unstuck_path(targetx,targety)
         
@@ -314,6 +314,9 @@ class Pather:
             anim.update()
             if anim.is_dead():
                 self.anims.remove(anim)
+
+    def end_of_path(self):
+        return self.path_index >= len(self.path) - 3
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -458,7 +461,6 @@ class Pather:
     def unstuck_path(self,targetx,targety):
         if pyxel.frame_count+2 > self.freeze_start + self.freeze_duration:
             self.reset_path()
-            print('new one',flush=True)
 
 class Hider:
     def __init__(self,map):
