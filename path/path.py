@@ -260,9 +260,7 @@ class Pather:
         self.height = 10
         self.image = (0,2)
         self.keyboard = 'zqsd'
-        self.path_index = 0
-        self.path = [(self.x//TILE_SIZE,self.y//TILE_SIZE) for i in range(2)]
-        self.path_at = copy(self.path[0])
+        self.reset_path()
         self.path_img = (0,3)
 
 
@@ -278,6 +276,8 @@ class Pather:
         self.direction = [0,1]
 
         self.actions.init_walk(priority=1)
+
+        self.anims = []
     
     def update(self,targetx,targety):
         #self.move_keyboard()
@@ -292,13 +292,28 @@ class Pather:
             else:
                 self.move_towards_target(targetx,targety)
             self.movement()
+        else:
+            self.unstuck_path(targetx,targety)
         
         self.preventOOB()
+        
+        self.update_anims()
 
     def draw(self):
         for pos in self.path:
             show(pos[0]*TILE_SIZE,pos[1]*TILE_SIZE,self.path_img)
         draw_n(self.x, self.y,0,self.image[0]*TILE_SIZE,self.image[1]*TILE_SIZE,self.width,self.height,colkey=11)
+        self.draw_anims()
+    
+    def draw_anims(self):
+        for anim in self.anims:
+            anim.draw(self.x,self.y)
+
+    def update_anims(self):
+        for anim in self.anims:
+            anim.update()
+            if anim.is_dead():
+                self.anims.remove(anim)
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -407,6 +422,11 @@ class Pather:
 
         self.path_index = 0
         
+    def reset_path(self):
+        self.path = [(int(self.x//TILE_SIZE),int(self.y//TILE_SIZE)) for i in range(2)]
+        self.path_at = copy(self.path[0])
+        self.path_index = 0
+
     def target_has_moved(self,x,y):
         return distance(x//TILE_SIZE,y//TILE_SIZE,*self.path[-1]) > 1
 
@@ -433,6 +453,12 @@ class Pather:
     def stun(self,duration):
         self.freeze_start = pyxel.frame_count
         self.freeze_duration = duration
+        self.anims.append(Animation((0,-12),{'duration':10},duration))
+
+    def unstuck_path(self,targetx,targety):
+        if pyxel.frame_count+2 > self.freeze_start + self.freeze_duration:
+            self.reset_path()
+            print('new one',flush=True)
 
 class Hider:
     def __init__(self,map):
@@ -471,7 +497,7 @@ class Hider:
     def weapons_use(self):
         if pyxel.btnp(pyxel.KEY_SPACE):
             self.stun_around = True
-            self.anims.append(Animation((-20,-10),0,'10 cycles'))
+            #self.anims.append(Animation((-20,-10),0,'10 cycles'))
 
     def update_anims(self):
         for anim in self.anims:
@@ -481,6 +507,9 @@ class Hider:
 
     def draw(self):
         show(self.x,self.y,self.image)
+        self.draw_anims()
+
+    def draw_anims(self):
         for anim in self.anims:
             anim.draw(self.x,self.y)
 
@@ -578,7 +607,7 @@ class Animation:
         self.kill = False
     def update(self):
         self.frame = pyxel.frame_count - self.start
-        if self.frame <= self.lifetime:
+        if not self.is_dead():
             self.get_img()
     def draw(self,x,y):
         show(x + self.relative_pos[0], y + self.relative_pos[1], self.img, colkey=0)
@@ -587,6 +616,7 @@ class Animation:
         x = self.settings['u'] + self.settings['vector'][0]*frame_anim
         y = self.settings['v'] + self.settings['vector'][1]*frame_anim
         self.img = (x,y)
+        #print(frame_anim,x,y)
 
     def apply_settings(self):
         if type(self.settings) is dict:
@@ -598,14 +628,13 @@ class Animation:
 
         nb = 1
         if type(self.lifetime) is str:
-            if self.lifetime[-6:] == 'cycles':
+            if 'cycle' in self.lifetime[-6:]:
                 for i in range(1,len(self.lifetime)):
                     if self.lifetime[:i].isdigit():
                         nb = int(self.lifetime[:i])
 
-        
-        self.lifetime = self.settings['duration']*self.settings['length']*nb
-        #print(nb, self.lifetime)
+        if not type(self.lifetime) is int:
+            self.lifetime = self.settings['duration']*self.settings['length']*nb
 
     def is_dead(self):
         return pyxel.frame_count > self.start + self.lifetime or self.kill
