@@ -40,14 +40,14 @@ class Game:
     def __init__(self):
         self.world = World()
         self.entities = []
-        self.player = Player(self.world.map, self.entities)
+        self.player = Player()
         self.animation = Animation()
         
         self.place = inMission(self.world, self.entities, self.player, self.animation)
 
     def update(self):
         global freeze_frame, game_frame
-        if self.isFrozen():
+        if not self.isFrozen():
             self.place.update()
             game_frame += 1
         freeze_frame += 1
@@ -57,7 +57,7 @@ class Game:
 
     def isFrozen(self):
         global freeze_start, freeze_duration, freeze_frame, game_frame
-        return timer(freeze_start, freeze_duration, freeze_frame)
+        return not timer(freeze_start, freeze_duration, freeze_frame)
 
 class inMission:
     def __init__(self, world, entities, player, animation):
@@ -67,13 +67,37 @@ class inMission:
         self.animation = animation
 
     def update(self):
-        for entity in self.entities:
-            entity.update()
+        self.entity_gestion()
 
         self.player.update()
 
+        self.enemy_collision()
+        self.player_collision()
+        self.enemy_player_collision()
+
         if pyxel.btnp(pyxel.KEY_M):
-            Enemy(50, 50, EnemyTemplate.DUMMY, self.world.map, self.entities, self.player)
+            Enemy(50, 50, EnemyTemplate.DUMMY, self.entities)
+
+        if pyxel.btnp(pyxel.KEY_O):
+            self.hurt(5, [0,0], 1, 0, self.player, self.player)
+
+    def entity_gestion(self):
+        for entity in self.entities:
+
+            if self.player.actions.bulletList != []:
+                for bullet in self.player.actions.bulletList:
+                    self.entities.append(bullet)
+                self.player.actions.bulletList = []
+            
+            if hasattr(entity.actions, "bulletList") and entity.actions.bulletList != []:
+                for bullet in entity.actions.bulletList:
+                    self.entities.append(bullet)
+                entity.actions.bulletList = []
+
+            if entity.actions.dead:
+                self.entities.remove(entity)
+            
+            entity.update()
 
     def draw(self):
         for y in range(HEIGHT):
@@ -86,8 +110,81 @@ class inMission:
         
         self.player.draw()   
 
+    def heal(self, value, healer, target):
+        target.health += value
+        if target.health > target.maxHealth:
+            target.health = target.maxHealth
+
+    def hurt(self, value, vector, knockback_coef, shot, damager, target):
+        global freeze_start, freeze_duration, freeze_frame, game_frame
+
+        if hasattr(target.actions, "isHitStun"):
+            if not target.actions.isHitStun or target.hitBy == shot:
+                target.health -= value
+
+                target.actions.isHitStun = True
+                target.actions.hitStunStartFrame = game_frame
+
+                freeze_start = freeze_frame
+                freeze_duration = target.actions.hitFreezeFrame
+
+                target.hitBy = shot
+                if hasattr(target.actions, "maxSpeed"):
+                    knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
+                    target.momentum[0] += vector[0]*knockback_value
+                    target.momentum[1] += vector[1]*knockback_value
+
+        else:
+            target.health -= value
+            if hasattr(target.actions, "maxSpeed"):
+                knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
+                target.momentum[0] += vector[0]*knockback_value
+                target.momentum[1] += vector[1]*knockback_value
+
+    def enemy_collision(self): #Handles collisions with enemies by entities
+        original_length = len(self.entities)
+        for i in range(len(self.entities)-1): #Entities colliding with enemies
+            offset = original_length - len(self.entities)
+            entity1 = self.entities[i-offset]
+            for j in range(i+1, len(self.entities)):
+                offset = original_length - len(self.entities)
+                entity2 = self.entities[j-offset]
+
+                if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2) :
+                    self.hurt(entity1.actions.enemyCollision[0], entity1.actions.enemyCollision[1], entity1.actions.enemyCollision[2], entity1.shot, entity1, entity2)
+                    if entity1.actions.enemyCollision[3] == 0:
+                        entity1.actions.death()
+                    else:
+                        entity1.actions.enemyCollision[3] -= 1
+
+                if entity2.canCollideWithEnemy() and entity2.collidingWithEnemy(entity1):
+                    self.hurt(entity2.actions.enemyCollision[0], entity2.actions.enemyCollision[1], entity2.actions.enemyCollision[2], entity2.shot, entity2, entity1)
+                    if entity2.actions.enemyCollision[3] == 0:
+                        entity2.actions.death()
+                    else:
+                        entity2.actions.enemyCollision[3] -= 1
+
+    def player_collision(self): #Handles collisions with the player by entities
+        for entity in self.entities:
+            if entity.canCollideWithPlayer() and self.entityCollidingWithPlayer(entity):
+                self.hurt(entity.actions.playerCollision[0], entity.actions.player_collision[1], entity.actions.player_collision[2], entity.shot, entity, self.player)
+                if entity.actions.playerCollision[3] == 0:
+                    entity.actions.death()
+                else:
+                    entity.actions.playerCollision[3] -= 1
+
+
+    def enemy_player_collision(self): #Handles what happens when a player collides with an enemy
+        for entity in self.entities:
+            if self.player.collidingWithEnemy(entity):
+                pass #Right now, there isn't anything that happens when the player collides with an enemy
+
+    def entityCollidingWithPlayer(entity):
+        return collision(self.player.x, self.player.y, entity.x, entity.y, [self.player.width, self.player.height], [entity.width, entity.height]) and not self.player.isHitStun
+
+    
 class Player: #Everything relating to the player and its control
-    def __init__(self, map, entities):
+    def __init__(self):
         self.keyboard = 'zqsd'
         self.x = 10
         self.y = 10
@@ -95,7 +192,7 @@ class Player: #Everything relating to the player and its control
         self.health = 80
         self.maxHealth = 80
 
-        self.actions = Actions(map, entities, self, self)
+        self.actions = Actions(self)
         self.actions.init_walk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
         self.actions.init_dash(priority=1, cooldown=40, speed=1.5, duration=20)
         self.actions.init_ranged_attack(priority=0)
@@ -131,6 +228,7 @@ class Player: #Everything relating to the player and its control
 
         if self.direction == [0,0]:
             self.direction = copy(self.last_direction)
+            
         self.last_direction = copy(self.direction)
         self.dash()
 
@@ -140,8 +238,7 @@ class Player: #Everything relating to the player and its control
 
         self.last_facing = copy(self.facing)
 
-        if pyxel.btnp(pyxel.KEY_O):
-            self.actions.hurt(5, [0,0], 1, self, 0)
+        
 
     def draw(self):
         step_y = self.y
@@ -314,8 +411,12 @@ class Player: #Everything relating to the player and its control
                 self.second_step = self.step
                 self.step_frame = 0
 
+    def collidingWithEnemy(self, entity):
+        return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity.actions, "isHitStun") and not entity.actions.isHitStun) or not hasattr(entity.actions, "isHitStun"))
+
+
 class Enemy:
-    def __init__(self, x, y, template, map, entities, player):
+    def __init__(self, x, y, template, entities):
         self.x = x
         self.y = y
 
@@ -328,7 +429,7 @@ class Enemy:
 
         self.momentum = [0,0]
 
-        self.actions = Actions(map, entities, player, self)
+        self.actions = Actions(self)
 
         #We initialise all of the enemies abilities
         for ability in template["abilities"].items():
@@ -373,8 +474,18 @@ class Enemy:
 
         self.actions.walk(self.momentum)
 
+    def canCollideWithEnemy(self):
+        return hasattr(self.actions, "enemyCollision") and self.actions.enemyCollision[3] != -1
+
+    def canCollideWithPlayer(self):
+        return hasattr(self.actions, "playerCollision") and self.actions.playerCollision[3] != -1
+
+    def collidingWithEnemy(self, entity):
+        return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity.actions, "isHitStun") and not entity.actions.isHitStun) or not hasattr(entity.actions, "isHitStun"))
+
+
 class Projectile :
-    def __init__(self, weapon, x, y, vector, map, entities, player, team, shot):
+    def __init__(self, weapon, x, y, vector, team, shot):
         self.x = x
         self.y = y
 
@@ -394,21 +505,18 @@ class Projectile :
 
         self.shot = shot
 
-        self.actions = Actions(map, entities, player, self)
+        self.actions = Actions(self)
         self.actions.init_walk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
         self.actions.init_death(spawn_item=False)
-        self.actions.add_death_list(entities)
         if self.team == "player":
             self.actions.init_collision([0, 0, 0, 0], [self.damage, self.vector, self.knockbackCoef, self.piercing], [0, 0, 0, -1])
         if self.team == "enemy":
             self.actions.init_collision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.vector, self.knockbackCoef, self.piercing])
 
-        entities.append(self)
-
     def update(self):
         self.actions.walk([self.vector[0]*self.actions.maxSpeed, self.vector[1]*self.actions.maxSpeed])
 
-        self.actions.collision()
+        self.actions.wall_collision()
 
         self.range -= math.sqrt((self.vector[0]*self.actions.maxSpeed)**2 + (self.vector[1]*self.actions.maxSpeed)**2)
         if self.range <= 0:
@@ -419,11 +527,18 @@ class Projectile :
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
    
+    def canCollideWithEnemy(self):
+        return hasattr(self.actions, "enemyCollision") and self.actions.enemyCollision[3] != -1
+
+    def canCollideWithPlayer(self):
+        return hasattr(self.actions, "playerCollision") and self.actions.playerCollision[3] != -1
+
+    def collidingWithEnemy(self, entity):
+        return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity.actions, "isHitStun") and not entity.actions.isHitStun) or not hasattr(entity.actions, "isHitStun"))
+
+
 class Actions:
-    def __init__(self, map, entities, player, owner):
-        self.map = map
-        self.entities = entities
-        self.player = player
+    def __init__(self, owner):
         self.owner = owner
         self.currentActionPriority = 0
         self.collision_happened = False
@@ -442,9 +557,9 @@ class Actions:
             new_x = new_X*TILE_SIZE
 
         if vector[0]!=0:
-            next_X_1 = self.map[Y][new_X]
+            next_X_1 = map[Y][new_X]
             if self.owner.y != Y*TILE_SIZE:
-                next_X_2 = self.map[Y+1][new_X]
+                next_X_2 = map[Y+1][new_X]
             else:
                 next_X_2 = Blocks.GROUND
             #If there's enough space for the entity to move, it moves unimpeded
@@ -467,9 +582,9 @@ class Actions:
 
         
         if vector[1]!=0:
-            next_Y_1 = self.map[new_Y][X]
+            next_Y_1 = map[new_Y][X]
             if self.owner.x != X*TILE_SIZE:
-                next_Y_2 = self.map[new_Y][X+1]
+                next_Y_2 = map[new_Y][X+1]
             else:
                 next_Y_2 = Blocks.GROUND
             
@@ -524,38 +639,7 @@ class Actions:
             self.dashVector = [0,0]
 
     def dashOngoing(self):
-        return not timer(self.dashStartFrame, self.dashDuration, game_frame)
-
-    def heal(self, value, target):
-        target.health += value
-        if target.health > target.maxHealth:
-            target.health = target.maxHealth
-
-    def hurt(self, value, vector, knockback_coef, target, shot):
-        global freeze_start, freeze_duration, freeze_frame, game_frame
-
-        if hasattr(target.actions, "isHitStun"):
-            if not target.actions.isHitStun or target.hitBy == shot:
-                target.health -= value
-
-                target.actions.isHitStun = True
-                target.actions.hitStunStartFrame = game_frame
-
-                freeze_start = freeze_frame
-                freeze_duration = target.actions.hitFreezeFrame
-
-                target.hitBy = shot
-                if hasattr(target.actions, "maxSpeed"):
-                    knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
-                    target.momentum[0] += vector[0]*knockback_value
-                    target.momentum[1] += vector[1]*knockback_value
-
-        else:
-            target.health -= value
-            if hasattr(target.actions, "maxSpeed"):
-                knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
-                target.momentum[0] += vector[0]*knockback_value
-                target.momentum[1] += vector[1]*knockback_value
+        return not timer(self.dashStartFrame, self.dashDuration, game_frame)        
 
     def init_death(self, spawn_item):
         self.deathItemSpawn = spawn_item
@@ -567,12 +651,15 @@ class Actions:
 
     def death(self):
         if self.dead == False:
-            self.deathList.remove(self.owner)
+            if hasattr(self, "deathList"):
+                self.deathList.remove(self.owner)
             self.dead = True
 
     def init_ranged_attack(self, priority):
         self.rangedAttackPriority = priority
         self.shotsFired = 0
+
+        self.bulletList = []
 
         self.isReloading = False
 
@@ -606,7 +693,10 @@ class Actions:
                 else:
                     cos = 0
                     sin = 0
-                Projectile(weapon, self.owner.x, self.owner.y, [cos,sin], self.map, self.entities, self.player, team, self.shotsFired)
+
+                bullet_shot = Projectile(weapon, self.owner.x, self.owner.y, [cos,sin], team, self.shotsFired)
+
+                self.bulletList.append(bullet_shot)
 
     def canRangedAttack(self, hand):
         weapon = getattr(self.owner, hand)
@@ -634,31 +724,13 @@ class Actions:
         self.enemyCollision = enemy
         self.playerCollision = player
 
-    def collision(self):
+    def wall_collision(self):
 
         if self.wallCollision[3] != -1:
             if self.collision_happened:
                 if self.wallCollision[0] == 0:
                     self.death()
 
-        if self.enemyCollision[3] != -1:
-            for entity in self.entities:
-                if type(entity) == Enemy and collision(self.owner.x, self.owner.y, entity.x, entity.y, [self.owner.width, self.owner.height], [entity.width, entity.height]):
-                    if (hasattr(entity.actions, "isHitStun") and not entity.actions.isHitStun) or not hasattr(entity.actions, "isHitStun"):
-                        self.hurt(self.enemyCollision[0], self.enemyCollision[1], self.enemyCollision[2], entity, self.owner.shot)
-                        if self.enemyCollision[3] == 0:
-                            self.death()
-                        else:
-                            self.enemyCollision[3] -= 1
-
-        if self.playerCollision[3] != -1 :          
-            if collision(self.owner.x, self.owner.y, self.player.x, self.player.y, [self.owner.width, self.owner.height], [self.player.width, self.player.height]):
-                if not player.actions.isHitStun:
-                    self.hurt(self.playerCollision[0], self.playerCollision[1], self.playerCollision[2], self.player, self.owner.shot)
-                    if self.playerCollision[3] == 0:
-                        self.death()
-                    else :
-                        self.playerCollision[3] -= 1
 
     def init_hitstun(self, duration, freeze_frame):
         global game_frame
@@ -735,10 +807,14 @@ class Blocks:
 
     GROUND = [(0,1)]
 
+map = []
+
 class World:
     def __init__(self):
+        global map
         self.map = [[random.choice(Blocks.GROUND) for x in range(WIDTH)] for y in range(HEIGHT)]
         self.map[5][6] = Blocks.WALLS[0]
+        map = self.map
 
 def on_tick(tickrate=60):
     return pyxel.frame_count % tickrate == 0
@@ -794,7 +870,7 @@ def is_inside_map(pos,map):
 
 def sized_text(x,y,s,col,size=6): #Like pyxel.text, but you can modify the size of the text
     alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
-    other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}"]
+    other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_"]
 
     current_x = x
     scale = size/6
