@@ -59,6 +59,7 @@ class Game:
         global freeze_start, freeze_duration, freeze_frame, game_frame
         return not timer(freeze_start, freeze_duration, freeze_frame)
 
+
 class inMission:
     def __init__(self, world, entities, player, animation):
         self.world = world
@@ -76,25 +77,26 @@ class inMission:
         self.enemy_player_collision()
 
         if pyxel.btnp(pyxel.KEY_M):
-            Enemy(50, 50, EnemyTemplate.DUMMY, self.entities)
-
+            self.entities.append(Enemy(50, 50, EnemyTemplate.DUMMY))
+            
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(5, [0,0], 1, 0, self.player, self.player)
 
     def entity_gestion(self):
+
+        if self.player.bulletList != []:
+                for bullet in self.player.bulletList:
+                    self.entities.append(bullet)
+                self.player.bulletList = []
+        
         for entity in self.entities:
-
-            if self.player.actions.bulletList != []:
-                for bullet in self.player.actions.bulletList:
-                    self.entities.append(bullet)
-                self.player.actions.bulletList = []
             
-            if hasattr(entity.actions, "bulletList") and entity.actions.bulletList != []:
-                for bullet in entity.actions.bulletList:
+            if hasattr(entity, "bulletList") and entity.bulletList != []:
+                for bullet in entity.bulletList:
                     self.entities.append(bullet)
-                entity.actions.bulletList = []
+                entity.bulletList = []
 
-            if entity.actions.dead:
+            if entity.dead:
                 self.entities.remove(entity)
             
             entity.update()
@@ -118,26 +120,26 @@ class inMission:
     def hurt(self, value, vector, knockback_coef, shot, damager, target):
         global freeze_start, freeze_duration, freeze_frame, game_frame
 
-        if hasattr(target.actions, "isHitStun"):
-            if not target.actions.isHitStun or target.hitBy == shot:
+        if hasattr(target, "isHitStun"):
+            if not target.isHitStun or target.hitBy == shot:
                 target.health -= value
 
-                target.actions.isHitStun = True
-                target.actions.hitStunStartFrame = game_frame
+                target.isHitStun = True
+                target.hitStunStartFrame = game_frame
 
                 freeze_start = freeze_frame
-                freeze_duration = target.actions.hitFreezeFrame
+                freeze_duration = target.hitFreezeFrame
 
                 target.hitBy = shot
-                if hasattr(target.actions, "maxSpeed"):
-                    knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
+                if hasattr(target, "maxSpeed"):
+                    knockback_value = len(str(value))*knockback_coef*target.knockbackCoef
                     target.momentum[0] += vector[0]*knockback_value
                     target.momentum[1] += vector[1]*knockback_value
 
         else:
             target.health -= value
-            if hasattr(target.actions, "maxSpeed"):
-                knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
+            if hasattr(target, "maxSpeed"):
+                knockback_value = len(str(value))*knockback_coef*target.knockbackCoef
                 target.momentum[0] += vector[0]*knockback_value
                 target.momentum[1] += vector[1]*knockback_value
 
@@ -151,54 +153,331 @@ class inMission:
                 entity2 = self.entities[j-offset]
 
                 if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2) :
-                    self.hurt(entity1.actions.enemyCollision[0], entity1.actions.enemyCollision[1], entity1.actions.enemyCollision[2], entity1.shot, entity1, entity2)
-                    if entity1.actions.enemyCollision[3] == 0:
-                        entity1.actions.death()
+                    self.hurt(entity1.enemyCollisionEffect[0], entity1.enemyCollisionEffect[1], entity1.enemyCollisionEffect[2], entity1.shot, entity1, entity2)
+                    if entity1.enemyCollisionEffect[3] == 0:
+                        if type(entity1) == Enemy:
+                            entity1.health = 0
+                        elif type(entity1) == Projectile:
+                            entity1.range = 0
                     else:
-                        entity1.actions.enemyCollision[3] -= 1
+                        entity1.enemyCollisionEffect[3] -= 1
 
                 if entity2.canCollideWithEnemy() and entity2.collidingWithEnemy(entity1):
-                    self.hurt(entity2.actions.enemyCollision[0], entity2.actions.enemyCollision[1], entity2.actions.enemyCollision[2], entity2.shot, entity2, entity1)
-                    if entity2.actions.enemyCollision[3] == 0:
-                        entity2.actions.death()
+                    self.hurt(entity2.enemyCollisionEffect[0], entity2.enemyCollisionEffect[1], entity2.enemyCollisionEffect[2], entity2.shot, entity2, entity1)
+                    if entity2.enemyCollisionEffect[3] == 0:
+                        if type(entity2) == Enemy:
+                            entity2.health = 0
+                        elif type(entity2) == Projectile:
+                            entity2.range = 0
                     else:
-                        entity2.actions.enemyCollision[3] -= 1
+                        entity2.enemyCollisionEffect[3] -= 1
 
     def player_collision(self): #Handles collisions with the player by entities
         for entity in self.entities:
             if entity.canCollideWithPlayer() and self.entityCollidingWithPlayer(entity):
-                self.hurt(entity.actions.playerCollision[0], entity.actions.player_collision[1], entity.actions.player_collision[2], entity.shot, entity, self.player)
-                if entity.actions.playerCollision[3] == 0:
-                    entity.actions.death()
+                self.hurt(entity.playerCollisionEffect[0], entity.player_collisionEffect[1], entity.player_collisionEffect[2], entity.shot, entity, self.player)
+                if entity.playerCollisionEffect[3] == 0:
+                    entity.dead = True
                 else:
-                    entity.actions.playerCollision[3] -= 1
-
+                    entity.playerCollisionEffect[3] -= 1
 
     def enemy_player_collision(self): #Handles what happens when a player collides with an enemy
         for entity in self.entities:
             if self.player.collidingWithEnemy(entity):
                 pass #Right now, there isn't anything that happens when the player collides with an enemy
 
-    def entityCollidingWithPlayer(entity):
+    def entityCollidingWithPlayer(self, entity):
         return collision(self.player.x, self.player.y, entity.x, entity.y, [self.player.width, self.player.height], [entity.width, entity.height]) and not self.player.isHitStun
 
-    
-class Player: #Everything relating to the player and its control
+
+class Entity: #General Entity class with all the methods describing what entities can do
+    def __init__(self, x, y, width, height):
+        self.x = x
+        self.y = y
+
+        self.width = width
+        self.height = height
+
+        self.momentum = [0,0]
+
+        self.collidedWithWall = False
+
+        self.currentActionPriority = 0
+
+    def update(self):
+
+        self.hitstun()
+
+        if  self.canDoActions():
+
+            self.movement()
+
+            self.dash()
+
+            self.collision()
+
+            self.attack()
+
+        self.death()
+
+        self.imageGestion()
+
+    def draw(self):
+        pass
+
+
+    def canDoActions(self):
+        return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun")
+
+
+    def movement(self):
+        pass
+
+    def speedDecrease(self):
+        pass
+
+    def dash(self):
+        pass
+
+    def collision(self):
+        pass
+
+    def attack(self):
+        pass
+
+    def imageGestion(self):
+        pass
+
+    def death(self):
+        pass
+
+
+    def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
+        X = int(self.x//TILE_SIZE)
+        Y = int(self.y//TILE_SIZE)
+
+        #We handle horizontal and vertical movement separatly to make problem solving easier
+
+        #Calculate the new position
+        new_x = self.x + vector[0]
+        new_X = X+pyxel.sgn(vector[0])
+
+        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
+            new_x = new_X*TILE_SIZE
+
+        if vector[0]!=0:
+            next_X_1 = map[Y][new_X]
+            if self.y != Y*TILE_SIZE:
+                next_X_2 = map[Y+1][new_X]
+            else:
+                next_X_2 = Blocks.GROUND
+            #If there's enough space for the entity to move, it moves unimpeded
+            if (next_X_1 not in Blocks.WALLS or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in Blocks.WALLS or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+                self.x = new_x
+            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
+            elif (next_X_1 in Blocks.WALLS or next_X_2 in Blocks.WALLS) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+                self.collidedWithWall = True
+                self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
+        
+        X = int(self.x//TILE_SIZE)
+
+        #We calculate vertical movement in the same way we do horizontal movement
+
+        new_y = self.y + vector[1]
+        new_Y = Y+pyxel.sgn(vector[1])
+        
+        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
+            new_y = new_Y*TILE_SIZE
+
+        
+        if vector[1]!=0:
+            next_Y_1 = map[new_Y][X]
+            if self.x != X*TILE_SIZE:
+                next_Y_2 = map[new_Y][X+1]
+            else:
+                next_Y_2 = Blocks.GROUND
+            
+            if (next_Y_1 not in Blocks.WALLS or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 not in Blocks.WALLS or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+                self.y = new_y
+            elif (next_Y_1 in Blocks.WALLS or next_Y_2 in Blocks.WALLS) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+                self.collidedWithWall = True
+                self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
+
+
+    def initWalk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
+        self.walkPriority = priority
+        self.maxSpeed = maxSpeed
+        self.speedChangeRate = speedChangeRate
+        self.knockbackCoef = knockbackCoef
+
+    def walk(self, vector): #Used for regular walking.
+        if self.currentActionPriority <= self.walkPriority:
+            self.currentActionPriority = self.walkPriority
+
+            self.applyVector(vector)
+
+
+    def initDash(self, priority, cooldown, speed, duration): #Gets the parameters of the "dash" action, and initialises the related variables
+        self.dashPriority = priority
+        self.dashCooldown = cooldown
+        self.dashSpeed = speed
+        self.dashDuration = duration
+
+        self.isDashing = False
+        self.dashStartFrame = 0
+        self.dashVector = [0,0]
+
+    def startDash(self, vector): #Used for dashing/lunging
+        if self.canStartDash():
+            self.currentActionPriority = self.dashPriority
+
+            self.dashStartFrame = game_frame
+            self.isDashing = True
+            self.dashVector = copy(vector)
+
+    def canStartDash(self):
+        return timer(self.dashStartFrame, self.dashCooldown, game_frame) and self.currentActionPriority <= self.dashPriority
+
+    def dashMovement(self):
+        if self.dashOngoing():
+            self.applyVector([self.dashVector[0]*self.dashSpeed, self.dashVector[1]*self.dashSpeed])
+
+        else :
+            self.currentActionPriority = 0
+            self.isDashing = False
+            self.dashStartFrame = game_frame
+            self.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
+            self.dashVector = [0,0]
+
+    def dashOngoing(self):
+        return not timer(self.dashStartFrame, self.dashDuration, game_frame)  
+
+
+    def initDeath(self, spawnItem):
+        self.deathItemSpawn = spawnItem
+
+        self.dead = False
+
+
+    def initRangedAttack(self, priority):
+        self.rangedAttackPriority = priority
+        self.shotsFired = 0
+
+        self.bulletList = []
+
+        self.isReloading = False
+
+    def rangedAttack(self, hand, x, y, team):
+        weapon = getattr(self, hand)
+        if self.canRangedAttack(hand):
+
+            self.currentActionPriority = self.rangedAttackPriority
+
+            setattr(self, hand+"StartFrame", game_frame)
+
+            weapon["mag_ammo"] -= 1
+            self.shotsFired += 1
+
+            for i in range(weapon["bullet_count"]):
+                horizontal = x - (self.x + self.width/2)
+                vertical = y - (self.y + self.height/2)
+                norm = math.sqrt(horizontal**2 + vertical**2)
+
+                if norm != 0:
+                    cos = horizontal/norm
+                    sin = vertical/norm
+                    angle = math.acos(cos) * pyxel.sgn(sin)
+                    lowest_angle = angle - weapon["spread"]*(math.pi/180)
+                    highest_angle = angle + weapon["spread"]*(math.pi/180)
+                    angle = random.uniform(lowest_angle, highest_angle)
+                    cos = math.cos(angle)
+                    sin = math.sin(angle)
+                else:
+                    cos = 0
+                    sin = 0
+
+                bullet_shot = Projectile(weapon, self.x, self.y, [cos,sin], team, self.shotsFired)
+
+                self.bulletList.append(bullet_shot)
+
+    def canRangedAttack(self, hand):
+        weapon = getattr(self, hand)
+        startFrame = getattr(self, hand+"StartFrame")
+        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon["cooldown"], game_frame) and weapon["mag_ammo"]>0
+
+    def reloadWeapon(self, hand):
+        weapon = getattr(self, hand)
+        if self.canReloadWeapon(hand):
+            self.isReloading = False
+            if weapon["reserve_ammo"]>=weapon["max_ammo"]:
+                weapon["mag_ammo"] = weapon["max_ammo"]
+                weapon["reserve_ammo"] -= weapon["max_ammo"]
+            else:
+                weapon["mag_ammo"] = weapon["reserve_ammo"]
+                weapon["reserve_ammo"] = 0
+
+    def canReloadWeapon(self, hand):
+        weapon = getattr(self, hand)
+        startFrame = getattr(self, hand+"StartFrame")
+        return timer(startFrame, weapon["reload"], game_frame) and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0
+
+    def initCollision(self, wall, enemy, player):
+        self.wallCollisionEffect = wall
+        self.enemyCollisionEffect = enemy
+        self.playerCollisionEffect = player
+
+    def wallCollision(self):
+        if self.wallCollisionEffect[3] != -1:
+            if self.collidedWithWall:
+                if self.wallCollisionEffect[0] == 0:
+                    if type(self) == Enemy or type(self) == Player:
+                        self.health = 0
+                    elif type(self) == Projectile:
+                        self.range = 0
+
+    def canCollideWithEnemy(self):
+        return hasattr(self, "enemyCollisionEffect") and self.enemyCollisionEffect[3] != -1
+
+    def canCollideWithPlayer(self):
+        return hasattr(self, "playerCollisionEffect") and self.playerCollisionEffect[3] != -1
+
+    def collidingWithEnemy(self, entity):
+        return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
+
+
+    def initHitstun(self, duration, freezeFrame):
+        self.hitFreezeFrame = freezeFrame
+        self.frozen = 0
+
+        self.hitStunDuration = duration
+        self.hitStunStartFrame = 0
+        self.isHitStun = False
+
+        self.hitBy = 0
+
+    def hitstun(self):
+        if hasattr(self, "isHitStun"):
+
+            if self.isHitStun:
+                self.applyVector(self.momentum)
+                self.speedDecrease()
+
+            if timer(self.hitStunStartFrame, self.hitStunDuration, game_frame):
+                self.isHitStun = False
+
+class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self):
+        super().__init__(x=10, y=10, width=TILE_SIZE, height=TILE_SIZE)
+
         self.keyboard = 'zqsd'
-        self.x = 10
-        self.y = 10
 
         self.health = 80
         self.maxHealth = 80
 
-        self.actions = Actions(self)
-        self.actions.init_walk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
-        self.actions.init_dash(priority=1, cooldown=40, speed=1.5, duration=20)
-        self.actions.init_ranged_attack(priority=0)
-        self.actions.init_hitstun(duration=1*FPS, freeze_frame=1*FPS)
-
-        self.momentum = [0,0]
+        self.initWalk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
+        self.initDash(priority=1, cooldown=40, speed=1.5, duration=20)
+        self.initRangedAttack(priority=0)
+        self.initHitstun(duration=0*FPS, freezeFrame=1*FPS)
 
         self.leftHand = Weapon.RUSTY_PISTOL
         self.rightHand = Weapon.NONE
@@ -215,30 +494,10 @@ class Player: #Everything relating to the player and its control
         self.direction = [1,0]
         self.last_direction = [1,0]
 
-        self.width = TILE_SIZE
-        self.height = TILE_SIZE
-
         self.walking = False
         self.step = False
         self.second_step = False
         self.step_frame = 0
-
-    def update(self):
-        self.movement()
-
-        if self.direction == [0,0]:
-            self.direction = copy(self.last_direction)
-            
-        self.last_direction = copy(self.direction)
-        self.dash()
-
-        self.attack()
-
-        self.image_gestion()
-
-        self.last_facing = copy(self.facing)
-
-        
 
     def draw(self):
         step_y = self.y
@@ -266,8 +525,8 @@ class Player: #Everything relating to the player and its control
         #Dash
         pyxel.rect(x=44,y=1,w=13,h=11,col=0)
 
-        if not self.actions.isDashing:
-            dash_cooldown_progress = int(34*((game_frame-self.actions.dashStartFrame)/self.actions.dashCooldown))
+        if not self.isDashing:
+            dash_cooldown_progress = int(34*((game_frame-self.dashStartFrame)/self.dashCooldown))
             x = 50
             y = 2
             for i in range(40):
@@ -306,32 +565,37 @@ class Player: #Everything relating to the player and its control
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
-            if self.momentum[1] > -self.actions.maxSpeed:
-                self.momentum[1] -= self.actions.maxSpeed/self.actions.speedChangeRate
+            if self.momentum[1] > -self.maxSpeed:
+                self.momentum[1] -= self.maxSpeed/self.speedChangeRate
             self.direction[1] = -1
 
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
-            if self.momentum[0] > -self.actions.maxSpeed:
-                self.momentum[0] -= self.actions.maxSpeed/self.actions.speedChangeRate
+            if self.momentum[0] > -self.maxSpeed:
+                self.momentum[0] -= self.maxSpeed/self.speedChangeRate
             self.direction[0] = -1
 
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
-            if self.momentum[1] < self.actions.maxSpeed:
-                self.momentum[1] += self.actions.maxSpeed/self.actions.speedChangeRate
+            if self.momentum[1] < self.maxSpeed:
+                self.momentum[1] += self.maxSpeed/self.speedChangeRate
             self.direction[1] = 1
 
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
-            if self.momentum[0] < self.actions.maxSpeed:
-                self.momentum[0] += self.actions.maxSpeed/self.actions.speedChangeRate
+            if self.momentum[0] < self.maxSpeed:
+                self.momentum[0] += self.maxSpeed/self.speedChangeRate
             self.direction[0] = 1
         
+        self.speedDecrease()
+
+        self.walk(self.momentum)
+    
+    def speedDecrease(self):
         #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
         if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper()))):
-            self.momentum[1] -= self.momentum[1]/self.actions.speedChangeRate
+            self.momentum[1] -= self.momentum[1]/self.speedChangeRate
             self.direction[1] = 0
 
         if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper()))):
-            self.momentum[0] -= self.momentum[0]/self.actions.speedChangeRate
+            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
             self.direction[0] = 0
         
         #If the player is almost immobile in a specific direction, we snap their speed to 0
@@ -341,51 +605,49 @@ class Player: #Everything relating to the player and its control
             self.momentum[1] = 0
 
         #If the player is almost at max speed in a specific direction, we snap their speed to max speed
-        if self.actions.maxSpeed-abs(self.momentum[0]) <= 0.01:
-            self.momentum[0] = self.actions.maxSpeed*pyxel.sgn(self.momentum[0])
-        if self.actions.maxSpeed-abs(self.momentum[1]) <= 0.01:
-            self.momentum[1] = self.actions.maxSpeed*pyxel.sgn(self.momentum[1])
+        if self.maxSpeed-abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = self.maxSpeed*pyxel.sgn(self.momentum[0])
+        if self.maxSpeed-abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = self.maxSpeed*pyxel.sgn(self.momentum[1])
 
         #If the player is over max speed, we decrease their speed progressively
-        if abs(self.momentum[0]) > self.actions.maxSpeed:
-            self.momentum[0] -= self.momentum[0]/self.actions.speedChangeRate
-        if abs(self.momentum[1]) > self.actions.maxSpeed:
-            self.momentum[1] -= self.momentum[1]/self.actions.speedChangeRate 
+        if abs(self.momentum[0]) > self.maxSpeed:
+            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
+        if abs(self.momentum[1]) > self.maxSpeed:
+            self.momentum[1] -= self.momentum[1]/self.speedChangeRate 
 
-        self.actions.walk(self.momentum)
-    
     def dash(self):
-        if self.actions.isDashing:
-            self.actions.dash()
+        if self.isDashing:
+            self.dashMovement()
         elif pyxel.btnp(pyxel.KEY_SPACE):
-            self.actions.start_dash(self.direction)
+            self.startDash(self.direction)
             
     def attack(self):
         if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            self.actions.ranged_attack("leftHand", pyxel.mouse_x, pyxel.mouse_y, "player")
+            self.rangedAttack("leftHand", pyxel.mouse_x, pyxel.mouse_y, "player")
 
         if pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
-            self.actions.ranged_attack("rightHand", pyxel.mouse_x, pyxel.mouse_y, "player")
+            self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y, "player")
 
-        if pyxel.btnp(pyxel.KEY_R) and not self.actions.isReloading:
+        if pyxel.btnp(pyxel.KEY_R) and not self.isReloading:
             self.leftHand["mag_ammo"] = 0
             self.rightHand["mag_ammo"] = 0
             self.leftHandStartFrame = game_frame
             self.rightHandStartFrame = game_frame
-            self.actions.isReloading = True
+            self.isReloading = True
         
-        if self.leftHand["mag_ammo"] == 0 and not self.actions.isReloading:
+        if self.leftHand["mag_ammo"] == 0 and not self.isReloading:
             self.leftHandStartFrame = game_frame
-            self.actions.isReloading = True
+            self.isReloading = True
 
-        if self.rightHand["mag_ammo"] == 0 and not self.actions.isReloading:
+        if self.rightHand["mag_ammo"] == 0 and not self.isReloading:
             self.rightHandStratFrame = game_frame
-            self.actions.isReloading = True
+            self.isReloading = True
 
-        self.actions.reload_weapon("leftHand")
-        self.actions.reload_weapon("rightHand")
+        self.reloadWeapon("leftHand")
+        self.reloadWeapon("rightHand")
 
-    def image_gestion(self):
+    def imageGestion(self):
         self.walking = False
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
             self.facing = [0,1]
@@ -411,93 +673,77 @@ class Player: #Everything relating to the player and its control
                 self.second_step = self.step
                 self.step_frame = 0
 
-    def collidingWithEnemy(self, entity):
-        return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity.actions, "isHitStun") and not entity.actions.isHitStun) or not hasattr(entity.actions, "isHitStun"))
+    def collision(self):
+        pass
 
+    def death(self):
+        pass
 
-class Enemy:
-    def __init__(self, x, y, template, entities):
-        self.x = x
-        self.y = y
+class Enemy(Entity): #Creates an entity that fights the player
+    def __init__(self, x, y, template):
+        super().__init__(x=x, y=y, width=template["width"], height=template["height"])
 
-        self.width = template["width"]
-        self.height = template["height"]
+        self.originalImage = template["image"]
         self.image = template["image"]
 
         self.health = template["health"]
         self.maxHealth = template["max_health"]
 
-        self.momentum = [0,0]
-
-        self.actions = Actions(self)
-
         #We initialise all of the enemies abilities
         for ability in template["abilities"].items():
             
-            initialiser = getattr(self.actions, "init_"+ability[0])
+            initialiser = getattr(self, "init"+ability[0])
             parameters = ability[1].values()
             initialiser(*parameters)
 
-        entities.append(self)
-        self.actions.add_death_list(entities)
-
-    def update(self):
-
-        self.movement()
-
-        if hasattr(self.actions, "isHitStun"):
-            self.actions.hitstun()
-
-        if self.health <= 0 and not self.actions.dead:
-            self.actions.death()
-
-
     def draw(self):
-        if hasattr(self.actions, "isHitStun"):
-            if not self.actions.isHitStun:
-                draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
-            else:
-                draw(self.x, self.y, 0, self.image[0]+TILE_SIZE, self.image[1], self.width, self.height, colkey=11)
-        else:
-            draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
+        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
 
+        self.speedDecrease
+
+        self.walk(self.momentum)
+
+    def speedDecrease(self):
         #These two lines are temporary and will be removed once we have pathing. They're just there to make sure the speed decreases
-        self.momentum[0] -= self.momentum[0]/self.actions.speedChangeRate
-        self.momentum[1] -= self.momentum[1]/self.actions.speedChangeRate
+        self.momentum[0] -= self.momentum[0]/self.speedChangeRate
+        self.momentum[1] -= self.momentum[1]/self.speedChangeRate
 
         if abs(self.momentum[0]) <= 0.01:
             self.momentum[0] = 0
         if abs(self.momentum[1]) <= 0.01:
             self.momentum[1] = 0
 
-        self.actions.walk(self.momentum)
+    def dash(self):
+        pass
 
-    def canCollideWithEnemy(self):
-        return hasattr(self.actions, "enemyCollision") and self.actions.enemyCollision[3] != -1
+    def collision(self):
+        pass
 
-    def canCollideWithPlayer(self):
-        return hasattr(self.actions, "playerCollision") and self.actions.playerCollision[3] != -1
+    def attack(self):
+        pass
 
-    def collidingWithEnemy(self, entity):
-        return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity.actions, "isHitStun") and not entity.actions.isHitStun) or not hasattr(entity.actions, "isHitStun"))
+    def imageGestion(self):
+        if self.canDoActions():
+            self.image = self.originalImage
+        else:
+            self.image = [self.originalImage[0]+TILE_SIZE, self.originalImage[1]]
 
+    def death(self):
+        if self.health <= 0 and not self.dead:
+            self.dead = True
 
-class Projectile :
+class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
     def __init__(self, weapon, x, y, vector, team, shot):
-        self.x = x
-        self.y = y
+        super().__init__(x=x, y=y, width=weapon["bullet_width"], height=weapon["bullet_height"])
 
-        self.vector = vector
+        self.momentum = vector
 
         self.image = weapon["bullet_image"]
-        self.width = weapon["bullet_width"]
-        self.height = weapon["bullet_height"]
 
         self.damage = weapon["damage"]
         self.piercing = weapon["piercing"]
-        self.knockbackCoef = weapon["knockback_coef"]
 
         self.range = weapon["range"]
 
@@ -505,247 +751,36 @@ class Projectile :
 
         self.shot = shot
 
-        self.actions = Actions(self)
-        self.actions.init_walk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
-        self.actions.init_death(spawn_item=False)
+        self.initWalk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
+        self.initDeath(spawnItem=False)
         if self.team == "player":
-            self.actions.init_collision([0, 0, 0, 0], [self.damage, self.vector, self.knockbackCoef, self.piercing], [0, 0, 0, -1])
+            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, weapon["knockback_coef"], self.piercing], [0, 0, 0, -1])
         if self.team == "enemy":
-            self.actions.init_collision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.vector, self.knockbackCoef, self.piercing])
-
-    def update(self):
-        self.actions.walk([self.vector[0]*self.actions.maxSpeed, self.vector[1]*self.actions.maxSpeed])
-
-        self.actions.wall_collision()
-
-        self.range -= math.sqrt((self.vector[0]*self.actions.maxSpeed)**2 + (self.vector[1]*self.actions.maxSpeed)**2)
-        if self.range <= 0:
-            self.actions.death()
-
-
+            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, weapon["knockback_coef"], self.piercing])
 
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
-   
-    def canCollideWithEnemy(self):
-        return hasattr(self.actions, "enemyCollision") and self.actions.enemyCollision[3] != -1
 
-    def canCollideWithPlayer(self):
-        return hasattr(self.actions, "playerCollision") and self.actions.playerCollision[3] != -1
-
-    def collidingWithEnemy(self, entity):
-        return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity.actions, "isHitStun") and not entity.actions.isHitStun) or not hasattr(entity.actions, "isHitStun"))
-
-
-class Actions:
-    def __init__(self, owner):
-        self.owner = owner
-        self.currentActionPriority = 0
-        self.collision_happened = False
-
-    def move(self, vector): #We give a movement vector and get the new coordinates of the entity
-        X = int(self.owner.x//TILE_SIZE)
-        Y = int(self.owner.y//TILE_SIZE)
-
-        #We handle horizontal and vertical movement separatly to make problem solving easier
-
-        #Calculate the new position
-        new_x = self.owner.x + vector[0]
-        new_X = X+pyxel.sgn(vector[0])
-
-        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
-            new_x = new_X*TILE_SIZE
-
-        if vector[0]!=0:
-            next_X_1 = map[Y][new_X]
-            if self.owner.y != Y*TILE_SIZE:
-                next_X_2 = map[Y+1][new_X]
-            else:
-                next_X_2 = Blocks.GROUND
-            #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 not in Blocks.WALLS or not collision(new_x, self.owner.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in Blocks.WALLS or not collision(new_x, self.owner.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
-                self.owner.x = new_x
-            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
-            elif (next_X_1 in Blocks.WALLS or next_X_2 in Blocks.WALLS) and new_x+self.owner.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
-                self.collision_happened = True
-                self.owner.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
-        
-        X = int(self.owner.x//TILE_SIZE)
-
-        #We calculate vertical movement in the same way we do horizontal movement
-
-        new_y = self.owner.y + vector[1]
-        new_Y = Y+pyxel.sgn(vector[1])
-        
-        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
-            new_y = new_Y*TILE_SIZE
-
-        
-        if vector[1]!=0:
-            next_Y_1 = map[new_Y][X]
-            if self.owner.x != X*TILE_SIZE:
-                next_Y_2 = map[new_Y][X+1]
-            else:
-                next_Y_2 = Blocks.GROUND
-            
-            if (next_Y_1 not in Blocks.WALLS or not collision(self.owner.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 not in Blocks.WALLS or not collision(self.owner.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
-                self.owner.y = new_y
-            elif (next_Y_1 in Blocks.WALLS or next_Y_2 in Blocks.WALLS) and new_y+self.owner.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
-                self.collision_happened = True
-                self.owner.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
-
-    def init_walk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
-        self.walkPriority = priority
-        self.maxSpeed = maxSpeed
-        self.speedChangeRate = speedChangeRate
-        self.knockbackCoef = knockbackCoef
-
-    def walk(self, vector): #Used for regular walking.
-        if self.currentActionPriority <= self.walkPriority:
-            self.currentActionPriority = self.walkPriority
-
-            self.move(vector)
-
-    def init_dash(self, priority, cooldown, speed, duration): #Gets the parameters of the "dash" action, and initialises the related variables
-        self.dashPriority = priority
-        self.dashCooldown = cooldown
-        self.dashSpeed = speed
-        self.dashDuration = duration
-
-        self.isDashing = False
-        self.dashStartFrame = 0
-        self.dashVector = [0,0]
-
-    def start_dash(self, vector): #Used for dashing/lunging
-        if self.canStartDash():
-            self.currentActionPriority = self.dashPriority
-
-            self.dashStartFrame = game_frame
-            self.isDashing = True
-            self.dashVector = copy(vector)
-    
-    def canStartDash(self):
-        return timer(self.dashStartFrame, self.dashCooldown, game_frame) and self.currentActionPriority <= self.dashPriority
+    def movement(self):
+        self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
+        self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
 
     def dash(self):
-        if self.dashOngoing():
-            self.move([self.dashVector[0]*self.dashSpeed, self.dashVector[1]*self.dashSpeed])
+        pass
 
-        else :
-            self.currentActionPriority = 0
-            self.isDashing = False
-            self.dashStartFrame = game_frame
-            self.owner.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
-            self.dashVector = [0,0]
+    def collision(self):
+        self.wallCollision()
 
-    def dashOngoing(self):
-        return not timer(self.dashStartFrame, self.dashDuration, game_frame)        
+    def attack(self):
+        pass
 
-    def init_death(self, spawn_item):
-        self.deathItemSpawn = spawn_item
-
-        self.dead = False
-
-    def add_death_list(self, list):
-        self.deathList = list
+    def imageGestion(self):
+        pass
 
     def death(self):
-        if self.dead == False:
-            if hasattr(self, "deathList"):
-                self.deathList.remove(self.owner)
+        if self.range <= 0:
             self.dead = True
 
-    def init_ranged_attack(self, priority):
-        self.rangedAttackPriority = priority
-        self.shotsFired = 0
-
-        self.bulletList = []
-
-        self.isReloading = False
-
-    def ranged_attack(self, hand, x, y, team):
-        weapon = getattr(self.owner, hand)
-        if self.canRangedAttack(hand):
-
-            self.currentActionPriority = self.rangedAttackPriority
-
-            setattr(self.owner, hand+"StartFrame", getattr(self.owner, hand+"StartFrame")+weapon["cooldown"])
-            if getattr(self.owner, hand+"StartFrame") < game_frame:
-                setattr(self.owner, hand+"StartFrame", game_frame)
-
-            weapon["mag_ammo"] -= 1
-            self.shotsFired += 1
-
-            for i in range(weapon["bullet_count"]):
-                horizontal = x - (self.owner.x + self.owner.width/2)
-                vertical = y - (self.owner.y + self.owner.height/2)
-                norm = math.sqrt(horizontal**2 + vertical**2)
-
-                if norm != 0:
-                    cos = horizontal/norm
-                    sin = vertical/norm
-                    angle = math.acos(cos) * pyxel.sgn(sin)
-                    lowest_angle = angle - weapon["spread"]*(math.pi/180)
-                    highest_angle = angle + weapon["spread"]*(math.pi/180)
-                    angle = random.uniform(lowest_angle, highest_angle)
-                    cos = math.cos(angle)
-                    sin = math.sin(angle)
-                else:
-                    cos = 0
-                    sin = 0
-
-                bullet_shot = Projectile(weapon, self.owner.x, self.owner.y, [cos,sin], team, self.shotsFired)
-
-                self.bulletList.append(bullet_shot)
-
-    def canRangedAttack(self, hand):
-        weapon = getattr(self.owner, hand)
-        startFrame = getattr(self.owner, hand+"StartFrame")
-        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon["cooldown"], game_frame) and weapon["mag_ammo"]>0
-
-    def reload_weapon(self, hand):
-        weapon = getattr(self.owner, hand)
-        if self.canReloadWeapon(hand):
-            self.isReloading = False
-            if weapon["reserve_ammo"]>=weapon["max_ammo"]:
-                weapon["mag_ammo"] = weapon["max_ammo"]
-                weapon["reserve_ammo"] -= weapon["max_ammo"]
-            else:
-                weapon["mag_ammo"] = weapon["reserve_ammo"]
-                weapon["reserve_ammo"] = 0
-
-    def canReloadWeapon(self, hand):
-        weapon = getattr(self.owner, hand)
-        startFrame = getattr(self.owner, hand+"StartFrame")
-        return timer(startFrame, weapon["reload"], game_frame) and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0
-
-    def init_collision(self, wall, enemy, player):
-        self.wallCollision = wall
-        self.enemyCollision = enemy
-        self.playerCollision = player
-
-    def wall_collision(self):
-
-        if self.wallCollision[3] != -1:
-            if self.collision_happened:
-                if self.wallCollision[0] == 0:
-                    self.death()
-
-
-    def init_hitstun(self, duration, freeze_frame):
-        global game_frame
-        self.hitFreezeFrame = freeze_frame
-        self.frozen = 0
-
-        self.hitStunDuration = duration
-        self.hitStunStartFrame = 0
-        self.isHitStun = False
-
-        self.hitBy = 0
-
-    def hitstun(self):
-        if timer(self.hitStunStartFrame, self.hitStunDuration, game_frame):
-            self.isHitStun = False
 
 class Path:
     def __init__(self,map):
@@ -783,6 +818,7 @@ class Path:
             border = copy(new_border)
             new_border = []
 
+
 class Animation:
     def __init__(self):
         self.image1 = (0,0)
@@ -799,6 +835,7 @@ class Animation:
                 self.slide.pop(0)
                 self.slide.append(random.choice(blocks_list))
                 self.slide_pos = 0
+
 
 class Blocks:
     WALLS = [(0,0),(1,0),(2,0),(3,0)]
