@@ -386,7 +386,7 @@ class Actions:
             self.hitStunFrame += 1
 
 def empty_save_anim():
-    dic = {'animations':[{'width':16,'height':16,'frames':[]}]}
+    dic = {'animations':[{'width':16,'height':16,'name':'N/A','frames':[]}]}
     file = open('draw/save_anim.toml','w')
     toml.dump(dic,file)
     file.close()
@@ -437,4 +437,6 @@ print(is_in_folder(pather,'main.py'))
         
 print(random.randint(0,1))
 
-print(int('1556789'[:0])+2)
+print(int('1556789'[:1])+2)
+
+empty_save_anim()

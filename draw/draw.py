@@ -110,6 +110,8 @@ class App:
                 else:
                     self.desk = load_desk(self.button_list,argument['file_info'],self.desk.switch['to'])
 
+            
+
             self.desk.switch = {}
 
     def desk_msg_update(self):
@@ -486,13 +488,46 @@ class animation_desk:
 
     def quick_save(self):
         data = toml.load('save_anim.toml')
-        if data['animations'][-1]['frames'] != []:
-            data['animations'].append({'animations':[{'width':16,'height':16,'frames':[]}]})
+        save = 'N/A'
+        print(data['animations'][1]['name'])
+        for i in range(len(data['animations'])):
+            if data['animations'][i]['name'] == self.file_info['file_path']:
+                save = i
+
+        if save == 'N/A':
+            data['animations'].append({'width':16,'height':16,'name':self.file_info['file_path'],'frames':[]})
+            save = len(data['animations']) -1
+        
+
+        data['animations'][save]['frames'] = []
         for frame in self.frames:
-            data['animations'][-1]['frames'].append(frame['all_canvas'][0])
+            data['animations'][save]['frames'].append(frame['all_canvas'][0])
+
         file = open('save_anim.toml','w')
         toml.dump(data,file)
         file.close()
+
+        
+
+
+
+class animation_save:
+    def __init__(self,button_list,animation,file_info):
+        self.switch = {}
+        self.can_save = False
+        self.msg = {'txt':'','time':0}
+        self.button_list = button_list
+        self.bg_color = 6
+    def update(self):
+        pass
+    def draw(self):
+        pass
+    def draw_over(self):
+        pass
+    def quick_save(self):
+        pass
+
+
 
 class button_maker_desk:
     def __init__(self,button_list):

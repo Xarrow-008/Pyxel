@@ -266,7 +266,7 @@ class Pather:
 
         self.momentum = [0,0]
         self.speed_change_rate = 10 #The higher this is, the more "slippery" the character is
-        self.max_speed = 0.8
+        self.max_speed = 0.6
         self.move_to = [0,0]
         self.actions = Actions(self.map,self)
 
@@ -603,18 +603,19 @@ class Animation:
 
         self.apply_settings()
 
-        self.frame = 0
 
         self.img = (0,0)
         self.kill = False
+
     def update(self):
-        self.frame = pyxel.frame_count - self.start
         if not self.is_dead():
             self.get_img()
+            
     def draw(self,x,y):
         show(x + self.relative_pos[0], y + self.relative_pos[1], self.img, colkey=0)
+        
     def get_img(self):
-        frame_anim = (self.frame // self.settings['duration']) % self.settings['length']
+        frame_anim = (self.frame() // self.settings['duration']) % self.settings['length']
         x = self.settings['u'] + self.settings['vector'][0]*frame_anim
         y = self.settings['v'] + self.settings['vector'][1]*frame_anim
         self.img = (x,y)
@@ -640,6 +641,9 @@ class Animation:
 
     def is_dead(self):
         return pyxel.frame_count > self.start + self.lifetime or self.kill
+
+    def frame(self):
+        return pyxel.frame_count - self.start
                 
 
 
