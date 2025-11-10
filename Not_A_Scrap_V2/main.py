@@ -204,6 +204,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.currentActionPriority = 0
 
+    def __str__(self):
+        return f"Type : {type(self)}, x : {self.x}, y : {self.y}, momentum : {self.momentum}"
+
     def update(self):
 
         self.hitstun()
@@ -368,12 +371,12 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.isReloading = False
 
     def rangedAttack(self, hand, x, y, team):
-        weapon = getattr(self, hand)
+        weapon = getattr(self.inventory, hand)
         if self.canRangedAttack(hand):
 
             self.currentActionPriority = self.rangedAttackPriority
 
-            setattr(self, hand+"StartFrame", game_frame)
+            setattr(self.inventory, hand+"StartFrame", game_frame)
 
             weapon["mag_ammo"] -= 1
             self.shotsFired += 1
@@ -401,12 +404,12 @@ class Entity: #General Entity class with all the methods describing what entitie
                 self.bulletList.append(bullet_shot)
 
     def canRangedAttack(self, hand):
-        weapon = getattr(self, hand)
-        startFrame = getattr(self, hand+"StartFrame")
+        weapon = getattr(self.inventory, hand)
+        startFrame = getattr(self.inventory, hand+"StartFrame")
         return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon["cooldown"], game_frame) and weapon["mag_ammo"]>0
 
     def reloadWeapon(self, hand):
-        weapon = getattr(self, hand)
+        weapon = getattr(self.inventory, hand)
         if self.canReloadWeapon(hand):
             self.isReloading = False
             if weapon["reserve_ammo"]>=weapon["max_ammo"]:
@@ -417,9 +420,10 @@ class Entity: #General Entity class with all the methods describing what entitie
                 weapon["reserve_ammo"] = 0
 
     def canReloadWeapon(self, hand):
-        weapon = getattr(self, hand)
-        startFrame = getattr(self, hand+"StartFrame")
+        weapon = getattr(self.inventory, hand)
+        startFrame = getattr(self.inventory, hand+"StartFrame")
         return timer(startFrame, weapon["reload"], game_frame) and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0
+
 
     def initCollision(self, wall, enemy, player):
         self.wallCollisionEffect = wall
@@ -479,13 +483,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initRangedAttack(priority=0)
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS)
 
-        self.leftHand = Weapon.RUSTY_PISTOL
-        self.rightHand = Weapon.NONE
-        self.backpack1 = Weapon.NONE
-        self.backpack2 = Weapon.NONE #Only used for the Automaton
-
-        self.leftHandStartFrame = 0
-        self.rightHandStartFrame = 0
+        self.inventory = Inventory()
+        self.inventory.leftHand = Weapon.RUSTY_PISTOL
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -551,16 +550,16 @@ class Player(Entity): #Creates an entity that's controlled by the player
         #Weapons
         pyxel.rectb(x=1, y=218, w=18, h=18, col=0)
         pyxel.rect(x=2, y=219, w=16, h=16, col=13)
-        draw(x=2, y=219, img=0, u=self.leftHand["image"][0], v=self.leftHand["image"][1], w=self.leftHand["width"], h=self.leftHand["height"], colkey=11)
-        if self.leftHand != Weapon.NONE:
-            sized_text(x=21, y=224, s=str(self.leftHand["mag_ammo"])+"/"+str(self.leftHand["max_ammo"])+"("+str(self.leftHand["reserve_ammo"])+")", col=7)
+        draw(x=2, y=219, img=0, u=self.inventory.leftHand["image"][0], v=self.inventory.leftHand["image"][1], w=self.inventory.leftHand["width"], h=self.inventory.leftHand["height"], colkey=11)
+        if self.inventory.leftHand != Weapon.NONE:
+            sized_text(x=21, y=224, s=str(self.inventory.leftHand["mag_ammo"])+"/"+str(self.inventory.leftHand["max_ammo"])+"("+str(self.inventory.leftHand["reserve_ammo"])+")", col=7)
 
 
         pyxel.rectb(x=1, y=237, w=18, h=18, col=0)
         pyxel.rect(x=2, y=238, w=16, h=16, col=13)
-        draw(x=2, y=238, img=0, u=self.rightHand["image"][0], v=self.rightHand["image"][1], w=self.rightHand["width"], h=self.rightHand["height"], colkey=11)
-        if self.rightHand != Weapon.NONE:
-            sized_text(x=21, y=243, s=str(self.rightHand["mag_ammo"])+"/"+str(self.rightHand["max_ammo"])+" ("+str(self.rightHand["reserve_ammo"])+")", col=7)
+        draw(x=2, y=238, img=0, u=self.inventory.rightHand["image"][0], v=self.inventory.rightHand["image"][1], w=self.inventory.rightHand["width"], h=self.inventory.rightHand["height"], colkey=11)
+        if self.inventory.rightHand != Weapon.NONE:
+            sized_text(x=21, y=243, s=str(self.inventory.rightHand["mag_ammo"])+"/"+str(self.inventory.rightHand["max_ammo"])+" ("+str(self.inventory.rightHand["reserve_ammo"])+")", col=7)
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -630,18 +629,18 @@ class Player(Entity): #Creates an entity that's controlled by the player
             self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y, "player")
 
         if pyxel.btnp(pyxel.KEY_R) and not self.isReloading:
-            self.leftHand["mag_ammo"] = 0
-            self.rightHand["mag_ammo"] = 0
-            self.leftHandStartFrame = game_frame
-            self.rightHandStartFrame = game_frame
+            self.inventory.leftHand["mag_ammo"] = 0
+            self.inventory.rightHand["mag_ammo"] = 0
+            self.inventory.leftHandStartFrame = game_frame
+            self.inventory.rightHandStartFrame = game_frame
             self.isReloading = True
         
-        if self.leftHand["mag_ammo"] == 0 and not self.isReloading:
-            self.leftHandStartFrame = game_frame
+        if self.inventory.leftHand["mag_ammo"] == 0 and not self.isReloading:
+            self.inventory.leftHandStartFrame = game_frame
             self.isReloading = True
 
-        if self.rightHand["mag_ammo"] == 0 and not self.isReloading:
-            self.rightHandStratFrame = game_frame
+        if self.inventory.rightHand["mag_ammo"] == 0 and not self.isReloading:
+            self.inventory.rightHandStartFrame = game_frame
             self.isReloading = True
 
         self.reloadWeapon("leftHand")
@@ -696,6 +695,8 @@ class Enemy(Entity): #Creates an entity that fights the player
             parameters = ability[1].values()
             initialiser(*parameters)
 
+        self.inventory = Inventory()
+
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
@@ -733,6 +734,17 @@ class Enemy(Entity): #Creates an entity that fights the player
     def death(self):
         if self.health <= 0 and not self.dead:
             self.dead = True
+
+class Inventory:
+    def __init__(self):
+        self.leftHand = Weapon.NONE
+        self.rightHand = Weapon.NONE
+        self.backpack1 = Weapon.NONE
+        self.canHaveTwoWeaponsInBackPack = False
+        self.backpack2 = Weapon.NONE
+
+        self.leftHandStartFrame = 0
+        self.rightHandStartFrame = 0
 
 class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
     def __init__(self, weapon, x, y, vector, team, shot):
