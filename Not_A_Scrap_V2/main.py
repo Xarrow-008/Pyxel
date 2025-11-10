@@ -491,7 +491,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS)
 
         self.inventory = Inventory()
-        self.inventory.leftHand = Weapon.RUSTY_PISTOL
+        self.inventory.addWeapon(Weapon.RUSTY_PISTOL, "leftHand")
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -752,6 +752,9 @@ class Inventory:
 
         self.leftHandStartFrame = 0
         self.rightHandStartFrame = 0
+
+    def addWeapon(self, weapon, hand):
+        setattr(self, hand, weapon)
 
 class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
     def __init__(self, weapon, x, y, vector, team, shot):
