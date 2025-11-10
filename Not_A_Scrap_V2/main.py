@@ -98,6 +98,7 @@ class inMission:
 
             if entity.dead:
                 self.entities.remove(entity)
+                break
             
             entity.update()
 
@@ -108,7 +109,8 @@ class inMission:
                 draw_block(x*TILE_SIZE,y*TILE_SIZE,0,block)
         
         for entity in self.entities:
-            entity.draw()
+            if not entity.dead:
+                entity.draw()
         
         self.player.draw()   
 
@@ -205,7 +207,12 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.currentActionPriority = 0
 
     def __str__(self):
-        return f"Type : {type(self)}, x : {self.x}, y : {self.y}, momentum : {self.momentum}"
+        if type(self) == Player:
+            return f"Type : Player, x : {self.x}, y : {self.y}, momentum : {self.momentum}"
+        elif type(self) == Enemy:
+            return f"Type : Enemy, x : {self.x}, y : {self.y}, momentum : {self.momentum}"
+        elif type(self) == Projectile:
+            return f"Type : Projectile, x : {self.x}, y : {self.y}, momentum : {self.momentum}"
 
     def update(self):
 
@@ -280,7 +287,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
             elif (next_X_1 in Blocks.WALLS or next_X_2 in Blocks.WALLS) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
                 self.collidedWithWall = True
-                self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
+                self.x = new_X*TILE_SIZE - pyxel.sgn(vector[0])*self.width
         
         X = int(self.x//TILE_SIZE)
 
@@ -304,7 +311,7 @@ class Entity: #General Entity class with all the methods describing what entitie
                 self.y = new_y
             elif (next_Y_1 in Blocks.WALLS or next_Y_2 in Blocks.WALLS) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
                 self.collidedWithWall = True
-                self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
+                self.y = new_Y*TILE_SIZE - pyxel.sgn(vector[1])*self.height
 
 
     def initWalk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
