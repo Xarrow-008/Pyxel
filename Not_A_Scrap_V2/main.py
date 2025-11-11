@@ -47,13 +47,24 @@ class Game:
 
     def update(self):
         global freeze_frame, game_frame
-        if not self.isFrozen():
-            self.place.update()
-            game_frame += 1
-        freeze_frame += 1
+        if not self.player.inInventory:
+            
+            if not self.isFrozen():
+                self.place.update()
+                game_frame += 1
+            freeze_frame += 1
+
+        if pyxel.btnp(pyxel.KEY_TAB):
+            if self.player.inInventory:
+                self.player.inInventory = False
+            else:
+                self.player.inInventory = True
 
     def draw(self):
-        self.place.draw()
+        if not self.player.inInventory:
+            self.place.draw()
+        else:
+            self.player.drawInventory()
 
     def isFrozen(self):
         global freeze_start, freeze_duration, freeze_frame, game_frame
@@ -480,6 +491,12 @@ class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self):
         super().__init__(x=10, y=10, width=TILE_SIZE, height=TILE_SIZE)
 
+        self.characterName = "Scrapper"
+        self.characterUpside1 = "This character has no upsides"
+        self.characterUpside2 = "This character has no upsides"
+        self.characterDownside1 = "This character has no downsides"
+        self.characterDownside2 = "This character has no downsides"
+
         self.keyboard = 'zqsd'
 
         self.health = 80
@@ -504,6 +521,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.step = False
         self.second_step = False
         self.step_frame = 0
+
+        self.inInventory = False
 
     def draw(self):
         step_y = self.y
@@ -567,6 +586,55 @@ class Player(Entity): #Creates an entity that's controlled by the player
         draw(x=2, y=238, img=0, u=self.inventory.rightHand["image"][0], v=self.inventory.rightHand["image"][1], w=self.inventory.rightHand["width"], h=self.inventory.rightHand["height"], colkey=11)
         if self.inventory.rightHand != Weapon.NONE:
             sized_text(x=21, y=243, s=str(self.inventory.rightHand["mag_ammo"])+"/"+str(self.inventory.rightHand["max_ammo"])+" ("+str(self.inventory.rightHand["reserve_ammo"])+")", col=7)
+
+    def drawInventory(self):
+        pyxel.cls(0)
+
+        self.drawInventoryCharacterScreen(0)
+
+    def drawInventoryCharacterScreen(self, x):
+
+        #Character information frame
+        pyxel.rectb(x=x+5, y=5, w=246, h=90, col=7)
+
+        #Character image
+        pyxel.rectb(x=x+10, y=10, w=2*TILE_SIZE+4, h=2*TILE_SIZE+4, col=7)
+        draw(x=x+12, y=12, img=0, u=112, v=64, w=TILE_SIZE, h=TILE_SIZE, colkey=11, scale=2)
+        draw(x=x+12, y=12, img=0, u=112, v=96, w=TILE_SIZE, h=TILE_SIZE, colkey=11, scale=2)
+
+        #Character name
+        sized_text(x=x+70, y=22, s=f"CHARACTER : {self.characterName}", col=7, size=13)
+
+        #Character stats
+        sized_text(x=x+10, y=50, s=f"Health : {self.health}/{self.maxHealth}", col=7, size=6)
+        sized_text(x=x+10, y=57, s=f"Speed : {self.maxSpeed} pixel/s", col=7, size=6)
+        sized_text(x=x+10, y=64, s=f"Dash cooldown : {round(self.dashCooldown/FPS,2)}s", col=7, size=6)
+
+        #Character upsides and downsides
+        pyxel.rectb(x=x+5, y=97, w=122, h=45, col=7)
+        sized_text(x=x+9, y=101, s="Upside 1", col=7, size=6)
+        sized_text(x=x+9, y=110, s=self.characterUpside1, col=7, size=6, limit=x+127)
+
+        pyxel.rectb(x=x+128, y=97, w=123, h=45, col=7)
+        sized_text(x=x+132, y=101, s="Downside 1", col=7, size=6)
+        sized_text(x=x+132, y=110, s=self.characterDownside1, col=7, size=6, limit=x+251)
+
+        pyxel.rectb(x=x+5, y=144, w=122, h=45, col=7)
+        sized_text(x=x+9, y=146, s="Upside 2", col=7, size=6)
+        sized_text(x=x+9, y=155, s=self.characterUpside2, col=7, size=6, limit=x+127)
+
+        pyxel.rectb(x=x+128, y=144, w=123, h=45, col=7)
+        sized_text(x=x+132, y=146, s="Downside 2", col=7, size=6)
+        sized_text(x=x+132, y=155, s=self.characterDownside2, col=7, size=6, limit=x+251)
+
+
+
+
+    def drawInventoryWeaponScreen(self):
+        pass
+
+    def drawInventoryItemScreen(self):
+        pass
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -927,11 +995,12 @@ def is_inside_map(pos,map):
         return False
     return True
 
-def sized_text(x,y,s,col,size=6): #Like pyxel.text, but you can modify the size of the text
+def sized_text(x, y, s, col, size=6, limit=256): #Like pyxel.text, but you can modify the size of the text
     alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
     other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_"]
 
     current_x = x
+
     scale = size/6
 
     for chr in s:
@@ -954,5 +1023,16 @@ def sized_text(x,y,s,col,size=6): #Like pyxel.text, but you can modify the size 
             pyxel.pal()
 
         current_x += int(4*scale)
+
+        if current_x + 2*int(4*scale) >= limit: #Make the text wrap around if it goes past the limit
+            pyxel.pal(0,col)
+            draw(current_x, y, 0, 96, 238, w, h, scale=scale, colkey=11)
+            pyxel.pal()
+            current_x = x
+            y += int(6*scale)
+            
+
+
+        
     
 App()
