@@ -30,6 +30,7 @@ class App:
         self.state.update()
             
     def draw(self):
+        pyxel.cls(0)
         self.state.draw()    
 
 freeze_start = 0
@@ -68,6 +69,9 @@ class Game:
         if not self.player.inInventory:
             self.place.draw()
         else:
+            pyxel.dither(0.25)
+            self.place.draw()
+            pyxel.dither(1)
             self.player.drawInventory()
 
     def isFrozen(self):
@@ -546,54 +550,57 @@ class Player(Entity): #Creates an entity that's controlled by the player
         show(self.x, second_step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
 
 
-        #Health bar
-        pyxel.rect(x=1,y=1,w=42,h=10,col=0)
+        
+        if not self.inInventory: #The player info isn't shown while the player is in the inventory, since that justs makes it look weird (and also they have that info on the inventory)
 
-        health_bar_size = int(40*(self.health/self.maxHealth))
+            #Health bar
+            pyxel.rect(x=1,y=1,w=42,h=10,col=0)
 
-        pyxel.rect(x=2,y=2,w=health_bar_size,h=8,col=8)
-        sized_text(x=12, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
+            health_bar_size = int(40*(self.health/self.maxHealth))
 
-
-        #Dash
-        pyxel.rect(x=44,y=1,w=13,h=11,col=0)
-
-        if not self.isDashing:
-            dash_cooldown_progress = int(34*((game_frame-self.dashStartFrame)/self.dashCooldown))
-            x = 50
-            y = 2
-            for i in range(40):
-                if dash_cooldown_progress >= i:
-                    pyxel.pset(x,y,col=11)
-                else:
-                    pyxel.pset(x,y,col=8)
-                if i in range(0,5) or i in range(35,40):
-                    x += 1
-                elif i in range(6,14):
-                    y += 1
-                elif i in range(15,25):
-                    x -= 1
-                elif i in range(26,34):
-                    y -= 1
-        else:
-            pyxel.rectb(x=45,y=2,w=11,h=9,col=13)
-
-        draw(x=46,y=3,img=0,u=104,v=248,w=8,h=7,colkey=11)
+            pyxel.rect(x=2,y=2,w=health_bar_size,h=8,col=8)
+            sized_text(x=12, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
 
 
-        #Weapons
-        pyxel.rectb(x=1, y=218, w=18, h=18, col=0)
-        pyxel.rect(x=2, y=219, w=16, h=16, col=13)
-        draw(x=2, y=219, img=0, u=self.inventory.leftHand["image"][0], v=self.inventory.leftHand["image"][1], w=self.inventory.leftHand["width"], h=self.inventory.leftHand["height"], colkey=11)
-        if self.inventory.leftHand != Weapon.NONE:
-            sized_text(x=21, y=224, s=str(self.inventory.leftHand["mag_ammo"])+"/"+str(self.inventory.leftHand["max_ammo"])+"("+str(self.inventory.leftHand["reserve_ammo"])+")", col=7)
+            #Dash
+            pyxel.rect(x=44,y=1,w=13,h=11,col=0)
+
+            if not self.isDashing:
+                dash_cooldown_progress = int(34*((game_frame-self.dashStartFrame)/self.dashCooldown))
+                x = 50
+                y = 2
+                for i in range(40):
+                    if dash_cooldown_progress >= i:
+                        pyxel.pset(x,y,col=11)
+                    else:
+                        pyxel.pset(x,y,col=8)
+                    if i in range(0,5) or i in range(35,40):
+                        x += 1
+                    elif i in range(6,14):
+                        y += 1
+                    elif i in range(15,25):
+                        x -= 1
+                    elif i in range(26,34):
+                        y -= 1
+            else:
+                pyxel.rectb(x=45,y=2,w=11,h=9,col=13)
+
+            draw(x=46,y=3,img=0,u=104,v=248,w=8,h=7,colkey=11)
 
 
-        pyxel.rectb(x=1, y=237, w=18, h=18, col=0)
-        pyxel.rect(x=2, y=238, w=16, h=16, col=13)
-        draw(x=2, y=238, img=0, u=self.inventory.rightHand["image"][0], v=self.inventory.rightHand["image"][1], w=self.inventory.rightHand["width"], h=self.inventory.rightHand["height"], colkey=11)
-        if self.inventory.rightHand != Weapon.NONE:
-            sized_text(x=21, y=243, s=str(self.inventory.rightHand["mag_ammo"])+"/"+str(self.inventory.rightHand["max_ammo"])+" ("+str(self.inventory.rightHand["reserve_ammo"])+")", col=7)
+            #Weapons
+            pyxel.rectb(x=1, y=218, w=18, h=18, col=0)
+            pyxel.rect(x=2, y=219, w=16, h=16, col=13)
+            draw(x=2, y=219, img=0, u=self.inventory.leftHand["image"][0], v=self.inventory.leftHand["image"][1], w=self.inventory.leftHand["width"], h=self.inventory.leftHand["height"], colkey=11)
+            if self.inventory.leftHand != Weapon.NONE:
+                sized_text(x=21, y=224, s=str(self.inventory.leftHand["mag_ammo"])+"/"+str(self.inventory.leftHand["max_ammo"])+"("+str(self.inventory.leftHand["reserve_ammo"])+")", col=7)
+
+
+            pyxel.rectb(x=1, y=237, w=18, h=18, col=0)
+            pyxel.rect(x=2, y=238, w=16, h=16, col=13)
+            draw(x=2, y=238, img=0, u=self.inventory.rightHand["image"][0], v=self.inventory.rightHand["image"][1], w=self.inventory.rightHand["width"], h=self.inventory.rightHand["height"], colkey=11)
+            if self.inventory.rightHand != Weapon.NONE:
+                sized_text(x=21, y=243, s=str(self.inventory.rightHand["mag_ammo"])+"/"+str(self.inventory.rightHand["max_ammo"])+" ("+str(self.inventory.rightHand["reserve_ammo"])+")", col=7)
 
 
     def updateInventory(self):
@@ -616,8 +623,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         return self.inventoryPosition != 0 and (pyxel.btnp(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())) or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=1 and pyxel.mouse_x<=7 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
 
     def moveInventoryRight(self):
-        return self.inventoryPosition != 2*WID and (pyxel.btnp(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())) or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=WID-8 and pyxel.mouse_x<=WID-2 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
-        
+        return self.inventoryPosition != 2*WID and (pyxel.btnp(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())) or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=WID-8 and pyxel.mouse_x<=WID-2 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130)) 
 
     def moveInventory(self):
         inventoryFrame = pyxel.frame_count - self.inventoryStartFrame
@@ -642,8 +648,6 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
 
     def drawInventory(self):
-        pyxel.cls(0)
-
         if self.inventoryPosition < WID:
             self.drawInventoryCharacterScreen(-self.inventoryPosition)
         if self.inventoryPosition != 0 and self.inventoryPosition != 2*WID:
@@ -652,15 +656,19 @@ class Player(Entity): #Creates an entity that's controlled by the player
             self.drawInventoryItemScreen(2*WID-self.inventoryPosition)
 
         if self.inventoryPosition == WID or self.inventoryPosition == 2*WID:
+            pyxel.rectb(x=-1, y=121, w=11, h=11, col=7)
+            pyxel.rect(x=0, y=122, w=9, h=9, col=0)
             draw(x=1, y=123, img=0, u=0, v=208, w=7, h=7, colkey=11)
         if self.inventoryPosition == 0 or self.inventoryPosition == WID:
-            draw(x=WID-8, y=123, img=0, u=8, v=208, w=7, h=7, colkey=11)
-        
+            pyxel.rectb(x=WID-10, y=121, w=11, h=11, col=7)
+            pyxel.rect(x=WID-9, y=122, w=9, h=9, col=0)
+            draw(x=WID-8, y=123, img=0, u=8, v=208, w=7, h=7, colkey=11)   
 
     def drawInventoryCharacterScreen(self, x):
 
         #Character information frame
         pyxel.rectb(x=x+5, y=5, w=246, h=90, col=7)
+        pyxel.rect(x=x+6, y=6, w=244, h=88, col=0)
 
         #Character image
         pyxel.rectb(x=x+10, y=10, w=36, h=36, col=7)
@@ -672,23 +680,27 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         #Character stats
         sized_text(x=x+10, y=50, s=f"Health : {self.health}/{self.maxHealth}", col=7, size=6)
-        sized_text(x=x+10, y=57, s=f"Speed : {round(self.maxSpeed*FPS/16,2)} T/s", col=7, size=6)
+        sized_text(x=x+10, y=57, s=f"Speed : {round(self.maxSpeed*FPS/TILE_SIZE, 2)} T/s", col=7, size=6)
         sized_text(x=x+10, y=64, s=f"Dash cooldown : {round(self.dashCooldown/FPS,2)}s", col=7, size=6)
 
         #Character upsides and downsides
         pyxel.rectb(x=x+10, y=97, w=117, h=45, col=7)
+        pyxel.rect(x=x+11, y=98, w=115, h=43, col=0)
         sized_text(x=x+14, y=101, s="Upside 1", col=7, size=6)
         sized_text(x=x+14, y=110, s=self.characterUpside1, col=7, size=6, limit=x+127)
 
         pyxel.rectb(x=x+128, y=97, w=118, h=45, col=7)
+        pyxel.rect(x=x+129, y=98, w=116, h=43, col=0)
         sized_text(x=x+132, y=101, s="Downside 1", col=7, size=6)
         sized_text(x=x+132, y=110, s=self.characterDownside1, col=7, size=6, limit=x+246)
 
         pyxel.rectb(x=x+10, y=144, w=117, h=45, col=7)
+        pyxel.rect(x=x+11, y=145, w=115, h=43, col=0)
         sized_text(x=x+14, y=146, s="Upside 2", col=7, size=6)
         sized_text(x=x+14, y=155, s=self.characterUpside2, col=7, size=6, limit=x+127)
 
         pyxel.rectb(x=x+128, y=144, w=118, h=45, col=7)
+        pyxel.rect(x=x+129, y=145, w=116, h=43, col=0)
         sized_text(x=x+132, y=146, s="Downside 2", col=7, size=6)
         sized_text(x=x+132, y=155, s=self.characterDownside2, col=7, size=6, limit=x+246)
 
@@ -738,8 +750,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
             sized_text(x=x+4, y=y+34, s=f"Damage : {weapon["damage"]}", col=7)
             sized_text(x=x+4, y=y+41, s=f"Piercing : {weapon["piercing"]}", col=7)
-            sized_text(x=x+4, y=y+48, s=f"Attack speed : {round(FPS/(weapon["cooldown"]),2)}", col=7)
-            sized_text(x=x+4, y=y+55, s=f"Reload speed : {round((weapon["reload"])/FPS,2)}", col=7)
+            sized_text(x=x+4, y=y+48, s=f"Attack speed : {round(FPS/(weapon["cooldown"]),2)} ATK/s", col=7)
+            sized_text(x=x+4, y=y+55, s=f"Reload time : {round((weapon["reload"])/FPS,2)}s", col=7)
             sized_text(x=x+4, y=y+62, s=f"Ammo : {weapon["mag_ammo"]}/{weapon["max_ammo"]} ({weapon["reserve_ammo"]})", col=7)
             sized_text(x=x+4, y=y+69, s=f"Bullet count : {weapon["bullet_count"]}", col=7)
             sized_text(x=x+4, y=y+76, s=f"Spread : {weapon["spread"]}°", col=7)
@@ -766,6 +778,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
     def drawSlot(self, x, y, hand):
         pyxel.rectb(x=x, y=y, w=117, h=91, col=7)
+        pyxel.rect(x=x+1, y=y+1, w=115, h=89, col=0)
         if getattr(self.inventory, hand+"Occupied"):
             self.drawOccupiedSlot(x,y)
         else:
@@ -773,6 +786,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
     def drawInventoryItemScreen(self, x):
         pyxel.rectb(x=x+25, y=200, w=205, h=50, col=7)
+        pyxel.rect(x=x+26, y=201, w=203, h=48, col=0)
         sized_text(x=x+27, y=202, s=f"Description", col=7, limit=x+230)
         sized_text(x=x+27, y=212, s=f"Hover over an item to see its description (We currently haven't implemented any items)", col=7, limit=x+230)
 
