@@ -11,6 +11,7 @@ WID = 256
 HEI = 256
 
 TILE_SIZE = 16
+FPS = 120
 
 class App:
     def __init__(self):
@@ -386,8 +387,6 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.bulletList = []
 
-        self.isReloading = False
-
     def rangedAttack(self, hand, x, y, team):
         weapon = getattr(self.inventory, hand)
         if self.canRangedAttack(hand):
@@ -429,18 +428,20 @@ class Entity: #General Entity class with all the methods describing what entitie
     def reloadWeapon(self, hand):
         weapon = getattr(self.inventory, hand)
         if self.canReloadWeapon(hand):
-            self.isReloading = False
+            setattr(self.inventory, hand+"IsReloading", False)
             if weapon["reserve_ammo"]>=weapon["max_ammo"]:
                 weapon["mag_ammo"] = weapon["max_ammo"]
                 weapon["reserve_ammo"] -= weapon["max_ammo"]
             else:
                 weapon["mag_ammo"] = weapon["reserve_ammo"]
                 weapon["reserve_ammo"] = 0
+                setattr(self.inventory, hand+"CanNoLongerReload", True)
 
     def canReloadWeapon(self, hand):
         weapon = getattr(self.inventory, hand)
         startFrame = getattr(self.inventory, hand+"StartFrame")
-        return timer(startFrame, weapon["reload"], game_frame) and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0
+        return timer(startFrame, weapon["reload"], game_frame) and weapon["mag_ammo"]==0
+
 
 
     def initCollision(self, wall, enemy, player):
@@ -590,7 +591,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
     def drawInventory(self):
         pyxel.cls(0)
 
-        self.drawInventoryCharacterScreen(0)
+        self.drawInventoryWeaponScreen(0)
 
     def drawInventoryCharacterScreen(self, x):
 
@@ -598,7 +599,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         pyxel.rectb(x=x+5, y=5, w=246, h=90, col=7)
 
         #Character image
-        pyxel.rectb(x=x+10, y=10, w=2*TILE_SIZE+4, h=2*TILE_SIZE+4, col=7)
+        pyxel.rectb(x=x+10, y=10, w=36, h=36, col=7)
         draw(x=x+12, y=12, img=0, u=112, v=64, w=TILE_SIZE, h=TILE_SIZE, colkey=11, scale=2)
         draw(x=x+12, y=12, img=0, u=112, v=96, w=TILE_SIZE, h=TILE_SIZE, colkey=11, scale=2)
 
@@ -607,7 +608,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         #Character stats
         sized_text(x=x+10, y=50, s=f"Health : {self.health}/{self.maxHealth}", col=7, size=6)
-        sized_text(x=x+10, y=57, s=f"Speed : {self.maxSpeed} pixel/s", col=7, size=6)
+        sized_text(x=x+10, y=57, s=f"Speed : {round(self.maxSpeed*FPS/16,2)} T/s", col=7, size=6)
         sized_text(x=x+10, y=64, s=f"Dash cooldown : {round(self.dashCooldown/FPS,2)}s", col=7, size=6)
 
         #Character upsides and downsides
@@ -627,11 +628,87 @@ class Player(Entity): #Creates an entity that's controlled by the player
         sized_text(x=x+132, y=146, s="Downside 2", col=7, size=6)
         sized_text(x=x+132, y=155, s=self.characterDownside2, col=7, size=6, limit=x+251)
 
+    def drawInventoryWeaponScreen(self, x):
+        self.drawSlot(x+5, 5, "leftHand")
+        self.drawSlot(x+129, 5, "rightHand")
+        
+        if self.inventory.canHaveTwoWeaponsInBackPack:
+            self.drawSlot(x+5, 98, "backpack1")
+            self.drawSlot(x+129, 98, "backpack2")
+        else:
+            self.drawSlot(x+67, 98, "backpack1")
+
+    def drawWeaponSlot(self, x, y, hand):
+        weapon = getattr(self.inventory, hand)
+        if hand == "leftHand":
+            text = "Lefthand weapon"
+        elif hand == "rightHand":
+            text = "Righthand weapon"
+        elif hand == "backpack1":
+            if self.inventory.canHaveTwoWeaponsInBackPack:
+                text = "Stored weapon 1"
+            else:
+                text = "Stored weapon"
+        elif hand == "backpack2":
+            text = "Stored weapon 2"
+
+
+        pyxel.rectb(x=x, y=y, w=122, h=91, col=7)
+
+        sized_text(x=x+4, y=y+4, s=text, col=7, size=7)
+
+        pyxel.rect(x=x+4, y=y+13, w=18, h=18, col=7)
+        draw(x=x+5, y=y+14, img=0, u=weapon["image"][0], v=weapon["image"][1], w=TILE_SIZE, h=TILE_SIZE, colkey=11)
+        if weapon != Weapon.NONE:
+            sized_text(x=x+25, y=y+18, s=f"{weapon["name"]} (LVL 1)", col=7) #We'll have to change this part once we add scaling to the weapons
+            
+            if "backpack" not in hand and getattr(self.inventory, hand+"IsReloading"):
+                sized_text(x=x+25, y=y+25, s="Reloading", col=7)
+                current_frame = pyxel.frame_count%120
+                if current_frame >= 30:
+                    pyxel.pset(x=x+61, y=y+29, col=7)
+                if current_frame >= 60:
+                    pyxel.pset(x=x+65, y=y+29, col=7)
+                if current_frame >= 90:
+                    pyxel.pset(x=x+69, y=y+29, col=7)
 
 
 
-    def drawInventoryWeaponScreen(self):
-        pass
+            sized_text(x=x+4, y=y+34, s=f"Damage : {weapon["damage"]}", col=7)
+            sized_text(x=x+4, y=y+41, s=f"Piercing : {weapon["piercing"]}", col=7)
+            sized_text(x=x+4, y=y+48, s=f"Attack speed : {round(FPS/(weapon["cooldown"]),2)}", col=7)
+            sized_text(x=x+4, y=y+55, s=f"Reload speed : {round((weapon["reload"])/FPS,2)}", col=7)
+            sized_text(x=x+4, y=y+62, s=f"Ammo : {weapon["mag_ammo"]}/{weapon["max_ammo"]} ({weapon["reserve_ammo"]})", col=7)
+            sized_text(x=x+4, y=y+69, s=f"Bullet count : {weapon["bullet_count"]}", col=7)
+            sized_text(x=x+4, y=y+76, s=f"Spread : {weapon["spread"]}°", col=7)
+            sized_text(x=x+4, y=y+83, s=f"Range : {round(weapon["range"]/TILE_SIZE,2)}T", col=7)
+        else:
+            sized_text(x=x+25, y=y+18, s=f"{weapon["name"]}", col=7)
+
+    def drawOccupiedSlot(self, x, y):
+        w = 122
+        h = 91
+
+        pyxel.rectb(x=x, y=y, w=w, h=h, col=7)
+
+        pyxel.line(x1=x, y1=y, x2=x+w,y2=y+h, col=7)
+        pyxel.line(x1=x, y1=y+h, x2=x+w, y2=y, col=7)
+
+        inner_rect_width = int(w/2)
+        inner_rect_height = int(h/2)
+        inner_rect_x = int(x+w/2) - int(inner_rect_width/2)
+        inner_rect_y = int(y+h/2) - int(inner_rect_height/2)
+
+        pyxel.rectb(x=inner_rect_x, y=inner_rect_y, w=inner_rect_width, h=inner_rect_height, col=7)
+        pyxel.rect(x=inner_rect_x+1, y=inner_rect_y+1, w=inner_rect_width-2, h=inner_rect_height-2, col=0)
+
+        sized_text(x=inner_rect_x+2, y=inner_rect_y+8, s="This slot is occupied by a two-handed weapon in another slot", col=7, limit=inner_rect_x+inner_rect_width-1)
+
+    def drawSlot(self, x, y, hand):
+        if getattr(self.inventory, hand+"Occupied"):
+            self.drawOccupiedSlot(x,y)
+        else:
+            self.drawWeaponSlot(x,y,hand)
 
     def drawInventoryItemScreen(self):
         pass
@@ -703,20 +780,24 @@ class Player(Entity): #Creates an entity that's controlled by the player
         if pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
             self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y, "player")
 
-        if pyxel.btnp(pyxel.KEY_R) and not self.isReloading:
+        if pyxel.btn(pyxel.KEY_A) and pyxel.btn(pyxel.KEY_R) and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
             self.inventory.leftHand["mag_ammo"] = 0
-            self.inventory.rightHand["mag_ammo"] = 0
             self.inventory.leftHandStartFrame = game_frame
-            self.inventory.rightHandStartFrame = game_frame
-            self.isReloading = True
-        
-        if self.inventory.leftHand["mag_ammo"] == 0 and not self.isReloading:
-            self.inventory.leftHandStartFrame = game_frame
-            self.isReloading = True
+            self.inventory.leftHandIsReloading = True
 
-        if self.inventory.rightHand["mag_ammo"] == 0 and not self.isReloading:
+        if pyxel.btn(pyxel.KEY_E) and pyxel.btn(pyxel.KEY_R) and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
+            self.inventory.rightHand["mag_ammo"] = 0
             self.inventory.rightHandStartFrame = game_frame
-            self.isReloading = True
+            self.inventory.rightHandIsReloading = True
+        
+
+        if self.inventory.leftHand["mag_ammo"] == 0 and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
+            self.inventory.leftHandStartFrame = game_frame
+            self.inventory.leftHandIsReloading = True
+
+        if self.inventory.rightHand["mag_ammo"] == 0 and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
+            self.inventory.rightHandStartFrame = game_frame
+            self.inventory.rightHandIsReloading = True
 
         self.reloadWeapon("leftHand")
         self.reloadWeapon("rightHand")
@@ -813,13 +894,26 @@ class Enemy(Entity): #Creates an entity that fights the player
 class Inventory:
     def __init__(self):
         self.leftHand = Weapon.NONE
-        self.rightHand = Weapon.NONE
-        self.backpack1 = Weapon.NONE
-        self.canHaveTwoWeaponsInBackPack = False
-        self.backpack2 = Weapon.NONE
-
+        self.leftHandOccupied = False
         self.leftHandStartFrame = 0
+        self.leftHandIsReloading = False
+        self.leftHandCanNoLongerReload = False
+
+        self.rightHand = Weapon.NONE
+        self.rightHandOccupied = False
         self.rightHandStartFrame = 0
+        self.rightHandIsReloading = False
+        self.rightHandCanNoLongerReload = False
+
+        self.backpack1 = Weapon.NONE
+        self.backpack1Occupied = False
+
+        self.canHaveTwoWeaponsInBackPack = False
+
+        self.backpack2 = Weapon.NONE
+        self.backpack2Occupied = False
+
+        
 
     def addWeapon(self, weapon, hand):
         setattr(self, hand, weapon)
@@ -997,13 +1091,14 @@ def is_inside_map(pos,map):
 
 def sized_text(x, y, s, col, size=6, limit=256): #Like pyxel.text, but you can modify the size of the text
     alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
-    other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_"]
+    other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°"]
 
     current_x = x
 
     scale = size/6
 
-    for chr in s:
+    for i in range(len(s)):
+        chr = s[i]
         if chr in other_characters:
             u = 4*other_characters.index(chr)
             v = 238
@@ -1022,12 +1117,14 @@ def sized_text(x, y, s, col, size=6, limit=256): #Like pyxel.text, but you can m
             draw(current_x, y, 0, u, v, w, h, scale=scale, colkey=11)
             pyxel.pal()
 
-        current_x += int(4*scale)
+        if not(chr==" " and current_x==x):
+            current_x += int(4*scale)
 
         if current_x + 2*int(4*scale) >= limit: #Make the text wrap around if it goes past the limit
-            pyxel.pal(0,col)
-            draw(current_x, y, 0, 96, 238, w, h, scale=scale, colkey=11)
-            pyxel.pal()
+            if chr != " " and not (i<len(s)-1 and s[i+1]==" "):
+                pyxel.pal(0,col)
+                draw(current_x, y, 0, 96, 238, w, h, scale=scale, colkey=11)
+                pyxel.pal()
             current_x = x
             y += int(6*scale)
             
