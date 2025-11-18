@@ -131,6 +131,8 @@ class Path:
 
         self.color = False
 
+        self.walls_changed = False
+
 
 
     def update(self):
@@ -146,6 +148,9 @@ class Path:
             self.checked.append(pos)
         self.border = copy(self.new_border)
         self.new_border = []
+
+        if self.walls_changed:
+            self.__init__(self.map)
                   
     def draw(self):
 
@@ -155,6 +160,8 @@ class Path:
 
     def is_visible(self,pos):
         return pos[0] >= 0 and pos[0] < WID//TILE_SIZE and pos[1] >= 0 and pos[1] < HEI//TILE_SIZE
+
+    
 
 class Actions:
     def __init__(self, map, owner):
@@ -266,7 +273,7 @@ class Pather:
 
         self.momentum = [0,0]
         self.speed_change_rate = 10 #The higher this is, the more "slippery" the character is
-        self.max_speed = 0.6
+        self.max_speed = 0.8
         self.move_to = [0,0]
         self.actions = Actions(self.map,self)
 
@@ -302,7 +309,7 @@ class Pather:
     def draw(self):
         for pos in self.path:
             show(pos[0]*TILE_SIZE,pos[1]*TILE_SIZE,self.path_img)
-        draw_n(self.x, self.y,0,self.image[0]*TILE_SIZE,self.image[1]*TILE_SIZE,self.width,self.height,colkey=11)
+        draw(self.x, self.y,0,self.image[0]*TILE_SIZE,self.image[1]*TILE_SIZE,self.width,self.height,colkey=11)
         self.draw_anims()
     
     def draw_anims(self):
@@ -655,12 +662,12 @@ def is_inside_map(pos,map):
     return True
 
 def show(x,y,img,colkey=11,save=0):
-    pyxel.blt(x,y,save,img[0]*TILE_SIZE,img[1]*TILE_SIZE,TILE_SIZE,TILE_SIZE,colkey=colkey)
+    draw(x,y,save,img[0]*TILE_SIZE,img[1]*TILE_SIZE,TILE_SIZE,TILE_SIZE,colkey=colkey)
 
 def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
 
-def draw_n(x, y, img, u, v, w, h, colkey=None, rotate=None, scale=1):
+def draw(x, y, img, u, v, w, h, colkey=None, rotate=None, scale=1):
     pyxel.blt(x+w//2*(scale-1), y+h//2*(scale-1), img, u, v, w, h, colkey=colkey, rotate=rotate, scale=scale)
 
 def in_perimeter(x1,y1,x2,y2,distance): #makes a square and checks if coords are inside of it

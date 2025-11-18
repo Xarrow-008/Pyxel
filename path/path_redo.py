@@ -1,12 +1,14 @@
 from utility import *
 
-WID = 256
-HEI = 256
-TILE_SIZE = 16
+WID = 250
+HEI = 250
+TILE_SIZE = 10
 
 FPS = 120
 
 map = [[0 for x in range(HEI//TILE_SIZE)] for y in range(WID//TILE_SIZE)]
+
+KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
 
 
 class App:
@@ -17,7 +19,7 @@ class App:
         pyxel.load('pather.pyxres')
         pyxel.colors[2] = 5373971
         
-        self.empty_space()
+        #self.empty_space()
 
         self.controller = Controller()
         self.mapper = Mapper()
@@ -50,6 +52,8 @@ class App:
 
     def draw_entities(self):
         self.controller.draw()
+
+        
     
 
 
@@ -80,7 +84,7 @@ class Mapper:
     def draw_walls(self):
         for y in range(len(map)):
             for x in range(len(map[y])):
-                color = self.map[y][x]
+                color = map[y][x]
                 pyxel.rect(x*10,y*10,10,10,color)
 
     def can_run(self):
@@ -90,11 +94,14 @@ class Mapper:
         
 class Controller:
     def __init__(self):
-        self.hider = Hider()
-        self.pather = Pather(x=TILE_SIZE, y=TILE_SIZE)
+        self.hider_spawn = [WID-2*TILE_SIZE, HEI-2*TILE_SIZE]
+        self.pather_spawn = [TILE_SIZE, TILE_SIZE]
+
+        self.hider = Player(*self.hider_spawn)
+        self.pather = Pather(*self.pather_spawn)
 
     def update(self):
-        self.pather.update(self.hider.x,self.hider.y)
+        self.pather.update((self.hider.x,self.hider.y))
         self.check_interactions()
         self.hider.update()
 
@@ -110,8 +117,8 @@ class Controller:
                 self.pather.stun(120)
     
     def reinitialize(self):
-        self.pather.__init__()
-        self.hider.__init__()
+        self.pather.__init__(*self.pather_spawn)
+        self.hider.__init__(*self.pather_spawn)
         
 
 
@@ -142,6 +149,8 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.collision()
 
             self.attack()
+
+        self.preventOOB()
 
         self.death()
 
@@ -390,6 +399,17 @@ class Entity: #General Entity class with all the methods describing what entitie
             if timer(self.hitStunStartFrame, self.hitStunDuration, game_frame):
                 self.isHitStun = False
 
+    def preventOOB(self):
+        if self.x < 0:
+            self.x = 0
+        if self.y < 0:
+            self.y = 0
+        
+        if self.x + self.width > WID-1:
+            self.x = WID - self.width -1
+        if self.y + self.height > HEI -1:
+            self.y = HEI - self.height -1
+
 
 
 class Pather(Entity):
@@ -400,23 +420,169 @@ class Pather(Entity):
         self.img = (0,2)
         self.path_img = (0,3)
 
+        self.move_to = [0,0]
+        self.move_direction = [0,0]
+        self.direction = [0,0]
+
+        self.initWalk(priority=1,maxSpeed=0.9,speedChangeRate=20,knockbackCoef=1)
+        self.initPath()
+
         self.anims = []
     
     def update(self,target):
-        if self.can_move():
+        if self.canDoActions():
             self.movement(target)
         
         self.update_anims()
 
     def movement(self,target):
-        if self.needs_path():
+        if self.needs_path(target):
             self.move_path()
         else:
             self.move_towards_target(target)
 
-    def needs_path(self):
+        self.applyVector(self.momentum)
+
+    def move_towards_target(self,target):
+        self.move_to[0] = target[0] - self.x 
+        self.move_to[1] = target[1] - self.y 
+        self.get_momentum()
+
+    def needs_path(self,target):
+        return self.directPathBlocked(target)
+
+    def directPathBlocked(self,target):
         pass
 
+    def get_momentum(self):
+        #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
+        if self.move_to[1] < 0:
+            if self.momentum[1] > -self.maxSpeed:
+                self.momentum[1] -= self.maxSpeed/self.speedChangeRate
+            self.direction[1] = -1
+
+        if self.move_to[0] < 0:
+            if self.momentum[0] > -self.maxSpeed:
+                self.momentum[0] -= self.maxSpeed/self.speedChangeRate
+            self.direction[0] = -1
+
+        if self.move_to[1] > 0:
+            if self.momentum[1] < self.maxSpeed:
+                self.momentum[1] += self.maxSpeed/self.speedChangeRate
+            self.direction[1] = 1
+
+        if self.move_to[0] > 0:
+            if self.momentum[0] < self.maxSpeed:
+                self.momentum[0] += self.maxSpeed/self.speedChangeRate
+            self.direction[0] = 1
+        
+        #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
+        if not (self.move_to[1] < 0 or self.move_to[1] > 0):
+            self.momentum[1] -= self.momentum[1]/self.speedChangeRate
+            self.direction[1] = 0
+
+        if not(self.move_to[0] < 0 or self.move_to[0] > 0):
+            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
+            self.direction[0] = 0
+        
+        #If the player is almost immobile in a specific direction, we snap their speed to 0
+        if abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = 0
+        if abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = 0
+
+        #If the player is almost at max speed in a specific direction, we snap their speed to max speed
+        if self.maxSpeed-abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = self.maxSpeed*pyxel.sgn(self.momentum[0])
+        if self.maxSpeed-abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = self.maxSpeed*pyxel.sgn(self.momentum[1])
+
+        #If the player is over max speed, we decrease their speed progressively
+        if abs(self.momentum[0]) > self.maxSpeed:
+            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
+        if abs(self.momentum[1]) > self.maxSpeed:
+            self.momentum[1] -= self.momentum[1]/self.speedChangeRate 
+
+    def draw(self):
+        show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
+
+    def update_anims(self):
+        pass
+
+    def initPath(self):
+        self.path = []
+        self.pathIndex = 0
+
+
+
+class Player(Entity):
+    def __init__(self, x, y):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
+
+        self.img = (1,2)
+
+        self.stun_around = False
+        self.keyboard = 'zqsd'
+        self.direction = [0,0]
+
+        self.initWalk(priority=1,maxSpeed=1,speedChangeRate=20,knockbackCoef=1)
+    
+    def movement(self):
+        #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
+            if self.momentum[1] > -self.maxSpeed:
+                self.momentum[1] -= self.maxSpeed/self.speedChangeRate
+            self.direction[1] = -1
+
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
+            if self.momentum[0] > -self.maxSpeed:
+                self.momentum[0] -= self.maxSpeed/self.speedChangeRate
+            self.direction[0] = -1
+
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
+            if self.momentum[1] < self.maxSpeed:
+                self.momentum[1] += self.maxSpeed/self.speedChangeRate
+            self.direction[1] = 1
+
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
+            if self.momentum[0] < self.maxSpeed:
+                self.momentum[0] += self.maxSpeed/self.speedChangeRate
+            self.direction[0] = 1
+        
+        self.speedDecrease()
+
+        self.walk(self.momentum)
+    
+    def speedDecrease(self):
+        #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
+        if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper()))):
+            self.momentum[1] -= self.momentum[1]/self.speedChangeRate
+            self.direction[1] = 0
+
+        if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper()))):
+            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
+            self.direction[0] = 0
+        
+        #If the player is almost immobile in a specific direction, we snap their speed to 0
+        if abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = 0
+        if abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = 0
+
+        #If the player is almost at max speed in a specific direction, we snap their speed to max speed
+        if self.maxSpeed-abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = self.maxSpeed*pyxel.sgn(self.momentum[0])
+        if self.maxSpeed-abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = self.maxSpeed*pyxel.sgn(self.momentum[1])
+
+        #If the player is over max speed, we decrease their speed progressively
+        if abs(self.momentum[0]) > self.maxSpeed:
+            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
+        if abs(self.momentum[1]) > self.maxSpeed:
+            self.momentum[1] -= self.momentum[1]/self.speedChangeRate 
+
+    def draw(self):
+        show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
 
 
 

@@ -368,7 +368,7 @@ class draw_desk:
 
 
     def quick_save(self):
-        self.file_data['images'][self.file_info['file_index']]['data'] = self.draw_area.canvas
+        self.file_data['images'][self.file_info['file_index']]['data'] = canvas_reduce_size(self.draw_area.canvas)
         file = open(self.file_info['file_path'],'w')
         toml.dump(self.file_data,file)
         file.close()
@@ -1246,10 +1246,10 @@ def canvas_fix(canvas,width):
     return new_canvas
 
 def canvas_size_fix(canvas):
-    new_canvas = canvas
+    new_canvas = copy(canvas)
     if len(canvas) < 256:
         missing_y = 256 - len(canvas)
-        for x in range(missing_y):
+        for y in range(missing_y):
             new_canvas.append([0 for x in range(256)])
 
     for y in range(len(canvas)):
@@ -1257,7 +1257,27 @@ def canvas_size_fix(canvas):
             missing_x = 256 - len(canvas[y])
             for x in range(missing_x):
                 new_canvas[y].append(canvas[y][-1])
+
     return new_canvas
+
+
+def canvas_reduce_size(canvas):
+    new_canvas = copy(canvas)
+    for y in range(len(canvas)):
+        if only_contains(new_canvas[-1],0):
+            new_canvas.pop(-1)
+        if y < len(new_canvas):
+            for x in range(len(new_canvas[y])-1):
+                if new_canvas[y][-1] == new_canvas[y][-2]:
+                    new_canvas[y].pop(-1)
+        
+    return new_canvas
+
+def only_contains(list,x):
+    for elmnt in list:
+        if elmnt != x:
+            return False
+    return True
 
 def get_canvas(string):
     liste = []
