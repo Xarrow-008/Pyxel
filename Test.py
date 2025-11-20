@@ -440,3 +440,21 @@ print(random.randint(0,1))
 print(int('1556789'[:1])+2)
 
 empty_save_anim()
+
+
+class Animation:
+    def __init__(self):
+        self.image1 = (0,0)
+        self.slide_pos = 0
+    def loop(self,length,duration,u,v,direction):
+        if on_tick(duration):
+            for i in range(length):
+                if pyxel.frame_count % (length*duration) == i*duration:
+                    self.image1 = (u+direction[0]*i*8,v+direction[1]*i*8)
+    def slide_anim(self,length,duration,blocks_list):
+        if on_tick(duration):
+            self.slide_pos += -1
+            if self.slide_pos <= -8:
+                self.slide.pop(0)
+                self.slide.append(random.choice(blocks_list))
+                self.slide_pos = 0

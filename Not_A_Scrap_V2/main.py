@@ -43,9 +43,8 @@ class Game:
         self.world = World()
         self.entities = []
         self.player = Player()
-        self.animation = Animation()
         
-        self.place = inMission(self.world, self.entities, self.player, self.animation)
+        self.place = inMission(self.world, self.entities, self.player)
 
     def update(self):
         global freeze_frame, game_frame
@@ -80,11 +79,10 @@ class Game:
 
 
 class inMission:
-    def __init__(self, world, entities, player, animation):
+    def __init__(self, world, entities, player):
         self.world = world
         self.entities = entities
         self.player = player
-        self.animation = animation
 
     def update(self):
         self.entity_gestion()
@@ -130,6 +128,10 @@ class inMission:
         for entity in self.entities:
             if not entity.dead:
                 entity.draw()
+
+        for entity in self.entities:
+            if not entity.dead:
+                entity.drawOver()
         
         self.player.draw()   
 
@@ -157,12 +159,16 @@ class inMission:
                     target.momentum[0] += vector[0]*knockback_value
                     target.momentum[1] += vector[1]*knockback_value
 
+
         else:
             target.health -= value
             if hasattr(target, "maxSpeed"):
                 knockback_value = len(str(value))*knockback_coef*target.knockbackCoef
                 target.momentum[0] += vector[0]*knockback_value
                 target.momentum[1] += vector[1]*knockback_value
+                
+        target.addAnimationHit((damager.x-4,damager.y-4))
+        #print(damager)
 
     def enemy_collision(self): #Handles collisions with enemies by entities
         original_length = len(self.entities)
@@ -225,6 +231,8 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.currentActionPriority = 0
 
+        self.anims = []
+
     def __str__(self):
         if type(self) == Player:
             return f"Type : Player, x : {self.x}, y : {self.y}, momentum : {self.momentum}"
@@ -250,10 +258,18 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.death()
 
         self.imageGestion()
+        
+        self.updateAnims()
 
     def draw(self):
         pass
 
+    def drawOver(self):
+        self.drawAnims()
+
+    def drawAnims(self):
+        for anim in self.anims:
+            anim.draw(self.x,self.y)
 
     def canDoActions(self):
         return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun")
@@ -276,6 +292,12 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def imageGestion(self):
         pass
+
+    def updateAnims(self):
+        for anim in self.anims:
+            anim.update()
+            if anim.is_dead():
+                self.anims.remove(anim)
 
     def death(self):
         pass
@@ -474,6 +496,11 @@ class Entity: #General Entity class with all the methods describing what entitie
     def collidingWithEnemy(self, entity):
         return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
 
+    def addAnimationHit(self,pos):
+        self.addAnimation(pos=(pos[0],pos[1],False),settings={'u':0,'v':16,'length':5},lifetime='1 cycle')
+
+    def addAnimation(self,pos=(0,0),settings=0,lifetime=1):
+        self.anims.append(Animation(pos,settings,lifetime))
 
     def initHitstun(self, duration, freezeFrame):
         self.hitFreezeFrame = freezeFrame
@@ -1081,24 +1108,6 @@ class Path:
             new_border = []
 
 
-class Animation:
-    def __init__(self):
-        self.image1 = (0,0)
-        self.slide_pos = 0
-    def loop(self,length,duration,u,v,direction):
-        if on_tick(duration):
-            for i in range(length):
-                if pyxel.frame_count % (length*duration) == i*duration:
-                    self.image1 = (u+direction[0]*i*8,v+direction[1]*i*8)
-    def slide_anim(self,length,duration,blocks_list):
-        if on_tick(duration):
-            self.slide_pos += -1
-            if self.slide_pos <= -8:
-                self.slide.pop(0)
-                self.slide.append(random.choice(blocks_list))
-                self.slide_pos = 0
-
-
 class Blocks:
     WALLS = [(0,0),(1,0),(2,0),(3,0)]
     WALLS_DOWN = [(0,0),(1,0)]
@@ -1114,6 +1123,74 @@ class World:
         self.map = [[random.choice(Blocks.GROUND) for x in range(WIDTH)] for y in range(HEIGHT)]
         self.map[5][6] = Blocks.WALLS[0]
         map = self.map
+
+
+class Animation:
+    def __init__(self,pos,settings,lifetime):
+        self.start = pyxel.frame_count
+        self.settings = settings
+        self.lifetime = lifetime
+        self.pos = pos
+        self.posRelative = True
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'heigth':TILE_SIZE,'vector':(1,0),'length':3,'duration':10}
+
+        self.apply_settings()
+
+
+        self.img = (0,0)
+        self.kill = False
+
+    def update(self):
+        if not self.is_dead():
+            self.get_img()
+            
+    def draw(self,x,y):
+        if self.posRelative:
+            show(x + self.pos[0], y + self.pos[1], self.img, colkey=0, save=1)
+        else:
+            show(self.pos[0], self.pos[1], self.img, colkey=0, save=1)
+
+        
+        
+    def get_img(self):
+        frame_anim = (self.frame() // self.settings['duration']) % self.settings['length']
+        x = self.settings['u']//TILE_SIZE + self.settings['vector'][0]*frame_anim
+        y = self.settings['v']//TILE_SIZE + self.settings['vector'][1]*frame_anim
+        self.img = (x,y)
+
+        print(x,y,flush=True)
+
+    def apply_settings(self):
+        if type(self.settings) is dict:
+            for setting in self.default_set.keys():
+                if not setting in self.settings:
+                    self.settings[setting] = self.default_set[setting]
+        else:
+            self.settings = self.default_set
+
+        nb = 1
+        if type(self.lifetime) is str:
+            if 'cycle' in self.lifetime[-6:]:
+                for i in range(1,len(self.lifetime)):
+                    if self.lifetime[:i].isdigit():
+                        nb = int(self.lifetime[:i])
+
+        if not type(self.lifetime) is int:
+            self.lifetime = self.settings['duration']*self.settings['length']*nb - 1
+
+
+        if len(self.pos) > 2:
+            if type(self.pos[2]) is bool:
+                self.posRelative = self.pos[2]
+            self.pos = (self.pos[0],self.pos[1])
+
+    def is_dead(self):
+        return pyxel.frame_count > self.start + self.lifetime or self.kill
+
+    def frame(self):
+        return pyxel.frame_count - self.start
+      
+
 
 def on_tick(tickrate=60):
     return pyxel.frame_count % tickrate == 0
