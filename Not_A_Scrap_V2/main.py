@@ -258,7 +258,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.death()
 
         self.imageGestion()
-        
+
         self.updateAnims()
 
     def draw(self):
@@ -497,7 +497,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
 
     def addAnimationHit(self,pos):
-        self.addAnimation(pos=(pos[0],pos[1],False),settings={'u':0,'v':16,'length':5},lifetime='1 cycle')
+        self.addAnimation(pos=(pos[0],pos[1],False),settings={'u':0,'v':1,'length':5},lifetime='1 cycle')
 
     def addAnimation(self,pos=(0,0),settings=0,lifetime=1):
         self.anims.append(Animation(pos,settings,lifetime))
@@ -1137,7 +1137,7 @@ class Animation:
         self.apply_settings()
 
 
-        self.img = (0,0)
+        self.img = (self.settings['u'],self.settings['v'])
         self.kill = False
 
     def update(self):
@@ -1149,16 +1149,14 @@ class Animation:
             show(x + self.pos[0], y + self.pos[1], self.img, colkey=0, save=1)
         else:
             show(self.pos[0], self.pos[1], self.img, colkey=0, save=1)
-
-        
         
     def get_img(self):
         frame_anim = (self.frame() // self.settings['duration']) % self.settings['length']
-        x = self.settings['u']//TILE_SIZE + self.settings['vector'][0]*frame_anim
-        y = self.settings['v']//TILE_SIZE + self.settings['vector'][1]*frame_anim
+        x = self.settings['u'] + self.settings['vector'][0]*frame_anim
+        y = self.settings['v'] + self.settings['vector'][1]*frame_anim
         self.img = (x,y)
 
-        print(x,y,flush=True)
+        #print(x,y,flush=True)
 
     def apply_settings(self):
         if type(self.settings) is dict:
