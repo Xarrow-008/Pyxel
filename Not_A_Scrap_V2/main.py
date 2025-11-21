@@ -58,6 +58,21 @@ class Game:
         
         else:
             self.player.updateInventory()
+        
+        #Tests for adding/switching weapons
+        if pyxel.btnp(pyxel.KEY_1):
+            self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "leftHand")
+        if pyxel.btnp(pyxel.KEY_2):
+            self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "leftHand")
+        if pyxel.btnp(pyxel.KEY_3):
+            self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "rightHand")
+        if pyxel.btnp(pyxel.KEY_4):
+            self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "rightHand")
+        if pyxel.btnp(pyxel.KEY_5):
+            self.player.inventory.switchWeapon("leftHand")
+        if pyxel.btnp(pyxel.KEY_6):
+            self.player.inventory.switchWeapon("rightHand")
+        
 
         if pyxel.btnp(pyxel.KEY_TAB):
             if self.player.inInventory:
@@ -986,15 +1001,190 @@ class Inventory:
         self.backpack1 = Weapon.NONE
         self.backpack1Occupied = False
 
-        self.canHaveTwoWeaponsInBackPack = False
+        self.canHaveTwoWeaponsInBackPack = True
 
         self.backpack2 = Weapon.NONE
         self.backpack2Occupied = False
 
         
 
-    def addWeapon(self, weapon, hand):
+    def addWeapon(self, weapon, hand): #Function used when the player picks up a weapon
+
         setattr(self, hand, weapon)
+
+        #We can almost definitely make this more efficient but this works and is understandable
+
+        if not self.canHaveTwoWeaponsInBackPack:
+
+            if self.backpack1["hand_number"]==1:
+
+                setattr(self, hand+"Occupied", False)
+
+                #We check wether or not its a two handed weapon to block off the other hand
+                if weapon["hand_number"]==1:
+                    setattr(self, self.oppositeHand(hand)+"Occupied", False)
+                    if getattr(self, self.oppositeHand(hand))["hand_number"]==2:
+                        setattr(self, self.oppositeHand(hand), Weapon.NONE)
+
+                elif weapon["hand_number"]==2:
+                    setattr(self, self.oppositeHand(hand)+"Occupied", True)
+                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+
+            elif self.backpack1["hand_number"]==2:
+
+                if getattr(self, hand+"Occupied"):
+                    self.backpack1 = Weapon.NONE
+                    setattr(self, hand+"Occupied", False)
+
+                    if weapon["hand_number"]==2:
+                        setattr(self, self.oppositeHand(hand)+"Occupied", True)
+                        setattr(self, self.oppositeHand(hand), Weapon.NONE)
+
+                else:
+                    setattr(self, hand+"Occupied", False)
+                    if weapon["hand_number"]==2:
+                        setattr(self, self.oppositeHand(hand)+"Occupied", True)
+                        setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                        self.backpack1 = Weapon.NONE
+
+        else:
+            setattr(self, hand+"Occupied", False)
+            #We check wether or not its a two handed weapon to block off the other hand
+            if weapon["hand_number"]==1:
+                setattr(self, self.oppositeHand(hand)+"Occupied", False)
+                if getattr(self, self.oppositeHand(hand))["hand_number"]==2:
+                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+
+            elif weapon["hand_number"]==2:
+                setattr(self, self.oppositeHand(hand)+"Occupied", True)
+                setattr(self, self.oppositeHand(hand), Weapon.NONE)
+
+    def switchWeapon(self, hand): #Function used to switch hand-held weapons with ones stored in the backpack
+        
+        #This is also ugly, but its the best I'm gonna do right now
+
+        if not self.canHaveTwoWeaponsInBackPack:
+
+            if self.backpack1["hand_number"]==1:
+
+                setattr(self, hand+"Occupied", False)
+                
+                if self.leftHand["hand_number"]==2:
+                    weapon = self.leftHand
+                    setattr(self, hand, self.backpack1)
+                    self.backpack1 = weapon
+
+                    setattr(self, self.oppositeHand(hand)+"Occupied", True)
+                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+
+                elif self.rightHand["hand_number"]==2:
+                    weapon = self.rightHand
+                    setattr(self, hand, self.backpack1)
+                    self.backpack1 = weapon
+
+                    setattr(self, self.oppositeHand(hand)+"Occupied", True)
+                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+
+                else:
+                    weapon = getattr(self, hand)
+                    setattr(self, hand, self.backpack1)
+                    self.backpack1 = weapon
+
+            else:
+                if getattr(self, hand+"Occupied"):
+                    setattr(self, hand+"Occupied", False)
+
+                    setattr(self, hand, self.backpack1)
+                    self.backpack1 = getattr(self, self.oppositeHand(hand))
+
+                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                    setattr(self, self.oppositeHand(hand)+"Occupied", True)
+
+                else:
+                    weapon = getattr(self, hand)
+                    setattr(self, hand, self.backpack1)
+                    self.backpack1 = weapon
+
+        else:
+            
+            if self.backpack1["hand_number"]==2:
+                weapon = self.backpack1
+                
+                setattr(self, self.equivalentHand(hand), getattr(self, hand))
+                setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
+                setattr(self, hand, weapon)
+
+                setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                setattr(self, hand+"Occupied", False)
+                setattr(self, self.oppositeHand(hand)+"Occupied", True)
+
+                if self.backpack1["hand_number"]==2:
+                    self.backpack2Occupied = True
+                else:
+                    self.backpack2Occupied = False
+                if self.backpack2["hand_number"]==2:
+                    self.backpack1Occupied = True
+                else:
+                    self.backpack1Occupied = False
+
+            elif self.backpack2["hand_number"]==2:
+                weapon = self.backpack2
+                
+                setattr(self, self.equivalentHand(hand), getattr(self, hand))
+                setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
+                setattr(self, hand, weapon)
+
+                setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                setattr(self, hand+"Occupied", False)
+                setattr(self, self.oppositeHand(hand)+"Occupied", True)
+
+                if self.backpack1["hand_number"]==2:
+                    self.backpack2Occupied = True
+                else:
+                    self.backpack2Occupied = False
+                if self.backpack2["hand_number"]==2:
+                    self.backpack1Occupied = True
+                else:
+                    self.backpack1Occupied = False
+            else:
+                weapon1 = self.backpack1
+                weapon2 = self.backpack2
+
+                setattr(self, self.equivalentHand(hand), getattr(self, hand))
+                setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
+
+                setattr(self, hand, weapon1)
+                setattr(self, self.oppositeHand(hand), weapon2)
+
+                self.leftHandOccupied = False
+                self.rightHandOccupied = False
+
+                if self.backpack1["hand_number"]==2:
+                    self.backpack2Occupied = True
+                else:
+                    self.backpack2Occupied = False
+                if self.backpack2["hand_number"]==2:
+                    self.backpack1Occupied = True
+                else:
+                    self.backpack1Occupied = False
+               
+
+    def oppositeHand(self,hand):
+        if hand == "leftHand":
+            return "rightHand"
+        if hand == "rightHand":
+            return "leftHand"
+        if hand == "backpack1":
+            return "backpack2"
+        if hand == "backpack2":
+            return "backpack1"
+
+    def equivalentHand(self, hand):
+        if hand == "leftHand":
+            return "backpack1"
+        if hand == "rightHand":
+            return "backpack2"
+
 
 class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
     def __init__(self, weapon, x, y, vector, team, shot):
