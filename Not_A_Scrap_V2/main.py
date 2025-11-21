@@ -1,4 +1,4 @@
-import pyxel,os,math,random
+import pyxel,os,math,random, csv
 from enemies import*
 from weapons import*
 from copy import deepcopy as copy
@@ -58,22 +58,24 @@ class Game:
         else:
             self.player.updateInventory()
         
-        #Tests for adding/switching weapons
-        if pyxel.btnp(pyxel.KEY_1):
+        #Tests for adding weapons
+        if keyPress("LEFT_HAND","btn") and pyxel.btn(pyxel.KEY_1):
             self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "leftHand")
-        if pyxel.btnp(pyxel.KEY_2):
+        if keyPress("LEFT_HAND","btn") and pyxel.btn(pyxel.KEY_2):
             self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "leftHand")
-        if pyxel.btnp(pyxel.KEY_3):
+        if keyPress("RIGHT_HAND","btn") and pyxel.btn(pyxel.KEY_1):
             self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "rightHand")
-        if pyxel.btnp(pyxel.KEY_4):
+        if keyPress("RIGHT_HAND","btn") and pyxel.btn(pyxel.KEY_2):
             self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "rightHand")
-        if pyxel.btnp(pyxel.KEY_5):
+
+        #Allows the player to switch weapons between backpack and handheld
+        if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count):
             self.player.inventory.switchWeapon("leftHand")
-        if pyxel.btnp(pyxel.KEY_6):
+        if holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count):
             self.player.inventory.switchWeapon("rightHand")
         
 
-        if pyxel.btnp(pyxel.KEY_TAB):
+        if keyPress("INVENTORY","btnp"):
             if self.player.inInventory:
                 self.player.inInventory = False
             else:
@@ -688,7 +690,6 @@ class Player(Entity): #Creates an entity that's controlled by the player
         else:
             self.inventoryIsMoving = False
 
-
     def drawInventory(self):
         if self.inventoryPosition < WID:
             self.drawInventoryCharacterScreen(-self.inventoryPosition)
@@ -835,22 +836,22 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
+        if keyPress("UP","btn"):
             if self.momentum[1] > -self.maxSpeed:
                 self.momentum[1] -= self.maxSpeed/self.speedChangeRate
             self.direction[1] = -1
 
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
+        if keyPress("LEFT","btn"):
             if self.momentum[0] > -self.maxSpeed:
                 self.momentum[0] -= self.maxSpeed/self.speedChangeRate
             self.direction[0] = -1
 
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
+        if keyPress("DOWN","btn"):
             if self.momentum[1] < self.maxSpeed:
                 self.momentum[1] += self.maxSpeed/self.speedChangeRate
             self.direction[1] = 1
 
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
+        if keyPress("RIGHT","btn"):
             if self.momentum[0] < self.maxSpeed:
                 self.momentum[0] += self.maxSpeed/self.speedChangeRate
             self.direction[0] = 1
@@ -861,11 +862,11 @@ class Player(Entity): #Creates an entity that's controlled by the player
     
     def speedDecrease(self):
         #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
-        if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper()))):
+        if not(keyPress("UP","btn") or keyPress("DOWN","btn")):
             self.momentum[1] -= self.momentum[1]/self.speedChangeRate
             self.direction[1] = 0
 
-        if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper()))):
+        if not(keyPress("LEFT","btn") or keyPress("RIGHT","btn")):
             self.momentum[0] -= self.momentum[0]/self.speedChangeRate
             self.direction[0] = 0
         
@@ -890,22 +891,22 @@ class Player(Entity): #Creates an entity that's controlled by the player
     def dash(self):
         if self.isDashing:
             self.dashMovement()
-        elif pyxel.btnp(pyxel.KEY_SPACE):
+        elif keyPress("DASH","btnp"):
             self.startDash(self.direction)
             
     def attack(self):
-        if pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+        if keyPress("ATTACK_LEFT", "btn"):
             self.rangedAttack("leftHand", pyxel.mouse_x, pyxel.mouse_y, "player")
 
-        if pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
+        if keyPress("ATTACK_RIGHT", "btn"):
             self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y, "player")
 
-        if pyxel.btn(pyxel.KEY_A) and pyxel.btn(pyxel.KEY_R) and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
+        if keyPress("LEFT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
             self.inventory.leftHand["mag_ammo"] = 0
             self.inventory.leftHandStartFrame = game_frame
             self.inventory.leftHandIsReloading = True
 
-        if pyxel.btn(pyxel.KEY_E) and pyxel.btn(pyxel.KEY_R) and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
+        if keyPress("RIGHT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
             self.inventory.rightHand["mag_ammo"] = 0
             self.inventory.rightHandStartFrame = game_frame
             self.inventory.rightHandIsReloading = True
@@ -1470,7 +1471,65 @@ def sized_text(x, y, s, col, size=6, limit=256): #Like pyxel.text, but you can m
                 pyxel.pal()
             current_x = x
             y += int(6*scale)
-            
+
+def import_csv(file):
+    tab = []
+    with open(file) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for line in reader:
+            tab.append(line)
+    return tab
+
+keybinds = import_csv("Not_A_Scrap_V2/keybinds.csv")
+
+def keyPress(action, method):
+    for dic in keybinds:
+        if dic["action"]==action:
+            if "MOUSE" in dic["key"]:
+                key = dic["key"]
+            else:
+                key = "KEY_"+dic["key"]
+    
+    if method=="btn":
+        return pyxel.btn(getattr(pyxel, key))
+    elif method=="btnp":
+        return pyxel.btnp(getattr(pyxel, key))
+
+heldKeyStartFrame = 0
+holdingKey = False
+keyBeingHeld = None
+
+def holdKey(action, duration, counter):
+    global heldKeyStartFrame, holdingKey, keyBeingHeld
+    for dic in keybinds:
+        if dic["action"]==action:
+            if "MOUSE" in dic["key"]:
+                key = dic["key"]
+            else:
+                key = "KEY_"+dic["key"]
+    if holdingKey and key==keyBeingHeld and pyxel.btn(getattr(pyxel,key)):
+        if timer(heldKeyStartFrame, duration, counter):
+            holdingKey = False
+        return timer(heldKeyStartFrame, duration, counter)
+    elif pyxel.btn(getattr(pyxel,key)):
+        heldKeyStartFrame = counter
+        holdingKey = True
+        keyBeingHeld = key
+    else:
+        pressingAKey = False
+        for dic in keybinds:
+            if "MOUSE" in dic["key"]:
+                if pyxel.btn(getattr(pyxel,dic["key"])):
+                    pressingAKey = True
+            else:
+                if pyxel.btn(getattr(pyxel,"KEY_"+dic["key"])):
+                    pressingAKey = True
+        if not pressingAKey:
+            holdingKey = False
+            keyBeingHeld = None
+            heldKeyStartFrame = counter
+
+    return False
 
 
         
