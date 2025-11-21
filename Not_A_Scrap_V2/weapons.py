@@ -5,7 +5,7 @@ class Weapon:
 
     NONE = {"name":"None", "description": "No weapon",
                     "hand_number":1, "type":"melee", "mode":"manual",
-                    "image":(48,48), "width":TILE_SIZE, "height":TILE_SIZE,
+                    "image":(0,192), "width":TILE_SIZE, "height":TILE_SIZE,
                     "bullet_image":(0,0), "bullet_width":1, "bullet_height":1,
 
                     "spread":0, "bullet_count":0,

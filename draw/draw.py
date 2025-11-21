@@ -252,6 +252,8 @@ class load_desk:
         self.selected_save = 0
         self.bg_color = 6
 
+        self.first_click = -120
+
         
         self.nb_saves = len(self.file_data['images'])
         self.ecart = 10
@@ -278,7 +280,7 @@ class load_desk:
             self.selected_save += -1
 
         
-        if pyxel.btnp(pyxel.KEY_RETURN):
+        if pyxel.btnp(pyxel.KEY_RETURN) or self.double_click():
             self.file_info['file_index'] = self.selected_save
             self.save_canvas()
             self.switch = {'to':self.next_desk,'argument':{'file_info':self.file_info}}
@@ -302,7 +304,13 @@ class load_desk:
                     pyxel.pset(x + in_x, y + in_y, 0)
     
 
-
+    def double_click(self):
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+            if pyxel.frame_count - self.first_click < 60:
+                return True
+            else:
+                self.first_click = pyxel.frame_count
+        return False
 
     def draw_over(self):
         self.draw_button_name()
@@ -510,22 +518,6 @@ class animation_desk:
         
 
 
-
-class animation_save:
-    def __init__(self,button_list,animation,file_info):
-        self.switch = {}
-        self.can_save = False
-        self.msg = {'txt':'','time':0}
-        self.button_list = button_list
-        self.bg_color = 6
-    def update(self):
-        pass
-    def draw(self):
-        pass
-    def draw_over(self):
-        pass
-    def quick_save(self):
-        pass
 
 
 
