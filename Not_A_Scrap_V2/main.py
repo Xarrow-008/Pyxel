@@ -52,6 +52,8 @@ class Game:
             if not self.isFrozen():
                 self.place.update()
                 game_frame += 1
+            else:
+                self.place.updateAllEntityAnims()
         
         else:
             self.player.updateInventory()
@@ -113,6 +115,12 @@ class inMission:
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(5, [0,0], 1, 0, self.player, self.player)
+
+    def updateAllEntityAnims(self):
+        for entity in self.entities:
+            entity.updateAnims()
+
+        self.player.updateAnims()
 
     def entity_gestion(self):
 
