@@ -28,29 +28,29 @@ class App:
         pyxel.run(self.update,self.draw)
 
     def update(self):
-        self.update_map()
-        self.update_entities()
+        self.updateMap()
+        self.updateEntities()
 
     
     def draw(self):
         pyxel.cls(0)
-        self.draw_map()
-        self.draw_entities()
+        self.drawMap()
+        self.drawEntities()
 
-    def update_map(self):
+    def updateMap(self):
         self.mapper.update()
-        if self.mapper.needs_re_init:
-            self.mapper.needs_re_init = False
+        if self.mapper.needsReInit:
+            self.mapper.needsReInit = False
             self.controller.reinitialize()
 
-    def update_entities(self):
-        if self.mapper.can_run():
+    def updateEntities(self):
+        if self.mapper.canRun():
             self.controller.update()
 
-    def draw_map(self):
+    def drawMap(self):
         self.mapper.draw()
 
-    def draw_entities(self):
+    def drawEntities(self):
         self.controller.draw()
 
         
@@ -60,49 +60,49 @@ class App:
 class Mapper:
     def __init__(self):
         global map
-        self.needs_re_init = False
+        self.needsReInit = False
 
     def update(self):
         if pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            self.mouse_place_block(7)
+            self.mousePlaceBlock(7)
 
         if pyxel.btn(pyxel.KEY_E) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
-            self.mouse_place_block(0)
+            self.mousePlaceBlock(0)
 
-    def mouse_place_block(self,block):
+    def mousePlaceBlock(self,block):
         x = pyxel.mouse_x//TILE_SIZE
         y = pyxel.mouse_y//TILE_SIZE
         try:
             map[y][x] = block
         except:
             pass
-        self.needs_re_init = True
+        self.needsReInit = True
 
     def draw(self):
-        self.draw_walls()
+        self.drawWalls()
 
-    def draw_walls(self):
+    def drawWalls(self):
         for y in range(len(map)):
             for x in range(len(map[y])):
                 color = map[y][x]
                 pyxel.rect(x*10,y*10,10,10,color)
 
-    def can_run(self):
+    def canRun(self):
         return not (pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.KEY_E) or pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT))
 
 
         
 class Controller:
     def __init__(self):
-        self.hider_spawn = [WID-2*TILE_SIZE, HEI-2*TILE_SIZE]
-        self.pather_spawn = [TILE_SIZE, TILE_SIZE]
+        self.hiderSpawn = [WID-2*TILE_SIZE, HEI-2*TILE_SIZE]
+        self.patherSpawn = [TILE_SIZE, TILE_SIZE]
 
-        self.hider = Player(*self.hider_spawn)
-        self.pather = Pather(*self.pather_spawn)
+        self.hider = Player(*self.hiderSpawn)
+        self.pather = Pather(*self.patherSpawn)
 
     def update(self):
         self.pather.update((self.hider.x,self.hider.y))
-        self.check_interactions()
+        self.checkInteractions()
         self.hider.update()
 
 
@@ -110,15 +110,15 @@ class Controller:
         self.pather.draw()
         self.hider.draw()
 
-    def check_interactions(self):
-        if self.hider.stun_around:
-            self.hider.stun_around = False
+    def checkInteractions(self):
+        if self.hider.stunAround:
+            self.hider.stunAround = False
             if distance(self.hider.x,self.hider.y,self.pather.x,self.pather.y) < 20:
                 self.pather.stun(120)
     
     def reinitialize(self):
-        self.pather.__init__(*self.pather_spawn)
-        self.hider.__init__(*self.pather_spawn)
+        self.pather.__init__(*self.patherSpawn)
+        self.hider.__init__(*self.hiderSpawn)
         
 
 
@@ -418,10 +418,10 @@ class Pather(Entity):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
 
         self.img = (0,2)
-        self.path_img = (0,3)
+        self.pathImg = (0,3)
 
-        self.move_to = [0,0]
-        self.move_direction = [0,0]
+        self.moveTo = [0,0]
+        self.moveDirection = [0,0]
         self.direction = [0,0]
 
         self.initWalk(priority=1,maxSpeed=0.9,speedChangeRate=20,knockbackCoef=1)
@@ -433,55 +433,67 @@ class Pather(Entity):
         if self.canDoActions():
             self.movement(target)
         
-        self.update_anims()
+        self.updateAnims()
+
+        self.preventOOB()
 
     def movement(self,target):
-        if self.needs_path(target):
-            self.move_path()
+        if self.needsPath(target):
+            self.movePath()
         else:
-            self.move_towards_target(target)
+            self.moveTowardsTarget(target)
 
         self.applyVector(self.momentum)
 
-    def move_towards_target(self,target):
-        self.move_to[0] = target[0] - self.x 
-        self.move_to[1] = target[1] - self.y 
-        self.get_momentum()
+    def moveTowardsTarget(self,target):
+        self.moveTo[0] = target[0] - self.x 
+        self.moveTo[1] = target[1] - self.y 
+        self.getMomentum()
 
-    def needs_path(self,target):
+    def needsPath(self,target):
         return self.directPathBlocked(target)
 
     def directPathBlocked(self,target):
-        pass
+        myPos = blockPos(self.x,self.y)
 
-    def get_momentum(self):
+        targetPos = blockPos(*target)
+
+        self.blockBetweenPlayer = posLineFilled(*myPos, *targetPos)
+
+        for pos in self.blockBetweenPlayer:
+            if map[pos[1]][pos[0]] in Blocks.WALLS:
+                return True
+
+        return False
+
+    def getMomentum(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
-        if self.move_to[1] < 0:
+        if self.moveTo[1] < 0:
             if self.momentum[1] > -self.maxSpeed:
                 self.momentum[1] -= self.maxSpeed/self.speedChangeRate
             self.direction[1] = -1
 
-        if self.move_to[0] < 0:
+        if self.moveTo[0] < 0:
             if self.momentum[0] > -self.maxSpeed:
                 self.momentum[0] -= self.maxSpeed/self.speedChangeRate
             self.direction[0] = -1
 
-        if self.move_to[1] > 0:
+        if self.moveTo[1] > 0:
             if self.momentum[1] < self.maxSpeed:
                 self.momentum[1] += self.maxSpeed/self.speedChangeRate
             self.direction[1] = 1
 
-        if self.move_to[0] > 0:
+        if self.moveTo[0] > 0:
             if self.momentum[0] < self.maxSpeed:
                 self.momentum[0] += self.maxSpeed/self.speedChangeRate
             self.direction[0] = 1
         
         #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
-        if not (self.move_to[1] < 0 or self.move_to[1] > 0):
+        if not (self.moveTo[1] < 0 or self.moveTo[1] > 0):
             self.momentum[1] -= self.momentum[1]/self.speedChangeRate
             self.direction[1] = 0
 
-        if not(self.move_to[0] < 0 or self.move_to[0] > 0):
+        if not(self.moveTo[0] < 0 or self.moveTo[0] > 0):
             self.momentum[0] -= self.momentum[0]/self.speedChangeRate
             self.direction[0] = 0
         
@@ -504,16 +516,51 @@ class Pather(Entity):
             self.momentum[1] -= self.momentum[1]/self.speedChangeRate 
 
     def draw(self):
+        for pos in self.blockBetweenPlayer:
+            show(pos[0]*10,pos[1]*10,(0,3),TILE_SIZE=TILE_SIZE)
         show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
 
-    def update_anims(self):
+    def updateAnims(self):
         pass
 
     def initPath(self):
         self.path = []
         self.pathIndex = 0
 
+    def movePath(self):
+        pass
 
+    def findNewPath(self,target):
+        start = blockPos(self.x,self.y)
+        border = [copy(start)]
+        newBorder = []
+        checked = []
+        pathOrigin = copy(map)
+        self.pathAt = copy(target)
+        self.path = [copy(self.pathAt)]
+        cross = [(0,-1),(0,1),(-1,0),(1,0)]
+        while len(border) > 0 and target not in checked:
+            cross.reverse()
+            for pos in border:
+                for addon in cross:
+                    newPos = (pos[0]+addon[0],pos[1]+addon[1])
+                    if newPos not in checked:
+                        if is_inside_map(newPos, map):
+                            if map[newPos[1]][newPos[0]] == 0:
+                                if newPos not in newBorder:
+                                    newBorder.append(newPos)
+                                    pathOrigin[newPos[1]][newPos[0]] = pos
+                checked.append(pos)
+            border = copy(newBorder)
+            newBorder = []
+
+        if target in checked:
+            while self.pathAt != start:
+
+                self.pathAt = copy(pathOrigin[self.pathAt[1]][self.pathAt[0]])
+                self.path.insert(0,copy(self.pathAt))
+
+        self.path_index = 0
 
 class Player(Entity):
     def __init__(self, x, y):
@@ -521,7 +568,7 @@ class Player(Entity):
 
         self.img = (1,2)
 
-        self.stun_around = False
+        self.stunAround = False
         self.keyboard = 'zqsd'
         self.direction = [0,0]
 
@@ -584,6 +631,8 @@ class Player(Entity):
     def draw(self):
         show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
 
+        
+
 
 
 
@@ -591,6 +640,43 @@ class Blocks:
     WALLS = [7]
     GROUND = [0]
 
+
+def blockPos(x,y,TILE_SIZE=10):
+    return (round(x/TILE_SIZE),round(y/TILE_SIZE))
+
+
+def posLineFilled(x0,y0,x1,y1): #not exactly bresenham's algorithm because i dont understand it all yet but ill change it when i do
+    positions = []
+    cos = x1 - x0
+    sin = y1 - y0
+    step_ref = max(abs(cos),abs(sin))
+    if step_ref != 0:
+        stepX = cos / step_ref #diviser toute la longueur par step pour creer chaque marche de l'escalier
+        stepY = sin / step_ref #l'autre cote de l'escalier
+        for i in range(step_ref+1): #+1 car on met un carre a 0 et a la fin
+            positions.append(   (round(x0 + i * stepX), #i fois le nombre de marche auquel on se trouve
+                                round(y0 + i * stepY))
+                            )
+            if i >= 1:
+                if positions[-1][0] != positions[-2][0]:
+                    positions.append((round(x0 + i * stepX), #i fois le nombre de marche auquel on se trouve
+                                    round(y0 + (i-1) * stepY))
+                                    )   
+
+                elif positions[-1][1] != positions[-2][1]:
+                    positions.append((round(x0 + (i-1) * stepX), #i fois le nombre de marche auquel on se trouve
+                                    round(y0 + i * stepY))
+                                    )   
+
+    return positions
+      
+
+def is_inside_map(pos,map):
+    if pos[0] >= len(map[0]) or pos[1] >= len(map):
+        return False
+    if pos[0] < 0 or pos[1] < 0:
+        return False
+    return True
 
 
 App()

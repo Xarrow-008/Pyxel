@@ -17,7 +17,7 @@ class App:
     def __init__(self):
 
         os.system('cls')
-        pyxel.init(WID,HEI,fps=120)
+        pyxel.init(WID,HEI,fps=FPS)
         pyxel.load('../notAScrap.pyxres')
         pyxel.colors[2] = 5373971
         
@@ -150,7 +150,8 @@ class inMission:
             if not entity.dead:
                 entity.drawOver()
         
-        self.player.draw()   
+        self.player.draw() 
+        self.player.drawOver()  
 
     def heal(self, value, healer, target):
         target.health += value
@@ -412,6 +413,8 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         else :
             self.currentActionPriority = 0
+            if type(self) == Player:
+                self.addAnimation(pos=(0,-TILE_SIZE),settings={'u':0,'v':2,'length':10,'duration':self.dashCooldown//5,'colkey':3},lifetime='1 cycle')
             self.isDashing = False
             self.dashStartFrame = game_frame
             self.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
@@ -516,7 +519,7 @@ class Entity: #General Entity class with all the methods describing what entitie
     def addAnimationHit(self,pos):
         self.addAnimation(pos=(pos[0],pos[1],False),settings={'u':0,'v':1,'length':5},lifetime='1 cycle')
 
-    def addAnimation(self,pos=(0,0),settings=0,lifetime=1):
+    def addAnimation(self,pos=(0,0),settings=0,lifetime='1 cycle'):
         self.anims.append(Animation(pos,settings,lifetime))
 
     def initHitstun(self, duration, freezeFrame):
@@ -1323,7 +1326,8 @@ class Animation:
         self.lifetime = lifetime
         self.pos = pos
         self.posRelative = True
-        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'heigth':TILE_SIZE,'vector':(1,0),'length':3,'duration':10}
+        self.colkey = 11
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'heigth':TILE_SIZE,'vector':(1,0),'length':3,'duration':10, 'colkey':11}
 
         self.apply_settings()
 
@@ -1337,9 +1341,9 @@ class Animation:
             
     def draw(self,x,y):
         if self.posRelative:
-            show(x + self.pos[0], y + self.pos[1], self.img, colkey=0, save=1)
+            show(x + self.pos[0], y + self.pos[1], self.img, colkey=self.colkey, save=1)
         else:
-            show(self.pos[0], self.pos[1], self.img, colkey=0, save=1)
+            show(self.pos[0], self.pos[1], self.img, colkey=self.colkey, save=1)
         
     def get_img(self):
         frame_anim = (self.frame() // self.settings['duration']) % self.settings['length']
@@ -1372,6 +1376,10 @@ class Animation:
             if type(self.pos[2]) is bool:
                 self.posRelative = self.pos[2]
             self.pos = (self.pos[0],self.pos[1])
+
+        self.colkey = self.settings['colkey']
+        print(self.colkey)
+
 
     def is_dead(self):
         return pyxel.frame_count > self.start + self.lifetime or self.kill
@@ -1413,7 +1421,7 @@ def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are 
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
 
 def show(x,y,img,colkey=11,save=0):
-    pyxel.blt(x,y,save,img[0]*16,img[1]*16,16,16,colkey=11)
+    pyxel.blt(x,y,save,img[0]*16,img[1]*16,16,16,colkey=colkey)
 
 def free_space(map):
     new_map = map
