@@ -35,7 +35,6 @@ class App:
 
 freeze_start = 0
 freeze_duration = 0
-freeze_frame = 0
 game_frame = 0
 
 class Game:
@@ -47,13 +46,12 @@ class Game:
         self.place = inMission(self.world, self.entities, self.player)
 
     def update(self):
-        global freeze_frame, game_frame
+        global game_frame
         if not self.player.inInventory:
             
             if not self.isFrozen():
                 self.place.update()
                 game_frame += 1
-            freeze_frame += 1
         
         else:
             self.player.updateInventory()
@@ -91,8 +89,8 @@ class Game:
             self.player.drawInventory()
 
     def isFrozen(self):
-        global freeze_start, freeze_duration, freeze_frame, game_frame
-        return not timer(freeze_start, freeze_duration, freeze_frame)
+        global freeze_start, freeze_duration
+        return not timer(freeze_start, freeze_duration, pyxel.frame_count)
 
 
 class inMission:
@@ -159,16 +157,18 @@ class inMission:
             target.health = target.maxHealth
 
     def hurt(self, value, vector, knockback_coef, shot, damager, target):
-        global freeze_start, freeze_duration, freeze_frame, game_frame
+        global freeze_start, freeze_duration, game_frame
 
         if hasattr(target, "isHitStun"):
-            if not target.isHitStun or target.hitBy == shot:
+            if (not target.isHitStun or target.hitBy == shot) and not target.isInvincible():
                 target.health -= value
 
                 target.isHitStun = True
                 target.hitStunStartFrame = game_frame
 
-                freeze_start = freeze_frame
+                target.invincibilityStartFrame = game_frame
+
+                freeze_start = pyxel.frame_count
                 freeze_duration = target.hitFreezeFrame
 
                 target.hitBy = shot
@@ -516,13 +516,15 @@ class Entity: #General Entity class with all the methods describing what entitie
     def collidingWithEnemy(self, entity):
         return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
 
+
     def addAnimationHit(self,pos):
         self.addAnimation(pos=(pos[0],pos[1],False),settings={'u':0,'v':1,'length':5},lifetime='1 cycle')
 
     def addAnimation(self,pos=(0,0),settings=0,lifetime='1 cycle'):
         self.anims.append(Animation(pos,settings,lifetime))
 
-    def initHitstun(self, duration, freezeFrame):
+
+    def initHitstun(self, duration, freezeFrame, invincibility):
         self.hitFreezeFrame = freezeFrame
         self.frozen = 0
 
@@ -531,6 +533,12 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.isHitStun = False
 
         self.hitBy = 0
+
+        self.invincibilityDuration = invincibility
+        self.invincibilityStartFrame = 0
+
+    def isInvincible(self):
+        return not timer(self.invincibilityStartFrame, self.invincibilityDuration, game_frame)
 
     def hitstun(self):
         if hasattr(self, "isHitStun"):
@@ -560,7 +568,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initWalk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
         self.initDash(priority=1, cooldown=40, speed=1.5, duration=20)
         self.initRangedAttack(priority=0)
-        self.initHitstun(duration=0*FPS, freezeFrame=1*FPS)
+        self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
         self.inventory.addWeapon(Weapon.RUSTY_PISTOL, "leftHand")
