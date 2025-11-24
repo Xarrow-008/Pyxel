@@ -616,33 +616,6 @@ class Player(Entity): #Creates an entity that's controlled by the player
             pyxel.rect(x=2,y=2,w=health_bar_size,h=8,col=8)
             sized_text(x=12, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
 
-
-            #Dash
-            pyxel.rect(x=44,y=1,w=13,h=11,col=0)
-
-            if not self.isDashing:
-                dash_cooldown_progress = int(34*((game_frame-self.dashStartFrame)/self.dashCooldown))
-                x = 50
-                y = 2
-                for i in range(40):
-                    if dash_cooldown_progress >= i:
-                        pyxel.pset(x,y,col=11)
-                    else:
-                        pyxel.pset(x,y,col=8)
-                    if i in range(0,5) or i in range(35,40):
-                        x += 1
-                    elif i in range(6,14):
-                        y += 1
-                    elif i in range(15,25):
-                        x -= 1
-                    elif i in range(26,34):
-                        y -= 1
-            else:
-                pyxel.rectb(x=45,y=2,w=11,h=9,col=13)
-
-            draw(x=46,y=3,img=0,u=104,v=248,w=8,h=7,colkey=11)
-
-
             #Weapons
             pyxel.rectb(x=1, y=218, w=18, h=18, col=0)
             pyxel.rect(x=2, y=219, w=16, h=16, col=13)
@@ -1386,7 +1359,6 @@ class Animation:
             self.pos = (self.pos[0],self.pos[1])
 
         self.colkey = self.settings['colkey']
-        print(self.colkey)
 
 
     def is_dead(self):
