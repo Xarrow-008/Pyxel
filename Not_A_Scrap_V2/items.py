@@ -9,7 +9,7 @@
 
 class Item:
 
-    WAR_FIG : {"name":"War Figurine",
+    WAR_FIG : {"name":"War Figurine", #idk abt the name but hard to get a better one
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
@@ -34,7 +34,7 @@ class Item:
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
-                "short_description":"Killing enemies at low health heals you",
+                "short_description":"Killing enemies at low health heals you", #meh kinda just insta fix to problem of low health 
                 "long_description":"If you have less than 10% of your max health, heal for 10% of your max health (+5% per stack) when you kill an enemy"}
 
     TIN_CAN : {"name":"Tin Can",
@@ -48,13 +48,13 @@ class Item:
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
-                "short_description":"Gain temporary health on kill",
+                "short_description":"Gain temporary health on kill", #I like the temp health, i would probably put big cap on it like if taken damage recently, cant get temp health, we can balance later
                 "long_description":"Every time you kill an enemy, gain temporay health equal to 5% of that enemy's max health (+5% per stack)"}
 
     RED_BOOK : {"name":"Little Red Book",
                 "image":(0,192),
                 "rarity":"common",
                 "type":"damage",
-                "short_description":"Increases damage against strong enemies",
+                "short_description":"Increases damage against strong enemies", #seems OP
                 "long_description":"Increases damage by 15%(+15% per stack) against bosses and enemies with a higher level than your weapons"}
     
