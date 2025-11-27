@@ -643,7 +643,7 @@ class DrawArea:
             if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT) or (pyxel.btnp(pyxel.KEY_X) and not pyxel.btn(pyxel.KEY_LCTRL)):
                 try:
                     self.colorpick.current_color = self.canvas[self.pencil_pos[1]][self.pencil_pos[0]]
-                finally:
+                except:
                     pass
 
             self.slide_canvas_gestion()
