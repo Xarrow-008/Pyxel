@@ -51,6 +51,55 @@ class Item:
                 "short_description":"Gain temporary health on kill", #I like the temp health, i would probably put big cap on it like if taken damage recently, cant get temp health, we can balance later
                 "long_description":"Every time you kill an enemy, gain temporay health equal to 5% of that enemy's max health (+5% per stack)"}
 
+    KEY_CHAIN : {"name":"Key Chain",
+                "image":(0,192),
+                "rarity":"common",
+                "type":"support",
+                "short_description":"Interactables are faster and of better quality",
+                "long_description":"Interacting with interactables is 10% (+5% per stack) faster and interactables have an extra 5% (+5% per stack) chance of being of a higher quality"}
+
+    SIGN : {"name":"Warning Sign", #Like, a "Slippery when wet" sign
+                "image":(0,192),
+                "rarity":"common",
+                "type":"support",
+                "short_description":"Increased movement speed when in danger",
+                "long_description":"Movement speed increases by 15% (+10% per stack) when under 20% health. Movement speed increases by 25% once the explosion timer starts."}
+
+    SQUEAKY_TOY : {"name":"Squeaky Toy",
+                "image":(0,192),
+                "rarity":"common",
+                "type":"support",
+                "short_description":"Deal increased knockback",
+                "long_description":"Increases knockback with ranged weapons by 10% (+10% per stack). Increases knockback with melee weapons by 15% (+15% per stack)"}
+
+    WIRE_CUTTER : {"name":"Wire Cutter",
+                "image":(0,192),
+                "rarity":"common",
+                "type":"support",
+                "short_description":"Get more time to explore",
+                "long_description":"Increases the time before the Horde spawns and the Explosion triggers by 15s (+15 per stack)"}
+
+    SHOE_BOX : {"name":"Shoe Box",
+                "image":(0,192),
+                "rarity":"common",
+                "type":"support",
+                "short_description":"Increased movement speed",
+                "long_description":"Increases movement speed by 10% (+10% per stack)"}
+
+    BATTERIES : {"name":"Spare Batteries",
+                "image":(0,192),
+                "rarity":"common",
+                "type":"support",
+                "short_description":"Decreased dash cooldown",
+                "long_description":"Decreases the dash cooldown by 15% (+5% per stack)"}
+
+    GAS_LAMP : {"name":"Gas Lamp",
+                "image":(0,192),
+                "rarity":"common",
+                "type":"support",
+                "short_description":"Get more fuel",
+                "long_description":"Increases chance to get fuel on kill by 5% (+5% per stack). Extra 10% (+10% per stack) chance to get extra fuel on kill."}
+
     RED_BOOK : {"name":"Little Red Book",
                 "image":(0,192),
                 "rarity":"common",
