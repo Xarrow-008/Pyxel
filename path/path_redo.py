@@ -31,6 +31,7 @@ class App:
         self.updateMap()
         self.updateEntities()
 
+
     
     def draw(self):
         pyxel.cls(0)

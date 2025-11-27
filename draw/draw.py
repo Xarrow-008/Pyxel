@@ -515,7 +515,7 @@ class animation_desk:
         toml.dump(data,file)
         file.close()
 
-        
+
 
 
 
@@ -979,9 +979,9 @@ class DrawArea:
 
 
     def parameters_gestion(self):
-        if is_pressed(self.button_list,'zoom_out'):
+        if is_pressed(self.button_list,'zoom_out') or pyxel.mouse_wheel == -1:
             self.zoom += -1
-        if is_pressed(self.button_list,'zoom_in'):
+        if is_pressed(self.button_list,'zoom_in') or pyxel.mouse_wheel == 1:
             self.zoom += 1
         if is_pressed(self.button_list,'grid_on/off'):
             self.grid = not self.grid
