@@ -650,6 +650,8 @@ class DrawArea:
         
         if pyxel.btnp(pyxel.KEY_S) and not pyxel.btn(pyxel.KEY_CTRL):
             self.tool = 'select'
+            self.select_zone['x'] = self.pencil_pos[0]
+            self.select_zone['y'] = self.pencil_pos[1]
             self.lclick = False
         if pyxel.btnp(pyxel.KEY_B):
             self.tool = 'brush'
