@@ -102,12 +102,56 @@ class Item:
                 "short_description":"Get more fuel",
                 "long_description":"Increases chance to get fuel on kill by 5% (+5% per stack). Extra 10% (+10% per stack) chance to get extra fuel on kill."}
 
-    RED_BOOK : {"name":"Little Red Book", #Its named after a real life communist book. That way it shows that there still was disagreement with the hypercapitalistic society #Having it be a regular paper book instead of digital/numeric thing also shows disagreement with the state of society
+    RED_BOOK : {"name":"Little Red Book", #Its based off a real-life communist book. Could be used to show that there was resistance to the hyper-capitalist cyberpunk society
                 "image":(0,192),
                 "rarity":"common",
                 "type":"damage",
-                "short_description":"Increases damage against strong enemies", #seems OP #Considering the bosses will be much tougher than regular enemies, I don't think it'll be as OP (though it will still be very useful). Also, we can modify the percentage if its too strong
-                "long_description":"Increases damage by 15%(+15% per stack) against bosses and enemies with a higher level than your weapons"} #Also we could make it so that the percentage for bosses and strong enemies is separate if its balanced for bosses but too high for strong enemies
+                "short_description":"Increases damage against strong enemies", 
+                "long_description":"Increases damage by 15% (+15% per stack) against bosses and enemies with a higher level than your weapons"} #Considering the fact enemies will outscale the player's stats, I think this item is pretty much a must-have if we want the player to have the ability tp have long runs (but it won't have much of an effect in the early game)
+
+    SURGEONS_NOTES : {"name":"Surgeon's Notes", #They're surgery notes from a surgeon who puts the implants in people
+                "image":(0,192),
+                "rarity":"common",
+                "type":"damage",
+                "short_description":"Increased critical hit chance", 
+                "long_description":"Increases your chance of dealing critical hits by 5% (+5% per stack)"}
+
+    SPARE_PARTS : {"name":"Spare Parts", #Self explanatory name
+                "image":(0,192),
+                "rarity":"common",
+                "type":"damage",
+                "short_description":"Increases damage when low on ressources", 
+                "long_description":"Melee weapons deal 15% (+15% per stack) more damage when under 10% durability. Ranged weapons deal 15% (+15% per stack) more damage on the last shot before reloading. Does not affect weapons who only have one shot before reloading."}
+
+    ELBOW_GREASE : {"name":"Elbow Grease", #Its literal grease to make sure that arm replacements don't rust/get stuck
+                "image":(0,192),
+                "rarity":"common",
+                "type":"damage",
+                "short_description":"Increases attack speed", 
+                "long_description":"Reduces the time between two attacks by 10% (+10% per stack)"} #Might change the formula so that you can't have a 0s cooldown after 10 items.
+
+    JUMP_START : {"name":"Jump Start Device", #Its supposed to be an unofficial/back-alley device that boosts technology when yout boot it up, but is dangerous because it could fry the technology
+                "image":(0,192),
+                "rarity":"common",
+                "type":"damage",
+                "short_description":"Increases damage against full health enemies", 
+                "long_description":"Increases damage by 100%(+50% per stack) against enemies who have not taken damage"}
+
+    IRON_SIGHT : {"name":"Iron Sight", #Its a regular, non-digital iron sight (the idea being that if something's not digitally augmented, it can't be hacked, meaning that its actually quite useful in a cyberpunk world) it could probably still have the cyberpunk aesthetic without being digitally augmented though
+                "image":(0,192),
+                "rarity":"common",
+                "type":"damage",
+                "short_description":"Increased range", 
+                "long_description":"Bullets can go 10% (+10% per stack) further. Melee attacks have 15% (+15% per stack) more range"}
+
+    LEG_PROSTHESIS : {"name":"Leg Prosthesis", #Self-explanatory. The idea is that it makes you more stable, which increases your precision.
+                "image":(0,192),
+                "rarity":"common",
+                "type":"damage",
+                "short_description":"Increased precision", 
+                "long_description":"Increases precision by 5° (+5° per stack). Decreases by 10° the precision loss while moving."}
+
+    
     
  #Overall i mainly think we need to change the item names, but it shouldnt be a problem, and other than that we shouldnt get stuck with 1 idea (I can only think of 1 item in Hollow knight that works when low health)
  #Yeah but there are like 5 items that trigger when you heal
