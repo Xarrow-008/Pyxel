@@ -7,149 +7,166 @@
 
 #6+7+7=20 common items
 
-#I tried to lean into the hyper-capitalistic aspect of cyberpunk
+#Common items : Pre-war Everyday items (the literal "scrap" the player is here to collect)
+#Rare items : Post-war items (stuff made by the survivors, level of technology would depend on those who made it)
+#Legendary items : Pre-war alien technology (cyberpunk/high tech)
+#Boss items : either a part of the boss's body, or something they would carry on them (level of technology would depend on the boss)
 
 class Item:
 
-    DEFECTIVE_SHIELD : {"name":"Defective Shield", #idk abt the name but hard to get a better one #changed it to give more of the "cyberpunk" aesthetic
+    WAR_FIGURINE : {"name":"War Figurine", 
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
                 "short_description":"Chance to ignore damage on hit",
                 "long_description":"Every time you get hit, you have a 15% chance to ignore damage. Each stack grants half of the previous one."}
 
-    LUNCHBOX : {"name":"Workman's Lunchbox", #The idea is that it only opens when the worker is on break ("Can't eat on the job"). Mirrors the item's effect
+    LUNCHBOX : {"name":"Workman's Lunchbox", 
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
                 "short_description":"Heal after leaving combat",
-                "long_description":"After you haven't gotten hit for 5s, heal for 10HP (+10 per stack)"}    
+                "long_description":"After you haven't gotten hit or dealt damage for 10s, heal for 10HP (+10 per stack)"}    
 
-    PILLOW : {"name":"Pillow", #I mean they still would have pillows in a cyberpunk world right ? #Can't really find a cyberpunk thing that's not just "armor"
+    PILLOW : {"name":"Pillow", 
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
                 "short_description":"Flat physical damage reduction",
                 "long_description":"Decreases all physical damage by 1 (+1 per stack). Cannot make attacks deal less than 1 damage."}
 
-    ADRENALINE_MANUFACTURER : {"name":"Adrenaline Manufacturer",
+    MEDICATION : {"name":"Expired Medication",
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
-                "short_description":"Take less damage at low health", #meh kinda just insta fix to problem of low health #I remade the whole item, so that instead of making it so that you just leave low health, it allows you to survive longer while in low health
+                "short_description":"Take less damage at low health", 
                 "long_description":"If you have less than 10% of your max health, take 10% (+5% per stack) less damage. Cannot make attacks deal less than 50% damage."}
 
-    TIN_CAN : {"name":"Tin Can", #This can work within the cyberpunk aesthetic as like, food from before the cyberpunk era that was preserved
+    TIN_CAN : {"name":"Tin Can", 
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
                 "short_description":"Max health increase",
                 "long_description":"Increases max health by 15 (+15 per stack)"}
 
-    BIOTHERMAL_GENERATOR : {"name":"Biothermal Generator", #It burns the organic material of the enemies to generate the temp health
+    LEATHER_JACKET : {"name":"Leather Jacket", 
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
-                "short_description":"Gain temporary health on kill", #I like the temp health, i would probably put big cap on it like if taken damage recently, cant get temp health, we can balance later
+                "short_description":"Gain temporary health on kill", 
                 "long_description":"Every time you kill an enemy, gain temporay health equal to 5% of that enemy's max health (+5% per stack). Temporary health cannot exceed max health."}
 
-    SUPERVISOR_KEY : {"name":"Supervisor's Keycard", #Would basically be a key card held by the guy that supervises the bunker
+    CARD_DECK : {"name":"Mostly Full Deck of Cards", #Gambling
+                "image":(0,192),
+                "rarity":"common",
+                "type":"healing",
+                "short_description":"Heal after reloading in combat", #The idea is to reward players who take risks by reloading while they're still fighting instead of leaving
+                "long_description":"If you finish reloading while you are in combat, heal for 15HP (+15 per stack)"}
+
+    KEY_CHAIN : {"name":"Key Chain",  
                 "image":(0,192),
                 "rarity":"common",
                 "type":"support",
                 "short_description":"Interactables are faster and of better quality",
                 "long_description":"Interacting with interactables is 10% (+5% per stack) faster and interactables have an extra 5% (+5% per stack) chance of being of a higher quality"}
 
-    NOREPINEPHRINE_CATALYST : {"name":"Norepinephrine Catalyst", #Norepinephrine is a molecule that's released when you're in stress to give you a lot of energy (and makes you ignore pain), but has a lot of negative side effects if its produced too much. The idea is that the item boosts your body's norepinephrine production by a lot
-                "image":(0,192), #I feel more like naming it clenching stress or something like it (I'm thinking of a little machine that would press on muscles when in danger) 
-                "rarity":"common", #(it would be cool to base our items on some kind of cyberpunk style, like realisticly its obviously long-term bad but on the moment it makes you much stronger)
+    WARNING_SIGN : {"name":"Warning Sign", #A "slippery when wet" sign for example
+                "image":(0,192), 
+                "rarity":"common", 
                 "type":"support", 
-                "short_description":"Increased movement speed when in danger", #but maybe we shouldn't base too many items on being low on health (might have to discuss this point)
+                "short_description":"Increased movement speed when in danger", 
                 "long_description":"Movement speed increases by 15% (+10% per stack) when under 20% health. Movement speed increases by 25% once the explosion timer starts."}
 
-    PRIVATE_SPHERE : {"name":"Private Sphere Enforcer", #The idea is that its an item that would physically push people out of your private sphere (with like compressed air or something)
+    SQUEAKY_TOY : {"name":"Squeaky Toy", 
                 "image":(0,192),
                 "rarity":"common",
                 "type":"support",
                 "short_description":"Deal increased knockback",
                 "long_description":"Increases knockback with ranged weapons by 10% (+10% per stack). Increases knockback with melee weapons by 15% (+15% per stack)"}
 
-    ALARM_OVERRIDE : {"name":"Alarm Override", #The idea is that its a small bot/drone a hacker would plant on an alarm system to get remote control of it
+    WIRE_CUTTER : {"name":"Wire Cutter", 
                 "image":(0,192),
                 "rarity":"common",
                 "type":"support",
                 "short_description":"Get more time to explore",
                 "long_description":"Increases the time before the Horde spawns and the Explosion triggers by 15s (+15 per stack)"}
 
-    SPEED_IMPLANT : {"name":"Neuronal Speed Implant", #also i just thought that most players wont even look at the name, which means we can invent some things #The idea is that it doesn't necesseraly make you physically faster, but increases the speed at which your brain operates, which in turns makes you faster
-                "image":(0,192), #for example, do you know the name of the anchor item in Haste? Me, no but I think it increases speed when at full health
+    SHOE_BOX : {"name":"Shoe Box", 
+                "image":(0,192), 
                 "rarity":"common",
                 "type":"support",
                 "short_description":"Increased movement speed",
                 "long_description":"Increases movement speed by 10% (+10% per stack)"}
 
-    BATTERIES : {"name":"Spare Batteries", #This works fine as cyberpunk
+    BATTERIES : {"name":"Spare Batteries",
                 "image":(0,192),
                 "rarity":"common",
                 "type":"support",
                 "short_description":"Decreased dash cooldown",
-                "long_description":"Decreases the dash cooldown by 15% (+5% per stack)"}
+                "long_description":"Decreases the dash cooldown by 15%. Every stack gives 5/6th of the last ones effect."}
 
-    COMPATIBLE_JERRYCAN : {"name":"Compatible Jerrycan", #we can do like compatible jerrycan, and like pouring in is more efficient #yeah good idea
+    JERRYCAN : {"name":"All-Purposes Jerrycan",
                 "image":(0,192),
                 "rarity":"common",
                 "type":"support",
                 "short_description":"Get more fuel",
                 "long_description":"Increases chance to get fuel on kill by 5% (+5% per stack). Extra 10% (+10% per stack) chance to get extra fuel on kill."}
 
-    RED_BOOK : {"name":"Little Red Book", #Its based off a real-life communist book. Could be used to show that there was resistance to the hyper-capitalist cyberpunk society
+    PAMPHLET : {"name":"Pamphlet", #like a political pamphlet that tells you to go vote for a party
+                "image":(0,192),
+                "rarity":"common",
+                "type":"support",
+                "short_description":"Chance to get ressources back on kill",
+                "long_description":"You have a 10% chance to get 5% of your amunitions and durability back on kill. Every stack gives 3/5th of the last ones effect."}
+
+    RED_BOOK : {"name":"Little Red Book", 
                 "image":(0,192),
                 "rarity":"common",
                 "type":"damage",
                 "short_description":"Increases damage against strong enemies", 
                 "long_description":"Increases damage by 15% (+15% per stack) against bosses and enemies with a higher level than your weapons"} #Considering the fact enemies will outscale the player's stats, I think this item is pretty much a must-have if we want the player to have the ability tp have long runs (but it won't have much of an effect in the early game)
 
-    SURGEONS_NOTES : {"name":"Surgeon's Notes", #They're surgery notes from a surgeon who puts the implants in people
+    BOTTLE : {"name":"Broken Bottle", #Broken Glass Bottle
                 "image":(0,192),
                 "rarity":"common",
                 "type":"damage",
                 "short_description":"Increased critical hit chance", 
                 "long_description":"Increases your chance of dealing critical hits by 5% (+5% per stack)"}
 
-    SPARE_PARTS : {"name":"Spare Parts", #Self explanatory name
+    BADGES : {"name":"Scout's Badges", #Like boyscout badges
                 "image":(0,192),
                 "rarity":"common",
                 "type":"damage",
                 "short_description":"Increases damage when low on ressources", 
                 "long_description":"Melee weapons deal 15% (+15% per stack) more damage when under 10% durability. Ranged weapons deal 15% (+15% per stack) more damage on the last shot before reloading. Does not affect weapons who only have one shot before reloading."}
 
-    ELBOW_GREASE : {"name":"Elbow Grease", #Its literal grease to make sure that arm replacements don't rust/get stuck
+    PUZZLE_CUBE : {"name":"Puzzle Cube", #Its just a rubik's cube (I don't think the organisers will allow us to name actual brands)
                 "image":(0,192),
                 "rarity":"common",
                 "type":"damage",
-                "short_description":"Increases attack speed", 
-                "long_description":"Reduces the time between two attacks by 10% (+10% per stack)"} #Might change the formula so that you can't have a 0s cooldown after 10 items.
+                "short_description":"Increases attack speed", #speedcubing
+                "long_description":"Reduces the time between two attacks by 15%. Each stack gives 5/6th of the last ones effect."} #This makes it so that the reduction between attacks is at most 90% (so you can't just make every weapon fire their entire clip in less than 1s with many stacks of this item)
 
-    JUMP_START : {"name":"Jump Start Device", #Its supposed to be an unofficial/back-alley device that boosts technology when yout boot it up, but is dangerous because it could fry the technology
+    METAL_SHEET : {"name":"Rusted Metal Sheet", #just a random sheet of metal
                 "image":(0,192),
                 "rarity":"common",
                 "type":"damage",
-                "short_description":"Increases damage against full health enemies", 
+                "short_description":"Increases damage against full health enemies", #the logic behind why this is the effect is that you can't catch tetanos if you already have it
                 "long_description":"Increases damage by 100%(+50% per stack) against enemies who have not taken damage"}
 
-    IRON_SIGHT : {"name":"Iron Sight", #Its a regular, non-digital iron sight (the idea being that if something's not digitally augmented, it can't be hacked, meaning that its actually quite useful in a cyberpunk world) it could probably still have the cyberpunk aesthetic without being digitally augmented though
+    BINOCULAR : {"name":"Dirty Binocular",
                 "image":(0,192),
                 "rarity":"common",
                 "type":"damage",
                 "short_description":"Increased range", 
                 "long_description":"Bullets can go 10% (+10% per stack) further. Melee attacks have 15% (+15% per stack) more range"}
 
-    LEG_PROSTHESIS : {"name":"Leg Prosthesis", #Self-explanatory. The idea is that it makes you more stable, which increases your precision.
+    GLASSES : {"name":"Glasses", 
                 "image":(0,192),
                 "rarity":"common",
                 "type":"damage",
                 "short_description":"Increased precision", 
-                "long_description":"Increases precision by 5° (+5° per stack). Decreases by 10° the precision loss while moving."}
+                "long_description":"Increases precision on ranged weapons by 5° (+5° per stack). Decreases by 10° the precision loss while moving."}
 
     
     
@@ -158,3 +175,4 @@ class Item:
  #I think having a few items that trigger at the same time isn't really a problem, the important part is that they feel different
 
  #At the suggestion of Louis, it might be a good idea to move these into a csv file once we've finished (since its not really a program)
+ #Actually, no, because some of these items will have effects too complex to be able to describe with just a csv file (or if we do, it'll be impossible to understand what's going on)
