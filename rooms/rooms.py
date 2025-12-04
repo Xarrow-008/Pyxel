@@ -1,125 +1,100 @@
 from utility import *
 
-WID = 250
-HEI = 250
-TILE_SIZE = 10
+TILE_SIZE = 16
 
-FPS = 120
+WID = 256
+HEI = 256 
 
-map = [[0 for x in range(HEI//TILE_SIZE)] for y in range(WID//TILE_SIZE)]
+CAM_WIDTH = TILE_SIZE*8
+CAM_HEIGHT = TILE_SIZE*8
+
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
 
+wallsMap = [[0 for x in range(WID)] for y in range(HEI)]
 
 class App:
     def __init__(self):
+        pyxel.init(CAM_WIDTH, CAM_HEIGHT, fps=120)
+        pyxel.load('../notascrap.pyxres')
 
-        os.system('cls')
-        pyxel.init(WID,HEI,fps=FPS)
-        pyxel.load('pather.pyxres')
-        
-        #self.empty_space()
+        self.show = Roombuild()
 
-        self.controller = Controller()
-        self.mapper = Mapper()
+        pyxel.mouse(visible=True)
 
-        pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
 
     def update(self):
-        self.updateMap()
-        self.updateEntities()
+        self.show.update()
 
+    def draw(self):
+        self.show.draw()
 
-    
+class Roombuild:
+    def __init__(self):
+        self.camera = [0,0]
+        self.player = Player(TILE_SIZE,TILE_SIZE)
+        self.editor = WallsEditor()
+        self.editMode = False
+
+        self.showWalls = False
+
+        self.margin = 1/4
+
+    def update(self):
+        self.cameraUpdate()
+        self.player.update()
+        self.editorUpdate()
+
+    def editorUpdate(self):
+        if pyxel.btnp(pyxel.KEY_TAB):
+            self.editMode = not self.editMode
+
+        if pyxel.btnp(pyxel.KEY_LALT):
+            self.showWalls = not self.showWalls
+        
+        
+        if self.editMode:
+            self.editor.update(self.camera)
+
+    def cameraUpdate(self):
+        if self.player.x  < self.camera[0] + CAM_WIDTH * self.margin and self.camera[0] > 0:
+            self.camera[0] = self.player.x - CAM_WIDTH * self.margin
+        if self.player.x + TILE_SIZE  > self.camera[0] + CAM_WIDTH * (1-self.margin) and self.camera[0] + CAM_WIDTH < WID *TILE_SIZE:
+            self.camera[0] = self.player.x + TILE_SIZE - CAM_WIDTH * (1-self.margin)
+        if self.player.y  < self.camera[1] + CAM_HEIGHT * self.margin and self.camera[1] > 0:
+            self.camera[1] = self.player.y - CAM_HEIGHT * self.margin
+        if self.player.y + TILE_SIZE  > self.camera[1] + CAM_HEIGHT * (1-self.margin) and self.camera[1] + CAM_HEIGHT < HEI * TILE_SIZE:
+            self.camera[1] = self.player.y + TILE_SIZE - CAM_HEIGHT * (1-self.margin)
+
+        if self.camera[0]<0:
+            self.camera[0] = 0
+        if self.camera[0] + CAM_WIDTH > WID*TILE_SIZE:
+            self.camera[0] = WID*TILE_SIZE - CAM_WIDTH
+        if self.camera[1]<0:
+            self.camera[1] = 0
+        if self.camera[1] - CAM_HEIGHT > HEI*TILE_SIZE:
+            self.camera[1] = HEI*TILE_SIZE-CAM_HEIGHT
+        
+        self.camera = [round(self.camera[0]),round(self.camera[1])]
+
+        pyxel.camera(*self.camera)
+
     def draw(self):
         pyxel.cls(0)
-        self.drawMap()
-        self.drawEntities()
+        pyxel.blt(0,0,0,0,0,256,256)
 
-    def updateMap(self):
-        self.mapper.update()
-        if self.mapper.needsReInit:
-            self.mapper.needsReInit = False
-            self.controller.reinitialize()
+        if self.showWalls:
+            self.wallsDraw()
 
-    def updateEntities(self):
-        if self.mapper.canRun():
-            self.controller.update()
+        self.player.draw()
 
-    def drawMap(self):
-        self.mapper.draw()
-
-    def drawEntities(self):
-        self.controller.draw()
-
-        
-    
-
-
-class Mapper:
-    def __init__(self):
-        global map
-        self.needsReInit = False
-
-    def update(self):
-        if pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
-            self.mousePlaceBlock(7)
-
-        if pyxel.btn(pyxel.KEY_E) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
-            self.mousePlaceBlock(0)
-
-    def mousePlaceBlock(self,block):
-        x = pyxel.mouse_x//TILE_SIZE
-        y = pyxel.mouse_y//TILE_SIZE
-        try:
-            map[y][x] = block
-        except:
-            pass
-        self.needsReInit = True
-
-    def draw(self):
-        self.drawWalls()
-
-    def drawWalls(self):
-        for y in range(len(map)):
-            for x in range(len(map[y])):
-                color = map[y][x]
-                pyxel.rect(x*10,y*10,10,10,color)
-
-    def canRun(self):
-        return not (pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.KEY_E) or pyxel.btn(pyxel.MOUSE_BUTTON_LEFT) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT))
-
-
-        
-class Controller:
-    def __init__(self):
-        self.hiderSpawn = [WID-2*TILE_SIZE, HEI-2*TILE_SIZE]
-        self.patherSpawn = [TILE_SIZE, TILE_SIZE]
-
-        self.hider = Player(*self.hiderSpawn)
-        self.pather = Pather(*self.patherSpawn)
-
-    def update(self):
-        self.pather.update((self.hider.x,self.hider.y))
-        self.checkInteractions()
-        self.hider.update()
-
-
-    def draw(self):
-        self.pather.draw()
-        self.hider.draw()
-
-    def checkInteractions(self):
-        if self.hider.stunAround:
-            self.hider.stunAround = False
-            if distance(self.hider.x,self.hider.y,self.pather.x,self.pather.y) < 20:
-                self.pather.stun(120)
-    
-    def reinitialize(self):
-        self.pather.__init__(*self.patherSpawn)
-        self.hider.__init__(*self.hiderSpawn)
-        
+    def wallsDraw(self):
+        global wallsMap
+        for y in range(len(wallsMap)):
+            for x in range(len(wallsMap[y])):
+                if wallsMap[y][x] == 1:
+                    pyxel.rect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE ,8)
 
 
 class Entity: #General Entity class with all the methods describing what entities can do
@@ -200,16 +175,16 @@ class Entity: #General Entity class with all the methods describing what entitie
             new_x = new_X*TILE_SIZE
 
         if vector[0]!=0:
-            next_X_1 = map[Y][new_X]
+            next_X_1 = wallsMap[Y][new_X]
             if self.y != Y*TILE_SIZE:
-                next_X_2 = map[Y+1][new_X]
+                next_X_2 = wallsMap[Y+1][new_X]
             else:
-                next_X_2 = Blocks.GROUND
+                next_X_2 = 0
             #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 not in Blocks.WALLS or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in Blocks.WALLS or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+            if (next_X_1 != 1 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 != 1 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
                 self.x = new_x
             #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
-            elif (next_X_1 in Blocks.WALLS or next_X_2 in Blocks.WALLS) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+            elif (next_X_1 == 1 or next_X_2 == 1) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
                 self.collidedWithWall = True
                 self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
         
@@ -225,15 +200,15 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         
         if vector[1]!=0:
-            next_Y_1 = map[new_Y][X]
+            next_Y_1 = wallsMap[new_Y][X]
             if self.x != X*TILE_SIZE:
-                next_Y_2 = map[new_Y][X+1]
+                next_Y_2 = wallsMap[new_Y][X+1]
             else:
-                next_Y_2 = Blocks.GROUND
+                next_Y_2 = 0
             
-            if (next_Y_1 not in Blocks.WALLS or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 not in Blocks.WALLS or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+            if (next_Y_1 != 1 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 != 1 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
                 self.y = new_y
-            elif (next_Y_1 in Blocks.WALLS or next_Y_2 in Blocks.WALLS) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+            elif (next_Y_1 == 1 or next_Y_2 == 1) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
                 self.collidedWithWall = True
                 self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
@@ -412,190 +387,17 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
 
-class Pather(Entity):
-    def __init__(self, x, y):
-        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
-
-        self.img = (0,2)
-        self.pathImg = (0,3)
-
-        self.moveTo = [0,0]
-        self.moveDirection = [0,0]
-        self.direction = [0,0]
-
-        self.initWalk(priority=1,maxSpeed=0.9,speedChangeRate=20,knockbackCoef=1)
-        self.initPath()
-
-        self.anims = []
-    
-    def update(self,target):
-        if self.canDoActions():
-            self.movement(target)
-        
-        self.updateAnims()
-
-        self.preventOOB()
-
-    def movement(self,target):
-        if not self.canWalkDirectlyToPlayer(target):
-            self.movePath(target)
-        else:
-            self.moveTowardsTarget(target)
-
-        self.getMomentum()
-        self.applyVector(self.momentum)
-
-    def moveTowardsTarget(self,target):
-        self.moveTo[0] = target[0] - self.x 
-        self.moveTo[1] = target[1] - self.y 
-
-    def canWalkDirectlyToPlayer(self,target):
-        return not self.directPathBlocked(target)
-
-    def directPathBlocked(self,target):
-        myPos = blockPos(self.x,self.y)
-        targetPos = blockPos(*target)
-
-        self.blockBetweenPlayer = posLineFilled(*myPos, *targetPos)
-
-        for pos in self.blockBetweenPlayer:
-            if map[pos[1]][pos[0]] in Blocks.WALLS:
-                return True
-
-        return False
-
-    def getMomentum(self):
-        #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
-        if self.moveTo[1] < 0:
-            if self.momentum[1] > -self.maxSpeed:
-                self.momentum[1] -= self.maxSpeed/self.speedChangeRate
-            self.direction[1] = -1
-
-        if self.moveTo[0] < 0:
-            if self.momentum[0] > -self.maxSpeed:
-                self.momentum[0] -= self.maxSpeed/self.speedChangeRate
-            self.direction[0] = -1
-
-        if self.moveTo[1] > 0:
-            if self.momentum[1] < self.maxSpeed:
-                self.momentum[1] += self.maxSpeed/self.speedChangeRate
-            self.direction[1] = 1
-
-        if self.moveTo[0] > 0:
-            if self.momentum[0] < self.maxSpeed:
-                self.momentum[0] += self.maxSpeed/self.speedChangeRate
-            self.direction[0] = 1
-        
-        #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
-        if not (self.moveTo[1] < 0 or self.moveTo[1] > 0):
-            self.momentum[1] -= self.momentum[1]/self.speedChangeRate
-            self.direction[1] = 0
-
-        if not(self.moveTo[0] < 0 or self.moveTo[0] > 0):
-            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
-            self.direction[0] = 0
-        
-        #If the player is almost immobile in a specific direction, we snap their speed to 0
-        if abs(self.momentum[0]) <= 0.01:
-            self.momentum[0] = 0
-        if abs(self.momentum[1]) <= 0.01:
-            self.momentum[1] = 0
-
-        #If the player is almost at max speed in a specific direction, we snap their speed to max speed
-        if self.maxSpeed-abs(self.momentum[0]) <= 0.01:
-            self.momentum[0] = self.maxSpeed*pyxel.sgn(self.momentum[0])
-        if self.maxSpeed-abs(self.momentum[1]) <= 0.01:
-            self.momentum[1] = self.maxSpeed*pyxel.sgn(self.momentum[1])
-
-        #If the player is over max speed, we decrease their speed progressively
-        if abs(self.momentum[0]) > self.maxSpeed:
-            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
-        if abs(self.momentum[1]) > self.maxSpeed:
-            self.momentum[1] -= self.momentum[1]/self.speedChangeRate 
-
-    def draw(self):
-        for pos in self.path:
-            show(pos[0]*10,pos[1]*10,(0,3),TILE_SIZE=TILE_SIZE)
-        show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
-        pyxel.line(self.x,self.y,self.x + self.momentum[0]*10,self.y + self.momentum[1]*10,7)
-
-    def updateAnims(self):
-        pass
-
-    def initPath(self):
-        self.path = []
-        self.pathIndex = 0
-
-    def movePath(self,target):
-        if self.needsNewPath(target):
-            self.findNewPath(target)
-        
-        self.moveInsidePath()
-
-    def needsNewPath(self,target):
-        if len(self.path) == 0:
-            return True
-        elif distance(*blockPos(*target),*self.path[-1]) >= 1:
-            return True
-        return False
-
-    def moveInsidePath(self):
-        if not self.pathIndex >= len(self.path)-2:
-            self.moveTo[0] = self.path[self.pathIndex+1][0]*TILE_SIZE - self.x
-            self.moveTo[1] = self.path[self.pathIndex+1][1]*TILE_SIZE - self.y
-
-            distanceCurrent = distance(self.x,self.y,self.path[self.pathIndex][0]*TILE_SIZE,self.path[self.pathIndex][1]*TILE_SIZE)
-            distanceNext = distance(self.x,self.y,self.path[self.pathIndex+1][0]*TILE_SIZE,self.path[self.pathIndex+1][1]*TILE_SIZE)
-            if distanceNext < distanceCurrent:
-                self.pathIndex += 1
-
-    def findNewPath(self,target):
-        myPos = blockPos(self.x,self.y)
-        targetPos = blockPos(*target)
-
-        start = myPos
-        border = [copy(start)]
-        newBorder = []
-        checked = []
-        pathOrigin = copy(map)
-        cross = [(0,-1),(0,1),(-1,0),(1,0)]
-        while len(border) > 0 and targetPos not in checked:
-            cross.reverse()
-            for pos in border:
-                for addon in cross:
-                    newPos = (pos[0]+addon[0],pos[1]+addon[1])
-                    if newPos not in checked:
-                        if is_inside_map(newPos, map):
-                            if map[newPos[1]][newPos[0]] == 0:
-                                if newPos not in newBorder:
-                                    newBorder.append(newPos)
-                                    pathOrigin[newPos[1]][newPos[0]] = pos
-                checked.append(pos)
-            border = copy(newBorder)
-            newBorder = []
-
-        self.pathAt = copy(targetPos)
-        self.path = [copy(targetPos)]
-        if targetPos in checked:
-            while self.pathAt != start:
-
-                self.pathAt = copy(pathOrigin[self.pathAt[1]][self.pathAt[0]])
-                self.path.insert(0,copy(self.pathAt))
-
-        self.pathIndex = 0
-
 class Player(Entity):
-    def __init__(self, x, y):
+    def __init__(self,x,y):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
 
-        self.img = (1,2)
+        self.img = (6,3)
 
-        self.stunAround = False
         self.keyboard = 'zqsd'
         self.direction = [0,0]
-
+        
         self.initWalk(priority=1,maxSpeed=1,speedChangeRate=20,knockbackCoef=1)
-    
+
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
         if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
@@ -621,7 +423,7 @@ class Player(Entity):
         self.speedDecrease()
 
         self.walk(self.momentum)
-    
+
     def speedDecrease(self):
         #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
         if not(pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())) or pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper()))):
@@ -653,52 +455,47 @@ class Player(Entity):
     def draw(self):
         show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
 
-        
+
+class NewRoom:
+    def __init__(self,x,y,width,height):
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+    def update(self):
+        pass
+    def draw(self):
+        pass
+
+
+class WallsEditor:
+    def __init__(self):
+        self.camera = [0,0]
+
+    def update(self,camera):
+        self.camera = copy(camera)
+        self.editWalls()
+
+    def editWalls(self):
+        if pyxel.btn(pyxel.KEY_A) or pyxel.btn(pyxel.MOUSE_BUTTON_LEFT):
+            self.mousePlaceBlock(1)
+
+        if pyxel.btn(pyxel.KEY_E) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
+            self.mousePlaceBlock(0)
+
+    def mousePlaceBlock(self,block):
+        global wallsMap
+        x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE
+        y = (pyxel.mouse_y + self.camera[1])//TILE_SIZE
+        try:
+            wallsMap[y][x] = block
+        except:
+            pass
+
+    def draw(self):
+        pass
 
 
 
-
-class Blocks:
-    WALLS = [7]
-    GROUND = [0]
-
-
-def blockPos(x,y,TILE_SIZE=10):
-    return (round(x/TILE_SIZE),round(y/TILE_SIZE))
-
-
-def posLineFilled(x0,y0,x1,y1): #not exactly bresenham's algorithm because i dont understand it all yet but ill change it when i do
-    positions = []
-    cos = x1 - x0
-    sin = y1 - y0
-    step_ref = max(abs(cos),abs(sin))
-    if step_ref != 0:
-        stepX = cos / step_ref #diviser toute la longueur par step pour creer chaque marche de l'escalier
-        stepY = sin / step_ref #l'autre cote de l'escalier
-        for i in range(step_ref+1): #+1 car on met un carre a 0 et a la fin
-            positions.append(   (round(x0 + i * stepX), #i fois le nombre de marche auquel on se trouve
-                                round(y0 + i * stepY))
-                            )
-            if i >= 1:
-                if positions[-1][0] != positions[-2][0]:
-                    positions.append((round(x0 + i * stepX), #i fois le nombre de marche auquel on se trouve
-                                    round(y0 + (i-1) * stepY))
-                                    )   
-
-                elif positions[-1][1] != positions[-2][1]:
-                    positions.append((round(x0 + (i-1) * stepX), #i fois le nombre de marche auquel on se trouve
-                                    round(y0 + i * stepY))
-                                    )   
-
-    return positions
-      
-
-def is_inside_map(pos,map):
-    if pos[0] >= len(map[0]) or pos[1] >= len(map):
-        return False
-    if pos[0] < 0 or pos[1] < 0:
-        return False
-    return True
-
-
-App()
+if __name__ == '__main__':
+    App()

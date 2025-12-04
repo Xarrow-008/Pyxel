@@ -396,20 +396,6 @@ def copy_press(txt):
 
 canvas = [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 4, 4, 4, 4, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 2, 2, 2, 2, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 2, 2, 2, 2, 0, 0], [0, 0, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 6, 4, 4, 4, 2, 2, 2, 2, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]]
 
-def get_canvas(string):
-    liste = []
-    i = 1
-    index = -1
-    while i != len(string):
-        #print(string[i], i, end=' | ')
-        if string[i] == '[':
-            liste.append([])
-            index += 1
-        if string[i].isdigit():
-            liste[index].append(int(string[i]))
-            
-        i += 1
-    return liste
 
 #print(get_canvas('[[0,0],[0,1,2,3,2][0,9,8]]')[1])
 
@@ -420,30 +406,53 @@ def get_divider(file):
             divider = i+1
     return divider
 
-pather = 'not_a_scrap_v2'
-
-folder = pathlib.Path(pather)
-for item in folder.iterdir():
-    print(item.parts[-1])
-
 def is_in_folder(dir,name):
     folder = pathlib.Path(dir)
     for item in folder.iterdir():
         if item.parts[-1] == name:
             return True
     return False
-
+"""
 print(is_in_folder(pather,'main.py'))
         
 print(random.randint(0,1))
 
 print(int('1556789'[:1])+2)
-
+"""
 #empty_save_anim()
 
 
 
 
+def get_canvas(string):
+    liste = []
+    i = 1
+    index = -1
+    while i < len(string):
+        char = string[i]
+        if char == '[':
+            liste.append([])
+            index += 1
+        elif char.isdigit():
+            liste[index].append(get_int(string[i:]))
+            while i < len(string) and string[i].isdigit():
+                i += 1         
+        i += 1
+    return liste
+
+def get_int(string):
+    number = None
+    for i in range(len(string)):
+        if string[:i].isdigit():
+            number = int(string[:i])
+        elif number != None:
+            break
+    return number
+
+
+
+test = '[[11,11],[11,11],[123,1234]]'
+print(get_canvaaaas(test))
 
 class Animation:
     def __init__(self):

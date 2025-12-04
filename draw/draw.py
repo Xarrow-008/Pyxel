@@ -22,6 +22,7 @@ class App:
         os.system('cls')
         pyxel.init(width=128,height=128,fps=120)
         pyxel.load('../makers_asset.pyxres')
+        pyxel.colors[2] = get_color('740152')
 
         #self.save = toml.load('save.toml')
 
@@ -881,7 +882,7 @@ class DrawArea:
     def paste_select(self):
         for y in range(len(self.select_zone['content'])):
             if self.select_zone['y'] + y < self.canvas_height:
-                for x in range(len(self.select_zone['content'][0])):
+                for x in range(len(self.select_zone['content'][y])):
                     if self.select_zone['x'] + x < self.canvas_width:
                         self.canvas[self.select_zone['y'] + y][self.select_zone['x'] + x] = self.select_zone['content'][y][x]
 
@@ -1275,18 +1276,33 @@ def only_contains(list,x):
 
 def get_canvas(string):
     liste = []
-    i = 1
+    i = 0
     index = -1
-    while i != len(string):
-        #print(string[i], i, end=' | ')
-        if string[i] == '[':
-            liste.append([])
-            index += 1
-        if string[i].isdigit():
-            liste[index].append(int(string[i]))
-            
+    if string[0] == '[':
         i += 1
+        while i < len(string):
+            char = string[i]
+            if char == '[':
+                liste.append([])
+                index += 1
+            elif char.isdigit():
+                liste[index].append(get_int(string[i:]))
+                while i < len(string) and string[i].isdigit():
+                    i += 1         
+            i += 1
+    else:
+        return None
     return liste
+
+def get_int(string):
+    number = None
+    for i in range(len(string)):
+        if string[:i].isdigit():
+            number = int(string[:i])
+        elif number != None:
+            break
+    return number
+
 
 def get_divider(file):
     divider = 0
@@ -1301,6 +1317,9 @@ def is_in_folder(dir,name):
         if item.parts[-1].lower() == name.lower():
             return True
     return False
+
+def get_color(hex):
+    return int(hex, 16)
 
 if __name__ == '__main__':
     App()
