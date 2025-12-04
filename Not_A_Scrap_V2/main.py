@@ -169,6 +169,8 @@ class inMission:
 
         if hasattr(target, "isHitStun"):
             if (not target.isHitStun or target.hitBy == shot) and not target.isInvincible():
+                
+                target.addDamageNumber(value, False)
                 target.health -= value
 
                 target.isHitStun = True
@@ -290,12 +292,14 @@ class Entity: #General Entity class with all the methods describing what entitie
     def draw(self):
         pass
 
+
     def drawOver(self):
         self.drawAnims()
 
     def drawAnims(self):
         for anim in self.anims:
             anim.draw(self.x,self.y)
+
 
     def canDoActions(self):
         return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun")
@@ -422,7 +426,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         else :
             self.currentActionPriority = 0
             if type(self) == Player:
-                self.addAnimation(pos=(0,-TILE_SIZE),settings={'u':0,'v':2,'length':10,'duration':self.dashCooldown//5,'colkey':3},lifetime='1 cycle')
+                self.addAnimation(pos=[0,-TILE_SIZE],settings={'u':0,'v':2,'length':10,'duration':self.dashCooldown//5,'colkey':3},lifetime='1 cycle')
             self.isDashing = False
             self.dashStartFrame = game_frame
             self.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
@@ -526,9 +530,19 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
     def addAnimationHit(self,pos):
-        self.addAnimation(pos=(pos[0],pos[1],False),settings={'u':0,'v':1,'length':5},lifetime='1 cycle')
+        self.addAnimation(pos=[pos[0],pos[1],False],settings={'u':0,'v':1,'length':5},lifetime='1 cycle')
 
-    def addAnimation(self,pos=(0,0),settings=0,lifetime='1 cycle'):
+    def addDamageNumber(self, value, crit):
+        angle = random.uniform(0,2*math.pi)
+        x_center = self.x+self.width/2
+        y_center = self.y+self.height/2
+        if crit :
+            self.addAnimation(pos=[x_center+math.cos(angle)*1.5*self.width, y_center+math.sin(angle)*1.5*self.height, False], settings={"width":0, "height":0, "text":(str(value),8,8), "movementVector":[math.cos(angle)*0.1, math.sin(angle)*0.1]}, lifetime=30)
+        else:
+            self.addAnimation(pos=[x_center+math.cos(angle)*1.5*self.width, y_center+math.sin(angle)*1.5*self.height, False], settings={"width":0, "height":0, "text":(str(value),8,7), "movementVector":[math.cos(angle)*0.1, math.sin(angle)*0.1]}, lifetime=30)
+
+
+    def addAnimation(self,pos=[0,0],settings=0,lifetime='1 cycle'):
         self.anims.append(Animation(pos,settings,lifetime))
 
 
@@ -1316,7 +1330,7 @@ class Animation:
         self.pos = pos
         self.posRelative = True
         self.colkey = 11
-        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'heigth':TILE_SIZE,'vector':(1,0),'length':3,'duration':10, 'colkey':11}
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':("",6,7), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0)}
 
         self.apply_settings()
 
@@ -1327,17 +1341,21 @@ class Animation:
     def update(self):
         if not self.is_dead():
             self.get_img()
+            self.pos[0] += self.settings["movementVector"][0]
+            self.pos[1] += self.settings["movementVector"][1]
             
     def draw(self,x,y):
         if self.posRelative:
-            show(x + self.pos[0], y + self.pos[1], self.img, colkey=self.colkey, save=1)
+            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.img[0]*self.settings["width"], v=self.img[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            sized_text(x + self.pos[0], y + self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2])
         else:
-            show(self.pos[0], self.pos[1], self.img, colkey=self.colkey, save=1)
+            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.img[0]*self.settings["width"], v=self.img[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            sized_text(self.pos[0], self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2])
         
     def get_img(self):
         frame_anim = (self.frame() // self.settings['duration']) % self.settings['length']
-        x = self.settings['u'] + self.settings['vector'][0]*frame_anim
-        y = self.settings['v'] + self.settings['vector'][1]*frame_anim
+        x = self.settings['u'] + self.settings['imageVector'][0]*frame_anim
+        y = self.settings['v'] + self.settings['imageVector'][1]*frame_anim
         self.img = (x,y)
 
         #print(x,y,flush=True)
@@ -1364,12 +1382,15 @@ class Animation:
         if len(self.pos) > 2:
             if type(self.pos[2]) is bool:
                 self.posRelative = self.pos[2]
-            self.pos = (self.pos[0],self.pos[1])
+            self.pos = [self.pos[0],self.pos[1]]
 
         self.colkey = self.settings['colkey']
 
 
     def is_dead(self):
+        if self.lifetime == 1000:
+            print(self.start, pyxel.frame_count)
+
         return pyxel.frame_count > self.start + self.lifetime or self.kill
 
     def frame(self):
@@ -1429,44 +1450,49 @@ def is_inside_map(pos,map):
         return False
     return True
 
-def sized_text(x, y, s, col, size=6, limit=256): #Like pyxel.text, but you can modify the size of the text
-    alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
-    other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°"]
+def sized_text(x, y, s, col=7, size=6, limit=256): #Like pyxel.text, but you can modify the size of the text
+    if s != "":
+        alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
+        other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°"]
 
-    current_x = x
+        current_x = x
 
-    scale = size/6
+        scale = size/6
 
-    for i in range(len(s)):
-        chr = s[i]
-        if chr in other_characters:
-            u = 4*other_characters.index(chr)
-            v = 238
-        elif chr in alphabet:
-            u = 4*alphabet.index(chr)
-            v = 244
-        elif chr.lower() in alphabet:
-            u = 4*alphabet.index(chr.lower())
-            v = 250
-        
-        w = 3
-        h = 6
+        for i in range(len(s)):
+            chr = s[i]
 
-        if chr != " ":
-            pyxel.pal(0,col)
-            draw(current_x, y, 0, u, v, w, h, scale=scale, colkey=11)
-            pyxel.pal()
+            if chr == "":
+                break
 
-        if not(chr==" " and current_x==x):
-            current_x += int(4*scale)
+            if chr in other_characters:
+                u = 4*other_characters.index(chr)
+                v = 238
+            elif chr in alphabet:
+                u = 4*alphabet.index(chr)
+                v = 244
+            elif chr.lower() in alphabet:
+                u = 4*alphabet.index(chr.lower())
+                v = 250
+            
+            w = 3
+            h = 6
 
-        if current_x + 2*int(4*scale) >= limit: #Make the text wrap around if it goes past the limit
-            if chr != " " and not (i<len(s)-1 and s[i+1]==" "):
+            if chr != " ":
                 pyxel.pal(0,col)
-                draw(current_x, y, 0, 96, 238, w, h, scale=scale, colkey=11)
+                draw(current_x, y, 0, u, v, w, h, scale=scale, colkey=11)
                 pyxel.pal()
-            current_x = x
-            y += int(6*scale)
+
+            if not(chr==" " and current_x==x):
+                current_x += int(4*scale)
+
+            if current_x + 2*int(4*scale) >= limit: #Make the text wrap around if it goes past the limit
+                if chr != " " and not (i<len(s)-1 and s[i+1]==" "):
+                    pyxel.pal(0,col)
+                    draw(current_x, y, 0, 96, 238, w, h, scale=scale, colkey=11)
+                    pyxel.pal()
+                current_x = x
+                y += int(6*scale)
 
 def import_csv(file):
     tab = []
