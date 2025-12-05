@@ -167,11 +167,28 @@ class inMission:
     def hurt(self, value, vector, knockback_coef, shot, damager, target):
         global freeze_start, freeze_duration, game_frame
 
+        damagerIsOwnedbyPlayer = (type(damager)==Projectile and damager.team == "player")
+
+        if damagerIsOwnedbyPlayer :
+            crit = self.player.inventory.critChance >= random.randint(0,100)
+        else :
+            crit = hasattr(damager, "inventory") and damager.inventory.critChance >= random.randint(0,100)
+
         if hasattr(target, "isHitStun"):
             if (not target.isHitStun or target.hitBy == shot) and not target.isInvincible():
                 
-                target.addDamageNumber(value, False)
-                target.health -= value
+                if crit:
+                    target.health -= value*2
+                    if damagerIsOwnedbyPlayer :
+                        self.player.addDamageNumber(target, value*2, 8)
+                    else:
+                        damager.addDamageNumber(target, value*2, 8)
+                else:
+                    target.health -= value
+                    if damagerIsOwnedbyPlayer :
+                        self.player.addDamageNumber(target, value, 7)
+                    else:
+                        damager.addDamageNumber(target, value, 7)
 
                 target.isHitStun = True
                 target.hitStunStartFrame = game_frame
@@ -532,14 +549,11 @@ class Entity: #General Entity class with all the methods describing what entitie
     def addAnimationHit(self,pos):
         self.addAnimation(pos=[pos[0],pos[1],False],settings={'u':0,'v':1,'length':5},lifetime='1 cycle')
 
-    def addDamageNumber(self, value, crit):
+    def addDamageNumber(self, target, value, colour):
         angle = random.uniform(0,2*math.pi)
-        x_center = self.x+self.width/2
-        y_center = self.y+self.height/2
-        if crit :
-            self.addAnimation(pos=[x_center+math.cos(angle)*1.5*self.width, y_center+math.sin(angle)*1.5*self.height, False], settings={"width":0, "height":0, "text":(str(value),8,8), "movementVector":[math.cos(angle)*0.1, math.sin(angle)*0.1]}, lifetime=30)
-        else:
-            self.addAnimation(pos=[x_center+math.cos(angle)*1.5*self.width, y_center+math.sin(angle)*1.5*self.height, False], settings={"width":0, "height":0, "text":(str(value),8,7), "movementVector":[math.cos(angle)*0.1, math.sin(angle)*0.1]}, lifetime=30)
+        x_center = target.x+target.width/2
+        y_center = target.y+target.height/2
+        self.addAnimation(pos=[x_center+math.cos(angle)*1.5*target.width, y_center+math.sin(angle)*1.5*target.height, False], settings={"width":0, "height":0, "text":(str(value),7,colour), "movementVector":[math.cos(angle)*0.1, math.sin(angle)*0.1]}, lifetime=48)
 
 
     def addAnimation(self,pos=[0,0],settings=0,lifetime='1 cycle'):
@@ -1040,7 +1054,7 @@ class Inventory:
         self.backpack2 = Weapon.NONE
         self.backpack2Occupied = False
 
-        
+        self.critChance = 50
 
     def addWeapon(self, weapon, hand): #Function used when the player picks up a weapon
 

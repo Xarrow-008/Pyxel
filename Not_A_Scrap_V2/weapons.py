@@ -21,7 +21,7 @@ class Weapon:
                     
                     "spread":0, "bullet_count":1,
                     "bullet_speed":0.5, "range":6*TILE_SIZE,
-                    "damage":35, "piercing":0, "knockback_coef":1,
+                    "damage":15, "piercing":0, "knockback_coef":1,
                     "reload":3*FPS, "cooldown":0.25*FPS,
                     "mag_ammo":20, "max_ammo":20, "reserve_ammo":120}
 
