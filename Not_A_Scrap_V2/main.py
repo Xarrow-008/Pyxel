@@ -1,6 +1,7 @@
 import pyxel,os,math,random, csv
 from enemies import*
 from weapons import*
+from items import*
 from copy import deepcopy as copy
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
@@ -40,10 +41,9 @@ game_frame = 0
 class Game:
     def __init__(self):
         self.world = World()
-        self.entities = []
         self.player = Player()
         
-        self.place = inMission(self.world, self.entities, self.player)
+        self.place = inMission(self.world, self.player)
 
     def update(self):
         global game_frame
@@ -96,13 +96,16 @@ class Game:
 
 
 class inMission:
-    def __init__(self, world, entities, player):
+    def __init__(self, world, player):
         self.world = world
-        self.entities = entities
+        self.entities = []
+        self.pickups = []
         self.player = player
 
     def update(self):
+
         self.entity_gestion()
+        self.pickup_gestion()
 
         self.player.update()
 
@@ -115,6 +118,10 @@ class inMission:
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(5, [0,0], 1, 0, self.player, self.player)
+
+        if pyxel.btnp(pyxel.KEY_P):
+            item = random.choice(ITEM_LIST)
+            self.pickups.append(Pickup(100,100, item))
 
     def updateAllEntityAnims(self):
         for entity in self.entities:
@@ -142,12 +149,30 @@ class inMission:
             
             entity.update()
 
+    def pickup_gestion(self):
+
+        if keyPress("INTERACT","btnp"):
+            pickedUpAnItem = False
+            for pickup in self.pickups:
+                if (not pickedUpAnItem) and collision(pickup.x, pickup.y, self.player.x, self.player.y, [pickup.width, pickup.height], [self.player.width, self.player.height]):
+                    pickup.pickedUp = True
+                    pickedUpAnItem = True
+                    self.player.inventory.items[pickup.pickup["name"]] += 1
+
+        for pickup in self.pickups:
+            if pickup.pickedUp:
+                self.pickups.remove(pickup)
+
     def draw(self):
         for y in range(HEIGHT):
             for x in range(WIDTH):
                 block = self.world.map[y][x]
                 draw_block(x*TILE_SIZE,y*TILE_SIZE,0,block)
         
+        for pickup in self.pickups:
+            if not pickup.pickedUp:
+                pickup.draw()
+
         for entity in self.entities:
             if not entity.dead:
                 entity.draw()
@@ -157,7 +182,7 @@ class inMission:
                 entity.drawOver()
         
         self.player.draw() 
-        self.player.drawOver()  
+        self.player.drawOver()
 
     def heal(self, value, healer, target):
         target.health += value
@@ -853,6 +878,21 @@ class Player(Entity): #Creates an entity that's controlled by the player
         sized_text(x=x+27, y=202, s=f"Description", col=7, limit=x+230)
         sized_text(x=x+27, y=212, s=f"Hover over an item to see its description (We currently haven't implemented any items)", col=7, limit=x+230)
 
+        item_x = 12
+        item_y = 5
+        for item in self.inventory.items.items():
+            if item[1]>0:
+                item_object = getItemFromName(item[0])
+                pyxel.rectb(x=x+item_x, y=item_y, w=TILE_SIZE+2, h=TILE_SIZE+2, col=7)
+                pyxel.rect(x=x+item_x+1, y=item_y+1, w=TILE_SIZE, h=TILE_SIZE, col=0)
+                draw(x=x+item_x+1, y=item_y+1, img=0, u=item_object["image"][0], v=item_object["image"][1], w=TILE_SIZE, h=TILE_SIZE, colkey=11)
+                pyxel.rect(x=x+item_x+18, y=item_y+1, w=13, h=TILE_SIZE, col=0)
+                sized_text(x=x+item_x+20, y=item_y+5, s=f"*{item[1]}", col=7)
+                item_x += 32
+                if item_x >= 208:
+                    item_x = 12
+                    item_y += 20
+
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -1056,6 +1096,10 @@ class Inventory:
 
         self.critChance = 50
 
+        self.items = {}
+        for item in ITEM_LIST:
+            self.items[item["name"]] = 0
+
     def addWeapon(self, weapon, hand): #Function used when the player picks up a weapon
 
         setattr(self, hand, weapon)
@@ -1233,7 +1277,6 @@ class Inventory:
         if hand == "rightHand":
             return "backpack2"
 
-
 class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
     def __init__(self, weapon, x, y, vector, team, shot):
         super().__init__(x=x, y=y, width=weapon["bullet_width"], height=weapon["bullet_height"])
@@ -1280,6 +1323,22 @@ class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
     def death(self):
         if self.range <= 0:
             self.dead = True
+
+
+class Pickup:
+    def __init__(self, x, y, pickup):
+        self.x = x
+        self.y = y
+
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
+
+        self.pickup = pickup
+
+        self.pickedUp = False
+
+    def draw(self):
+        draw(x=self.x, y=self.y, img=0, u=self.pickup["image"][0], v=self.pickup["image"][1], w=self.width, h=self.height, colkey=11)
 
 
 class Path:
@@ -1467,7 +1526,7 @@ def is_inside_map(pos,map):
 def sized_text(x, y, s, col=7, size=6, limit=256): #Like pyxel.text, but you can modify the size of the text
     if s != "":
         alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
-        other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°"]
+        other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°","*"]
 
         current_x = x
 
@@ -1567,7 +1626,9 @@ def holdKey(action, duration, counter):
 
     return False
 
-
-        
+def getItemFromName(name):
+    for item in ITEM_LIST:
+        if item["name"]==name:
+            return item
     
 App()
