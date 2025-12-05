@@ -678,18 +678,18 @@ class Player(Entity): #Creates an entity that's controlled by the player
             sized_text(x=12, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
 
             #Weapons
-            pyxel.rectb(x=1, y=218, w=18, h=18, col=0)
-            pyxel.rect(x=2, y=219, w=16, h=16, col=13)
-            draw(x=2, y=219, img=0, u=self.inventory.leftHand["image"][0], v=self.inventory.leftHand["image"][1], w=self.inventory.leftHand["width"], h=self.inventory.leftHand["height"], colkey=11)
+            pyxel.rectb(x=237, y=218, w=18, h=18, col=0)
+            pyxel.rect(x=238, y=219, w=16, h=16, col=13)
+            draw(x=238, y=219, img=0, u=self.inventory.leftHand["image"][0], v=self.inventory.leftHand["image"][1], w=self.inventory.leftHand["width"], h=self.inventory.leftHand["height"], colkey=11)
             if self.inventory.leftHand != Weapon.NONE:
-                sized_text(x=21, y=224, s=str(self.inventory.leftHand["mag_ammo"])+"/"+str(self.inventory.leftHand["max_ammo"])+"("+str(self.inventory.leftHand["reserve_ammo"])+")", col=7)
+                sized_text(x=198, y=224, s=str(self.inventory.leftHand["mag_ammo"])+"/"+str(self.inventory.leftHand["max_ammo"])+"("+str(self.inventory.leftHand["reserve_ammo"])+")", col=7)
 
 
-            pyxel.rectb(x=1, y=237, w=18, h=18, col=0)
-            pyxel.rect(x=2, y=238, w=16, h=16, col=13)
-            draw(x=2, y=238, img=0, u=self.inventory.rightHand["image"][0], v=self.inventory.rightHand["image"][1], w=self.inventory.rightHand["width"], h=self.inventory.rightHand["height"], colkey=11)
+            pyxel.rectb(x=237, y=237, w=18, h=18, col=0)
+            pyxel.rect(x=238, y=238, w=16, h=16, col=13)
+            draw(x=238, y=238, img=0, u=self.inventory.rightHand["image"][0], v=self.inventory.rightHand["image"][1], w=self.inventory.rightHand["width"], h=self.inventory.rightHand["height"], colkey=11)
             if self.inventory.rightHand != Weapon.NONE:
-                sized_text(x=21, y=243, s=str(self.inventory.rightHand["mag_ammo"])+"/"+str(self.inventory.rightHand["max_ammo"])+" ("+str(self.inventory.rightHand["reserve_ammo"])+")", col=7)
+                sized_text(x=198, y=243, s=str(self.inventory.rightHand["mag_ammo"])+"/"+str(self.inventory.rightHand["max_ammo"])+" ("+str(self.inventory.rightHand["reserve_ammo"])+")", col=7)
 
 
     def updateInventory(self):
@@ -875,11 +875,10 @@ class Player(Entity): #Creates an entity that's controlled by the player
     def drawInventoryItemScreen(self, x):
         pyxel.rectb(x=x+25, y=200, w=205, h=50, col=7)
         pyxel.rect(x=x+26, y=201, w=203, h=48, col=0)
-        sized_text(x=x+27, y=202, s=f"Description", col=7, limit=x+230)
-        sized_text(x=x+27, y=212, s=f"Hover over an item to see its description (We currently haven't implemented any items)", col=7, limit=x+230)
 
         item_x = 12
         item_y = 5
+        hoveringOverAnItem = False
         for item in self.inventory.items.items():
             if item[1]>0:
                 item_object = getItemFromName(item[0])
@@ -888,10 +887,21 @@ class Player(Entity): #Creates an entity that's controlled by the player
                 draw(x=x+item_x+1, y=item_y+1, img=0, u=item_object["image"][0], v=item_object["image"][1], w=TILE_SIZE, h=TILE_SIZE, colkey=11)
                 pyxel.rect(x=x+item_x+18, y=item_y+1, w=13, h=TILE_SIZE, col=0)
                 sized_text(x=x+item_x+20, y=item_y+5, s=f"*{item[1]}", col=7)
+
+                if pyxel.mouse_x >= x+item_x and pyxel.mouse_x <= x+item_x+18 and pyxel.mouse_y >= item_y and pyxel.mouse_y <= item_y+18:
+                    hoveringOverAnItem = True
+                    sized_text(x=x+27, y=202, s=item[0], col=7, limit=x+230)
+                    sized_text(x=x+27, y=212, s=item_object["long_description"], col=7, limit=x+230)
+
                 item_x += 32
                 if item_x >= 208:
                     item_x = 12
                     item_y += 20
+        
+        if not hoveringOverAnItem:
+            sized_text(x=x+27, y=202, s="Description", col=7, limit=x+230)
+            sized_text(x=x+27, y=212, s="Hover over an item to see its description", col=7, limit=x+230)
+                
 
 
     def movement(self):
@@ -1526,7 +1536,7 @@ def is_inside_map(pos,map):
 def sized_text(x, y, s, col=7, size=6, limit=256): #Like pyxel.text, but you can modify the size of the text
     if s != "":
         alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
-        other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°","*"]
+        other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°","*","+","%"]
 
         current_x = x
 

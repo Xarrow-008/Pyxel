@@ -60,8 +60,8 @@ class Item:
                 "image":(0,192),
                 "rarity":"common",
                 "type":"healing",
-                "short_description":"Heal after reloading in combat", #The idea is to reward players who take risks by reloading while they're still fighting instead of leaving
-                "long_description":"If you finish reloading while you are in combat, heal for 15HP (+15 per stack)"}
+                "short_description":"Heal after reloading while close to enemies", #The idea is to reward players who take risks by reloading while they're still fighting instead of leaving
+                "long_description":"If you finish reloading while you are close to an enemy, heal for 15HP (+15 per stack)"}
 
     KEY_CHAIN = {"name":"Key Chain",  
                 "image":(0,192),
@@ -131,7 +131,7 @@ class Item:
                 "rarity":"common",
                 "type":"damage",
                 "short_description":"Increased critical hit chance", 
-                "long_description":"Increases your chance of dealing critical hits by 5% (+5% per stack)"}
+                "long_description":"Increases your chance of dealing critical hits by 5% (+5% per stack). You cannot increase critical hit chance over 50%"}
 
     BADGES = {"name":"Scout's Badges", #Like boyscout badges
                 "image":(0,192),
