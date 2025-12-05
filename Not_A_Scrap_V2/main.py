@@ -1344,7 +1344,7 @@ class Animation:
         self.pos = pos
         self.posRelative = True
         self.colkey = 11
-        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':("",6,7), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0)}
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0)}
 
         self.apply_settings()
 
