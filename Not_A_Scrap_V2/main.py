@@ -589,7 +589,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         angle = random.uniform(0,2*math.pi)
         x_center = target.x+target.width/2
         y_center = target.y+target.height/2
-        self.addAnimation(pos=[x_center+math.cos(angle)*1.5*target.width, y_center+math.sin(angle)*1.5*target.height, False], settings={"width":0, "height":0, "text":(str(value),7,colour), "movementVector":[math.cos(angle)*0.1, math.sin(angle)*0.1]}, lifetime=48)
+        self.addAnimation(pos=[x_center+math.cos(angle)*1.5*target.width, y_center+math.sin(angle)*1.5*target.height, False], settings={"width":0, "height":0, "text":(str(value),7,colour,True), "movementVector":[math.cos(angle)*0.1, math.sin(angle)*0.1]}, lifetime=48)
 
 
     def addAnimation(self,pos=[0,0],settings=0,lifetime='1 cycle'):
@@ -1424,7 +1424,7 @@ class Animation:
         self.pos = pos
         self.posRelative = True
         self.colkey = 11
-        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0)}
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7,False), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0)}
 
         self.apply_settings()
 
@@ -1441,10 +1441,10 @@ class Animation:
     def draw(self,x,y):
         if self.posRelative:
             draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.img[0]*self.settings["width"], v=self.img[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
-            sized_text(x + self.pos[0], y + self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2])
+            sized_text(x + self.pos[0], y + self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         else:
             draw(x=self.pos[0], y=self.pos[1], img=1, u=self.img[0]*self.settings["width"], v=self.img[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
-            sized_text(self.pos[0], self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2])
+            sized_text(self.pos[0], self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         
     def get_img(self):
         frame_anim = (self.frame() // self.settings['duration']) % self.settings['length']
@@ -1545,6 +1545,8 @@ def is_inside_map(pos,map):
     return True
 
 def sized_text(x, y, s, col=7, size=6, limit=256, background=False): #Like pyxel.text, but you can modify the size of the text
+    x = math.ceil(x)
+    y = math.ceil(y)
     if s != "":
         alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
         other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°","*","+","%"]
