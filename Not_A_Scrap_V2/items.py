@@ -1,4 +1,4 @@
-
+import inspect
 #Damage : Anything that increases DPS
 #Healing : Anything that increases survivability
 #Support : Everything else
@@ -168,9 +168,10 @@ class Item:
                     "short_description":"Increased precision", 
                     "long_description":"Increases precision on ranged weapons by 5° (+5° per stack). Decreases by 10° the precision loss while moving."}
 
-ITEM_LIST = [Item.WAR_FIGURINE, Item.LUNCHBOX, Item.PILLOW, Item.MEDICATION, Item.TIN_CAN, Item.LEATHER_JACKET, Item.CARD_DECK, Item.KEY_CHAIN,
-        Item.WARNING_SIGN, Item.SQUEAKY_TOY, Item.WIRE_CUTTER, Item.SHOE_BOX, Item.BATTERIES, Item.JERRYCAN, Item.PAMPHLET, Item.RED_BOOK,
-        Item.BOTTLE, Item.BADGES, Item.PUZZLE_CUBE, Item.METAL_SHEET, Item.BINOCULAR, Item.GLASSES]
+ITEM_LIST = []
+for i in inspect.getmembers(Item):
+    if not i[0].startswith('_'):
+        ITEM_LIST.append(i[1])
     
     
  #Overall i mainly think we need to change the item names, but it shouldnt be a problem, and other than that we shouldnt get stuck with 1 idea (I can only think of 1 item in Hollow knight that works when low health)
