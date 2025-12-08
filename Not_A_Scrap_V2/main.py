@@ -150,14 +150,19 @@ class inMission:
             entity.update()
 
     def pickup_gestion(self):
+        self.playerOnPickup = None
+        pickedUpAnItem = False
+        for pickup in self.pickups:
+            if collision(pickup.x, pickup.y, self.player.x, self.player.y, [pickup.width, pickup.height], [self.player.width, self.player.height]):
+                
+                if self.playerOnPickup == None:
+                    self.playerOnPickup = pickup.pickup
 
-        if keyPress("INTERACT","btnp"):
-            pickedUpAnItem = False
-            for pickup in self.pickups:
-                if (not pickedUpAnItem) and collision(pickup.x, pickup.y, self.player.x, self.player.y, [pickup.width, pickup.height], [self.player.width, self.player.height]):
+                if (not pickedUpAnItem) and keyPress("INTERACT","btnp"):
                     pickup.pickedUp = True
                     pickedUpAnItem = True
                     self.player.inventory.items[pickup.pickup["name"]] += 1
+                    
 
         for pickup in self.pickups:
             if pickup.pickedUp:
@@ -183,6 +188,12 @@ class inMission:
         
         self.player.draw() 
         self.player.drawOver()
+
+        if self.playerOnPickup != None:
+            sized_text(x=2, y=239, s=self.playerOnPickup["name"], col=7, size=6, background=True)
+            sized_text(x=2, y=248, s=self.playerOnPickup["short_description"], col=7, size=6, background=True)
+
+            sized_text(x=self.player.x-29, y=self.player.y-9, s="Press [F] to pickup", col=7, size=6, background=True)
 
     def heal(self, value, healer, target):
         target.health += value
@@ -1533,7 +1544,7 @@ def is_inside_map(pos,map):
         return False
     return True
 
-def sized_text(x, y, s, col=7, size=6, limit=256): #Like pyxel.text, but you can modify the size of the text
+def sized_text(x, y, s, col=7, size=6, limit=256, background=False): #Like pyxel.text, but you can modify the size of the text
     if s != "":
         alphabet = ["a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z"]
         other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°","*","+","%"]
@@ -1561,7 +1572,12 @@ def sized_text(x, y, s, col=7, size=6, limit=256): #Like pyxel.text, but you can
             w = 3
             h = 6
 
+            if chr == " " and background:
+                pyxel.rect(x=current_x-1, y=y-1, w=int(5*scale), h=int(8*scale), col=0)
+
             if chr != " ":
+                if background :
+                    pyxel.rect(x=current_x-1, y=y-1, w=int(5*scale), h=int(8*scale), col=0)
                 pyxel.pal(0,col)
                 draw(current_x, y, 0, u, v, w, h, scale=scale, colkey=11)
                 pyxel.pal()
@@ -1571,6 +1587,8 @@ def sized_text(x, y, s, col=7, size=6, limit=256): #Like pyxel.text, but you can
 
             if current_x + 2*int(4*scale) >= limit: #Make the text wrap around if it goes past the limit
                 if chr != " " and not (i<len(s)-1 and s[i+1]==" "):
+                    if background :
+                        pyxel.rect(x=current_x-1, y=y-1, w=int(5*scale), h=int(8*scale), col=0)
                     pyxel.pal(0,col)
                     draw(current_x, y, 0, 96, 238, w, h, scale=scale, colkey=11)
                     pyxel.pal()
