@@ -148,7 +148,7 @@ class folders_desk:
         self.button_list.append(Button(name='drawing',color=2,x=self.text_zone.x,y=self.text_zone.y+10,width=30,height=7))
         self.button_list.append(Button(name='animation',color=2,x=self.text_zone.x+32,y=self.text_zone.y+10,width=38,height=7))
         self.shortcuts = []
-        self.find_shortcuts(['save.toml', '../notascrap.pyxres'])
+        self.find_shortcuts(['save.toml', '../rooms.pyxres', '../notascrap.pyxres'])
         self.file_info = {'file_path':'','file_data':{},'file_pyxres_name':'','file_index':0}
         self.open_to = 'drawing'
         

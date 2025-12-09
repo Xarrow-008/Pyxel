@@ -1,4 +1,4 @@
-import toml, pyperclip, pathlib
+import toml, pyperclip, pathlib, zipfile
 from pynput.keyboard import Key, Listener
 from utility import *
 
@@ -449,10 +449,51 @@ def get_int(string):
             break
     return number
 
+def create_zip(name,path):
+    zip = zipfile.ZipFile(name,'x')
+    zip.write(path)
+    zip.close()
 
 
-test = '[[11,11],[11,11],[123,1234]]'
-print(get_canvaaaas(test))
+def changeZipContent(name,path):
+    file = zipfile.ZipFile(name)
+    file.extractall()
+    file.close()
+
+    zip = zipfile.ZipFile(path,'w')
+    zip.write('pyxel_resource.toml')
+    zip.close()
+
+#changeZipContent('rooms.pyxres','newtest.pyxres')
+
+class Door:
+    def __init__(self,x,y):
+        self.name = 'door'
+        self.x = x*10
+        self.y = y*10
+
+class Bed:
+    def __init__(self,x,y):
+        self.name = 'bed'
+        self.x = x*10
+        self.y = y*10
+
+
+
+classList = [Door, Bed]
+
+usableClasses = []
+print('in')
+usableClasses.append(classList[0](3,1))
+usableClasses.append(classList[1](7,1))
+
+
+print(usableClasses[0].name,usableClasses[0].x )
+print(usableClasses[1].name,usableClasses[1].x )
+
+
+
+
 
 class Animation:
     def __init__(self):
