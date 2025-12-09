@@ -153,7 +153,7 @@ class inMission:
         self.playerOnPickup = None
         pickedUpAnItem = False
         for pickup in self.pickups:
-            if collision(pickup.x, pickup.y, self.player.x, self.player.y, [pickup.width, pickup.height], [self.player.width, self.player.height]):
+            if collisionObjects(pickup, self.player):
                 
                 if self.playerOnPickup == None:
                     self.playerOnPickup = pickup.pickup
@@ -295,7 +295,7 @@ class inMission:
                 pass #Right now, there isn't anything that happens when the player collides with an enemy
 
     def entityCollidingWithPlayer(self, entity):
-        return collision(self.player.x, self.player.y, entity.x, entity.y, [self.player.width, self.player.height], [entity.width, entity.height]) and not self.player.isHitStun
+        return collisionObjects(self.player, entity) and not self.player.isHitStun
 
 
 class Entity: #General Entity class with all the methods describing what entities can do
@@ -579,7 +579,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         return hasattr(self, "playerCollisionEffect") and self.playerCollisionEffect[3] != -1
 
     def collidingWithEnemy(self, entity):
-        return type(entity) == Enemy and collision(self.x, self.y, entity.x, entity.y, [self.width, self.height], [entity.width, entity.height]) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
+        return type(entity) == Enemy and collisionObjects(self, entity) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
 
 
     def addAnimationHit(self,pos):
@@ -1522,6 +1522,9 @@ def draw_screen(u, v,camx,camy):
 
 def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
+
+def collisionObjects(object1, object2):
+    return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y
 
 def show(x,y,img,colkey=11,save=0):
     pyxel.blt(x,y,save,img[0]*16,img[1]*16,16,16,colkey=colkey)
