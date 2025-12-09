@@ -5,18 +5,20 @@ TILE_SIZE = 16
 WID = 256
 HEI = 256 
 
-CAM_WIDTH = TILE_SIZE*8
-CAM_HEIGHT = TILE_SIZE*8
+CAM_WIDTH = TILE_SIZE*16
+CAM_HEIGHT = TILE_SIZE*16
 
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
 
 wallsMap = [[0 for x in range(WID)] for y in range(HEI)]
 
+camera = [0,0]
+
 class App:
     def __init__(self):
         pyxel.init(CAM_WIDTH, CAM_HEIGHT, fps=120)
-        pyxel.load('../notascrap.pyxres')
+        pyxel.load('../rooms.pyxres')
 
         self.show = Roombuild()
 
@@ -29,72 +31,6 @@ class App:
 
     def draw(self):
         self.show.draw()
-
-class Roombuild:
-    def __init__(self):
-        self.camera = [0,0]
-        self.player = Player(TILE_SIZE,TILE_SIZE)
-        self.editor = WallsEditor()
-        self.editMode = False
-
-        self.showWalls = False
-
-        self.margin = 1/4
-
-    def update(self):
-        self.cameraUpdate()
-        self.player.update()
-        self.editorUpdate()
-
-    def editorUpdate(self):
-        if pyxel.btnp(pyxel.KEY_TAB):
-            self.editMode = not self.editMode
-
-        if pyxel.btnp(pyxel.KEY_LALT):
-            self.showWalls = not self.showWalls
-        
-        
-        if self.editMode:
-            self.editor.update(self.camera)
-
-    def cameraUpdate(self):
-        if self.player.x  < self.camera[0] + CAM_WIDTH * self.margin and self.camera[0] > 0:
-            self.camera[0] = self.player.x - CAM_WIDTH * self.margin
-        if self.player.x + TILE_SIZE  > self.camera[0] + CAM_WIDTH * (1-self.margin) and self.camera[0] + CAM_WIDTH < WID *TILE_SIZE:
-            self.camera[0] = self.player.x + TILE_SIZE - CAM_WIDTH * (1-self.margin)
-        if self.player.y  < self.camera[1] + CAM_HEIGHT * self.margin and self.camera[1] > 0:
-            self.camera[1] = self.player.y - CAM_HEIGHT * self.margin
-        if self.player.y + TILE_SIZE  > self.camera[1] + CAM_HEIGHT * (1-self.margin) and self.camera[1] + CAM_HEIGHT < HEI * TILE_SIZE:
-            self.camera[1] = self.player.y + TILE_SIZE - CAM_HEIGHT * (1-self.margin)
-
-        if self.camera[0]<0:
-            self.camera[0] = 0
-        if self.camera[0] + CAM_WIDTH > WID*TILE_SIZE:
-            self.camera[0] = WID*TILE_SIZE - CAM_WIDTH
-        if self.camera[1]<0:
-            self.camera[1] = 0
-        if self.camera[1] - CAM_HEIGHT > HEI*TILE_SIZE:
-            self.camera[1] = HEI*TILE_SIZE-CAM_HEIGHT
-        
-        self.camera = [round(self.camera[0]),round(self.camera[1])]
-
-        pyxel.camera(*self.camera)
-
-    def draw(self):
-        pyxel.cls(0)
-        pyxel.blt(0,0,0,0,0,256,256)
-
-        if self.showWalls:
-            self.wallsDraw()
-
-        self.player.draw()
-
-    def wallsDraw(self):
-        global wallsMap
-        for y in range(len(wallsMap)):
-            for x in range(len(wallsMap[y])):
-                if wallsMap[y][x] == 1:
-                    pyxel.rect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE ,8)
 
 
 class Entity: #General Entity class with all the methods describing what entities can do
@@ -380,23 +316,24 @@ class Entity: #General Entity class with all the methods describing what entitie
         if self.y < 0:
             self.y = 0
         
-        if self.x + self.width > WID-1:
-            self.x = WID - self.width -1
-        if self.y + self.height > HEI -1:
-            self.y = HEI - self.height -1
-
+        if self.x + self.width > (WID*TILE_SIZE)-1:
+            self.x = (WID*TILE_SIZE) - self.width -1
+        if self.y + self.height > (HEI*TILE_SIZE) -1:
+            self.y = (HEI*TILE_SIZE) - self.height -1
 
 
 class Player(Entity):
     def __init__(self,x,y):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
 
-        self.img = (6,3)
+        self.img = (14,1)
 
         self.keyboard = 'zqsd'
         self.direction = [0,0]
         
-        self.initWalk(priority=1,maxSpeed=1,speedChangeRate=20,knockbackCoef=1)
+        self.initWalk(priority=1,maxSpeed=2,speedChangeRate=20,knockbackCoef=1)
+
+        self.constructorHat = False
 
     def movement(self):
         #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
@@ -454,18 +391,178 @@ class Player(Entity):
 
     def draw(self):
         show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
+        if self.constructorHat:
+            show(self.x,self.y,(15,1), TILE_SIZE=TILE_SIZE)
+
+
+
+class Roombuild:
+    def __init__(self):
+        self.camera = [0,0]
+        self.player = Player(TILE_SIZE,TILE_SIZE)
+        self.editor = WallsEditor()
+        self.rooms = []
+        self.selectedRoom = 0
+        self.editWallsMode = False
+        self.editRoomsMode = False
+        self.menu = Menu()
+
+        self.showWalls = False
+
+        self.margin = 1/4
+
+    def update(self):
+        self.cameraUpdate()
+        self.player.update()
+        self.editorUpdate()
+        self.menuUpdate()
+
+    def editorUpdate(self):
+        if pyxel.btnp(pyxel.KEY_LALT):
+            self.editWallsMode = not self.editWallsMode
+            self.showWalls = not self.showWalls
+            self.editRoomsMode = False
+
+        if pyxel.btnp(pyxel.KEY_SPACE):
+            self.editWallsMode = False
+            self.showWalls = False
+            self.editRoomsMode = False
+
+        if pyxel.btnp(pyxel.KEY_T):
+            self.editRoomsMode = not self.editRoomsMode
+            self.editWallsMode = False
+            self.showWalls = False
+
+        self.player.constructorHat = self.editRoomsMode
+        if self.editRoomsMode:
+            self.roomsUpdate()
+        
+        
+        if self.editWallsMode:
+            self.editor.update(self.camera)
+
+    def cameraUpdate(self):
+        global camera
+        if self.player.x  < self.camera[0] + CAM_WIDTH * self.margin and self.camera[0] > 0:
+            self.camera[0] = self.player.x - CAM_WIDTH * self.margin
+        if self.player.x + TILE_SIZE  > self.camera[0] + CAM_WIDTH * (1-self.margin) and self.camera[0] + CAM_WIDTH < WID *TILE_SIZE:
+            self.camera[0] = self.player.x + TILE_SIZE - CAM_WIDTH * (1-self.margin)
+        if self.player.y  < self.camera[1] + CAM_HEIGHT * self.margin and self.camera[1] > 0:
+            self.camera[1] = self.player.y - CAM_HEIGHT * self.margin
+        if self.player.y + TILE_SIZE  > self.camera[1] + CAM_HEIGHT * (1-self.margin) and self.camera[1] + CAM_HEIGHT < HEI * TILE_SIZE:
+            self.camera[1] = self.player.y + TILE_SIZE - CAM_HEIGHT * (1-self.margin)
+
+        if self.camera[0]<0:
+            self.camera[0] = 0
+        if self.camera[0] + CAM_WIDTH > WID*TILE_SIZE:
+            self.camera[0] = WID*TILE_SIZE - CAM_WIDTH
+        if self.camera[1]<0:
+            self.camera[1] = 0
+        if self.camera[1] - CAM_HEIGHT > HEI*TILE_SIZE:
+            self.camera[1] = HEI*TILE_SIZE-CAM_HEIGHT
+        
+        self.camera = [round(self.camera[0]),round(self.camera[1])]
+
+        pyxel.camera(*self.camera)
+        camera = copy(self.camera)
+
+    def draw(self):
+        pyxel.cls(0)
+        pyxel.blt(0,0,0,0,0,256,256)
+
+        self.roomsDraw()
+
+        if self.showWalls:
+            self.wallsDraw()
+
+        self.player.draw()
+
+    def menuUpdate(self):
+        self.menu.update()
+
+        assetNumber = self.menu.assetPlace
+        if assetNumber != 'N/A':
+            if type(assetNumber) is int and assetNumber <= 9:
+                self.assetAdd(self.selectedRoom, assetNumber)
+            self.menu.assetPlace = 'N/A'
+
+    def assetAdd(self,room, asset):
+        if self.rooms[room].mouseIn():
+            x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE
+            y = (pyxel.mouse_y + self.camera[1])//TILE_SIZE
+            pos = (x*TILE_SIZE,y*TILE_SIZE)
+            newAsset = self.menu.assetsList[asset]
+            self.rooms[room].assetAppend(newAsset, pos)
+
+    def wallsDraw(self):
+        global wallsMap
+        for y in range(len(wallsMap)):
+            for x in range(len(wallsMap[y])):
+                if wallsMap[y][x] == 1:
+                    pyxel.rect(x*TILE_SIZE, y*TILE_SIZE, TILE_SIZE, TILE_SIZE ,8)
+
+    def roomsUpdate(self):
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
+            self.addRoom()
+
+        if len(self.rooms) != 0:
+            self.rooms[self.selectedRoom].update()
+
+    def roomsDraw(self):
+        for room in self.rooms:
+            room.draw()
+
+    def addRoom(self):
+        x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE
+        y = (pyxel.mouse_y + self.camera[1])//TILE_SIZE
+        self.rooms.append(NewRoom(x,y,15,15))
+
+
 
 
 class NewRoom:
     def __init__(self,x,y,width,height):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
+        self.x = x*TILE_SIZE
+        self.y = y*TILE_SIZE
+        self.width = width*TILE_SIZE
+        self.height = height*TILE_SIZE
+
+        self.menu = Menu()
+
+        self.assets = []
+        self.assets.append(TableVertical(self.x+16,self.y+16))
+        self.assets.append(TableVertical(self.x+64,self.y+16))
+
     def update(self):
-        pass
+        self.assetsUpdate()
+
+    def assetsUpdate(self):
+        for asset in self.assets:
+            asset.update()
+
+            if asset.removeSelf:
+                self.assets.remove(asset)
+
     def draw(self):
-        pass
+        pyxel.rect(self.x,self.y-2*TILE_SIZE,self.width,2*TILE_SIZE,5)
+        pyxel.rectb(self.x,self.y-2*TILE_SIZE,self.width,2*TILE_SIZE+1,6)
+        pyxel.rect(self.x,self.y,self.width,self.height,2)
+        pyxel.rectb(self.x,self.y,self.width,self.height,6)
+
+        self.assetDraw()
+
+    def assetDraw(self):
+        for asset in self.assets:
+            asset.draw()
+        
+    def assetAppend(self, asset, pos):
+        self.assets.append(asset(*pos))
+
+    def mouseIn(self):
+        global camera
+        return mouseInside(self.x,self.y,self.width,self.height,camera)
+            
+
 
 
 class WallsEditor:
@@ -483,6 +580,7 @@ class WallsEditor:
         if pyxel.btn(pyxel.KEY_E) or pyxel.btn(pyxel.MOUSE_BUTTON_RIGHT):
             self.mousePlaceBlock(0)
 
+
     def mousePlaceBlock(self,block):
         global wallsMap
         x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE
@@ -494,6 +592,74 @@ class WallsEditor:
 
     def draw(self):
         pass
+
+class Menu:
+    def __init__(self):
+        self.assetsList = [DoorHorizontal, DoorVertical, TableVertical]
+        self.assetPlace = 'N/A'
+    def update(self):
+        for i in range(1,10):
+            if pyxel.btnp(getattr(pyxel,'KEY_'+str(i))):
+                self.assetPlace = i
+
+    def draw(self):
+        pass
+
+
+class Asset:
+    def __init__(self,x,y):
+        self.x = x
+        self.y = y
+        self.img = (0,0)
+        self.width = 2*TILE_SIZE
+        self.height = 2*TILE_SIZE
+        self.removeSelf = False
+
+
+    def update(self):
+        global camera
+        if mouseInside(self.x,self.y,self.width,self.height,camera):
+            if pyxel.btnp(pyxel.KEY_X):
+                self.removeSelf = True
+
+    def draw(self):
+        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width,self.height,0)
+
+
+
+
+class DoorHorizontal(Asset):
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.name = 'doorHorizontal'
+        self.width = 2*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class DoorVertical(Asset):
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.name = 'doorVertical'
+        self.img = (2,0)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class TableVertical(Asset):
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.name = 'tableVertical'
+        self.img = (6,0)
+        self.width = 2*TILE_SIZE
+        self.height = 3*TILE_SIZE
+
+class BedVertical(Asset):
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.name = 'bedVertical'
+        self.img = (7,0)
+        self.width = 2*TILE_SIZE
+        self.height = 3*TILE_SIZE
+
+
 
 
 
