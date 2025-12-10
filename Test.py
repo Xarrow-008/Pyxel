@@ -479,7 +479,7 @@ class Bed:
         self.y = y*10
 
 
-
+"""
 classList = [Door, Bed]
 
 usableClasses = []
@@ -490,9 +490,73 @@ usableClasses.append(classList[1](7,1))
 
 print(usableClasses[0].name,usableClasses[0].x )
 print(usableClasses[1].name,usableClasses[1].x )
+"""
+
+def openToml(path):
+    try:
+        file = toml.load(path)
+    except:
+        return None
+    else:
+        return file
+
+def dumpToml(path, content):
+    file = open(path,'w')
+    toml.dump(content, file)
+    file.close()
 
 
+"""
+dic['presetRooms'].append(room1)
 
+
+room2 = {'name':'room2','assets':[]}
+asset1 = {'name':'doorHorizontal','relativeX':16,'relativeY':32}
+room2['assets'].append(asset1)
+
+         
+dic = openToml(path)
+path = 'rooms/preset_rooms.toml'  
+dic = {'presetRooms':[]}
+print(dic)
+
+dumpToml(path,dic)
+"""
+
+class LoadRoom:
+    def __init__(self,settings,x,y):
+        self.loaded = True
+        self.x = x
+        self.y = y
+        self.settings = settings
+        self.defaultSettings = {'name':'room_48','width':15,'height':15,'assets':[{'name':'tableVertical','relativeX':48,'relativeY':48}]}
+        self.assets = []
+
+        self.initSettings()
+
+    def initSettings(self):
+        for setting in self.defaultSettings.keys():
+            if setting != 'assets':
+
+                if setting in self.settings.keys():
+                    setattr(self,setting,copy(self.settings[setting]))
+                else:
+                    setattr(self,setting,copy(self.defaultSettings[setting]))
+
+                
+
+
+    def __str__(self):
+        string = ''
+        for attribute in self.__static_attributes__:
+            string += str(attribute) + ': ' + str(getattr(self,attribute)) + '\n'
+        return string
+
+settings = {'width':10}
+
+A = LoadRoom(settings,0,0)
+
+print(A.__str__())
 
 
 class Animation:

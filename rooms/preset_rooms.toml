@@ -1,0 +1,81 @@
+[[presetRooms]]
+name = "room_0"
+[[presetRooms.assets]]
+name = "tableVertical"
+relativeX = 96
+relativeY = 32
+
+[[presetRooms.assets]]
+name = "tableVertical"
+relativeX = 96
+relativeY = 64
+
+[[presetRooms.assets]]
+name = "tableVertical"
+relativeX = 96
+relativeY = 96
+
+[[presetRooms.assets]]
+name = "tableVertical"
+relativeX = 96
+relativeY = 128
+
+[[presetRooms.assets]]
+name = "doorHorizontal"
+relativeX = 0
+relativeY = 16
+
+[[presetRooms.assets]]
+name = "doorVertical"
+relativeX = 224
+relativeY = 144
+
+
+[[presetRooms]]
+name = "room_0"
+[[presetRooms.assets]]
+name = "tableVertical"
+relativeX = 96
+relativeY = 32
+
+[[presetRooms.assets]]
+name = "tableVertical"
+relativeX = 96
+relativeY = 64
+
+[[presetRooms.assets]]
+name = "tableVertical"
+relativeX = 96
+relativeY = 96
+
+[[presetRooms.assets]]
+name = "tableVertical"
+relativeX = 96
+relativeY = 128
+
+[[presetRooms.assets]]
+name = "doorHorizontal"
+relativeX = 0
+relativeY = 16
+
+[[presetRooms.assets]]
+name = "doorVertical"
+relativeX = 224
+relativeY = 144
+
+[[presetRooms.assets]]
+name = "bedVertical"
+relativeX = 176
+relativeY = 48
+
+[[presetRooms.assets]]
+name = "bedVertical"
+relativeX = 176
+relativeY = 80
+
+[[presetRooms.assets]]
+name = "bedVertical"
+relativeX = 176
+relativeY = 112
+
+

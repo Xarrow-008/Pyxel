@@ -1,4 +1,5 @@
 from utility import *
+import toml
 
 TILE_SIZE = 16
 
@@ -417,6 +418,21 @@ class Roombuild:
         self.editorUpdate()
         self.menuUpdate()
 
+        self.actionsCheck()
+
+    def actionsCheck(self):
+        if pyxel.btn(pyxel.KEY_LCTRL) and pyxel.btnp(pyxel.KEY_S):
+            self.savePresets()
+
+    def savePresets(self):
+        path = 'preset_rooms.toml'
+        file = openToml(path)
+        
+        dic = self.rooms[0].convertDic(nbName=0)
+
+        file['presetRooms'].append(dic)
+        dumpToml(path,file)
+
     def editorUpdate(self):
         if pyxel.btnp(pyxel.KEY_LALT):
             self.editWallsMode = not self.editWallsMode
@@ -486,12 +502,12 @@ class Roombuild:
                 self.assetAdd(self.selectedRoom, assetNumber)
             self.menu.assetPlace = 'N/A'
 
-    def assetAdd(self,room, asset):
+    def assetAdd(self,room, assetNb):
         if self.rooms[room].mouseIn():
             x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE
             y = (pyxel.mouse_y + self.camera[1])//TILE_SIZE
             pos = (x*TILE_SIZE,y*TILE_SIZE)
-            newAsset = self.menu.assetsList[asset]
+            newAsset = self.menu.assetsList[assetNb]
             self.rooms[room].assetAppend(newAsset, pos)
 
     def wallsDraw(self):
@@ -505,6 +521,9 @@ class Roombuild:
         if pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT):
             self.addRoom()
 
+        if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT):
+            self.loadRoom()
+
         if len(self.rooms) != 0:
             self.rooms[self.selectedRoom].update()
 
@@ -517,21 +536,33 @@ class Roombuild:
         y = (pyxel.mouse_y + self.camera[1])//TILE_SIZE
         self.rooms.append(NewRoom(x,y,15,15))
 
+    def loadRoom(self):
+        x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE
+        y = (pyxel.mouse_y + self.camera[1])//TILE_SIZE
+
+        path = 'preset_rooms.toml'
+        file = openToml(path)
+        settings = file['presetRooms'][-1]
+
+        self.rooms.append(LoadRoom(settings,x,y))
 
 
 
 class NewRoom:
     def __init__(self,x,y,width,height):
+        self.loaded = False
         self.x = x*TILE_SIZE
         self.y = y*TILE_SIZE
         self.width = width*TILE_SIZE
         self.height = height*TILE_SIZE
 
-        self.menu = Menu()
-
         self.assets = []
         self.assets.append(TableVertical(self.x+16,self.y+16))
         self.assets.append(TableVertical(self.x+64,self.y+16))
+
+    def convertDic(self,nbName):
+        dic = {'name':'room_'+str(nbName),'assets':[asset.convertDic((self.x,self.y)) for asset in self.assets]}
+        return dic
 
     def update(self):
         self.assetsUpdate()
@@ -563,6 +594,76 @@ class NewRoom:
         return mouseInside(self.x,self.y,self.width,self.height,camera)
             
 
+class LoadRoom:
+    def __init__(self,settings,x,y):
+        self.loaded = True
+        self.x = x*TILE_SIZE
+        self.y = y*TILE_SIZE
+        self.settings = settings
+        self.defaultSettings = {'name':'room_48','width':15*TILE_SIZE,'height':15*TILE_SIZE,'assets':[{'name':'tableVertical','relativeX':48,'relativeY':48}]}
+        self.assets = []
+
+        self.initSettings()
+
+    def initSettings(self):
+        for setting in self.defaultSettings.keys():
+
+            if type(self.settings) is dict and setting in self.settings.keys():
+                settingValue = copy(self.settings[setting])
+            else:
+                settingValue = copy(self.defaultSettings[setting])
+            
+
+            if setting != 'assets':
+                setattr(self,setting,settingValue)
+            else:
+                menu = Menu()
+                for asset in settingValue:
+                    classIndex = getIndex(menu.assetsNames,asset['name'])
+                    classAsset = menu.assetsList[classIndex]
+
+                    self.assetAppend(classAsset,(self.x + asset['relativeX'],self.y + asset['relativeY']))
+
+    def convertDic(self,nbName):
+        dic = {'name':'room_'+str(nbName),'assets':[asset.convertDic((self.x,self.y)) for asset in self.assets]}
+        return dic
+
+
+    def __str__(self):
+        string = ''
+        for attribute in self.__static_attributes__:
+            string += str(attribute) + ': ' + str(getattr(self,attribute)) + '\n'
+        return string
+
+    def update(self):
+        self.assetsUpdate()
+
+    def assetsUpdate(self):
+        for asset in self.assets:
+            asset.update()
+
+            if asset.removeSelf:
+                self.assets.remove(asset)
+
+    def draw(self):
+        pyxel.rect(self.x,self.y-2*TILE_SIZE,self.width,2*TILE_SIZE,5)
+        pyxel.rectb(self.x,self.y-2*TILE_SIZE,self.width,2*TILE_SIZE+1,6)
+        pyxel.rect(self.x,self.y,self.width,self.height,2)
+        pyxel.rectb(self.x,self.y,self.width,self.height,6)
+
+        self.assetDraw()
+
+    def assetAppend(self, asset, pos):
+        self.assets.append(asset(*pos))
+
+    def assetDraw(self):
+        for asset in self.assets:
+            asset.draw()
+
+    def mouseIn(self):
+        global camera
+        return mouseInside(self.x,self.y,self.width,self.height,camera)
+            
 
 
 class WallsEditor:
@@ -593,13 +694,15 @@ class WallsEditor:
     def draw(self):
         pass
 
+
 class Menu:
     def __init__(self):
-        self.assetsList = [DoorHorizontal, DoorVertical, TableVertical]
+        self.assetsList = [DoorHorizontal, DoorVertical, TableVertical, BedVertical, WallInside, WallLeft, WallRight]
+        self.assetsNames = [asset.name for asset in self.assetsList]
         self.assetPlace = 'N/A'
     def update(self):
-        for i in range(1,10):
-            if pyxel.btnp(getattr(pyxel,'KEY_'+str(i))):
+        for i in range(9):
+            if pyxel.btnp(getattr(pyxel,'KEY_'+str(i+1))):
                 self.assetPlace = i
 
     def draw(self):
@@ -607,6 +710,7 @@ class Menu:
 
 
 class Asset:
+    name = 'N/A'
     def __init__(self,x,y):
         self.x = x
         self.y = y
@@ -625,42 +729,81 @@ class Asset:
     def draw(self):
         pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width,self.height,0)
 
+    def convertDic(self,pos):
+        dic = {'name':self.name,'relativeX':self.x-pos[0],'relativeY':self.y-pos[1]}
+        return dic
 
 
 
 class DoorHorizontal(Asset):
+    name = 'doorHorizontal'
     def __init__(self,x,y):
         super().__init__(x,y)
-        self.name = 'doorHorizontal'
         self.width = 2*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class DoorVertical(Asset):
+    name = 'doorVertical'
     def __init__(self,x,y):
         super().__init__(x,y)
-        self.name = 'doorVertical'
         self.img = (2,0)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class TableVertical(Asset):
+    name = 'tableVertical'
     def __init__(self,x,y):
         super().__init__(x,y)
-        self.name = 'tableVertical'
         self.img = (6,0)
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
 
 class BedVertical(Asset):
+    name = 'bedVertical'
     def __init__(self,x,y):
         super().__init__(x,y)
-        self.name = 'bedVertical'
-        self.img = (7,0)
+        self.img = (8,0)
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
 
+class WallInside(Asset):
+    name = 'wallInside'
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.img = (10,0)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class WallLeft(Asset):
+    name = 'wallLeft'
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.img = (11,0)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+        
+class WallRight(Asset):
+    name = 'wallRight'
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.img = (12,0)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
 
 
+def openToml(path):
+    return toml.load(path)
+
+def dumpToml(path, content):
+    file = open(path,'w')
+    toml.dump(content, file)
+    file.close()
+
+def getIndex(tab, value):
+    for i in range(len(tab)):
+        if tab[i] == value:
+            return i
+    return None
 
 
 if __name__ == '__main__':
