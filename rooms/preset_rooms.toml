@@ -1,81 +1,107 @@
 [[presetRooms]]
-name = "room_0"
+name = "room_entry"
+width = 208
+height = 144
 [[presetRooms.assets]]
-name = "tableVertical"
-relativeX = 96
+name = "ClosetFront"
+relativeX = 16
+relativeY = -32
+
+[[presetRooms.assets]]
+name = "ClosetFront"
+relativeX = 64
+relativeY = -32
+
+[[presetRooms.assets]]
+name = "DoorHorizontal"
+relativeX = 0
 relativeY = 32
 
 [[presetRooms.assets]]
-name = "tableVertical"
-relativeX = 96
+name = "TableVertical"
+relativeX = 144
+relativeY = 48
+
+[[presetRooms.assets]]
+name = "DoorVertical"
+relativeX = 192
 relativeY = 64
 
 [[presetRooms.assets]]
-name = "tableVertical"
+name = "DoorVertical"
 relativeX = 96
-relativeY = 96
-
-[[presetRooms.assets]]
-name = "tableVertical"
-relativeX = 96
-relativeY = 128
-
-[[presetRooms.assets]]
-name = "doorHorizontal"
-relativeX = 0
-relativeY = 16
-
-[[presetRooms.assets]]
-name = "doorVertical"
-relativeX = 224
-relativeY = 144
+relativeY = 112
 
 
 [[presetRooms]]
 name = "room_0"
+width = 208
+height = 144
+walls = [ [ -1, -1,], [ 0, 0,], [ 1, 1,], [ 2, 2,],]
 [[presetRooms.assets]]
-name = "tableVertical"
-relativeX = 96
+name = "ClosetFront"
+relativeX = 64
+relativeY = -32
+
+[[presetRooms.assets]]
+name = "ClosetFront"
+relativeX = 16
+relativeY = -32
+
+[[presetRooms.assets]]
+name = "DoorHorizontal"
+relativeX = 0
 relativeY = 32
 
 [[presetRooms.assets]]
-name = "tableVertical"
-relativeX = 96
-relativeY = 64
-
-[[presetRooms.assets]]
-name = "tableVertical"
-relativeX = 96
-relativeY = 96
-
-[[presetRooms.assets]]
-name = "tableVertical"
-relativeX = 96
-relativeY = 128
-
-[[presetRooms.assets]]
-name = "doorHorizontal"
-relativeX = 0
-relativeY = 16
-
-[[presetRooms.assets]]
-name = "doorVertical"
-relativeX = 224
-relativeY = 144
-
-[[presetRooms.assets]]
-name = "bedVertical"
-relativeX = 176
+name = "TableVertical"
+relativeX = 144
 relativeY = 48
 
 [[presetRooms.assets]]
-name = "bedVertical"
-relativeX = 176
-relativeY = 80
+name = "DoorVertical"
+relativeX = 192
+relativeY = 64
 
 [[presetRooms.assets]]
-name = "bedVertical"
-relativeX = 176
+name = "DoorVertical"
+relativeX = 96
+relativeY = 112
+
+
+[[presetRooms]]
+name = "room_0"
+width = 208
+height = 144
+walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ -1, -1,], [ 1, -1,], [ 2, -1,], [ 4, -1,], [ 5, -1,], [ 13, -1,], [ -1, 0,], [ 13, 0,], [ -1, 1,], [ 13, 1,], [ 13, 2,], [ 9, 3,], [ 10, 3,], [ 13, 3,], [ -1, 4,], [ 9, 4,], [ 10, 4,], [ 13, 4,], [ -1, 5,], [ -1, 6,], [ 13, 6,], [ -1, 7,], [ 13, 7,], [ -1, 8,], [ 13, 8,], [ -1, 9,], [ 0, 9,], [ 1, 9,], [ 2, 9,], [ 3, 9,], [ 4, 9,], [ 5, 9,], [ 6, 9,], [ 8, 9,], [ 9, 9,], [ 10, 9,], [ 11, 9,], [ 12, 9,], [ 13, 9,],]
+[[presetRooms.assets]]
+name = "ClosetFront"
+relativeX = 16
+relativeY = -32
+
+[[presetRooms.assets]]
+name = "ClosetFront"
+relativeX = 64
+relativeY = -32
+
+[[presetRooms.assets]]
+name = "DoorHorizontal"
+relativeX = 0
+relativeY = 32
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 144
+relativeY = 48
+
+[[presetRooms.assets]]
+name = "DoorVertical"
+relativeX = 192
+relativeY = 64
+
+[[presetRooms.assets]]
+name = "DoorVertical"
+relativeX = 96
 relativeY = 112
 
 
