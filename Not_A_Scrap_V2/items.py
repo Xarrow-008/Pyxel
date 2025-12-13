@@ -83,7 +83,7 @@ class Item:
                 "type":"support",
                 "effects":[
                     {"stat":"interactableSpeed","scaling":"arithmetic", "initial_term":10, "reason":5},
-                    {"stat":"interactableQualityChance", "scaling":"arithmetic", "initial_term":5, "reason":5}],
+                    {"stat":"interactableQualityChance", "scaling":"arithmetic", "initial_term":5, "reason":5}], #TODO : Implement this one when we make interactables spawn automatically
                 "short_description":"Interactables are faster and of better quality",
                 "long_description":"Interacting with interactables is 10% (+5% per stack) faster and interactables have an extra 5% (+5% per stack) chance of being of a higher quality"}
 

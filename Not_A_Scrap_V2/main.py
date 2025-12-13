@@ -2,6 +2,7 @@ import pyxel,os,math,random, csv
 from enemies import*
 from weapons import*
 from items import*
+from interactables import*
 from copy import deepcopy as copy
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
@@ -100,12 +101,16 @@ class inMission:
         self.world = world
         self.entities = []
         self.pickups = []
+        self.interactables = []
         self.player = player
+
+        self.infoText = ("","","")
 
     def update(self):
 
         self.entity_gestion()
         self.pickup_gestion()
+        self.interactable_gestion()
 
         self.player.update()
 
@@ -121,7 +126,10 @@ class inMission:
 
         if pyxel.btnp(pyxel.KEY_P):
             item = random.choice(ITEM_LIST)
-            self.pickups.append(Pickup(100,100, Item.CARD_DECK))
+            self.pickups.append(Pickup(100,100, Item.KEY_CHAIN))
+
+        if pyxel.btnp(pyxel.KEY_L):
+            self.interactables.append(Interactable(120,120, InteractableTemplate.CHEST))
 
 
     def updateAllEntityAnims(self):
@@ -172,23 +180,45 @@ class inMission:
             entity.update()
 
     def pickup_gestion(self):
-        self.playerOnPickup = None
-        pickedUpAnItem = False
+        self.infoText = ("", "", "")
+        pickedUpSomething = False
         for pickup in self.pickups:
             if collisionObjects(pickup, self.player):
                 
-                if self.playerOnPickup == None:
-                    self.playerOnPickup = pickup.pickup
+                self.infoText = (pickup.pickup["name"], pickup.pickup["short_description"], ("Press","pickup"))
 
-                if (not pickedUpAnItem) and keyPress("INTERACT","btnp"):
+                if (not pickedUpSomething) and keyPress("INTERACT","btnp"):
                     pickup.pickedUp = True
-                    pickedUpAnItem = True
-                    self.player.inventory.addItem(pickup.pickup)
+                    pickedUpSomething = True
+                    if "rarity" in pickup.pickup.keys(): #This means the pickup is an item
+                        self.player.inventory.addItem(pickup.pickup)
+                    elif "damage" in pickup.pickup.keys(): #This means the pickup is a weapon
+                        if keyPress("RIGHT_HAND", "btn"):
+                            self.player.inventory.addWeapon(pickup.pickup, "rightHand")
+                        else:
+                            self.player.inventory.addWeapon(pickup.pickup, "leftHand")
                     
 
         for pickup in self.pickups:
             if pickup.pickedUp:
                 self.pickups.remove(pickup)
+
+    def interactable_gestion(self):
+
+        for interactable in self.interactables:
+            if collisionObjects(interactable, self.player) and not interactable.interactedWith:
+
+                self.infoText = (interactable.template["name"], interactable.template["description"], ("Hold","interact"))
+
+                if holdKey("INTERACT", interactable.template["duration"]*(1-self.player.inventory.interactableSpeed/100), game_frame):
+                    interactable.interactedWith = True
+                    pickup = interactable.template["function"][1].pickRandom(0)
+                    print(type(pickup))
+                    pickupObject = Pickup(interactable.x, interactable.y, pickup)
+                    if type(pickup) == str or pickup is None:
+                        print("Its meant to drop fuel or a rare/legendary item, but I haven't actually impleted those yet")
+                    else:
+                        self.pickups.append(pickupObject)
 
 
     def draw(self):
@@ -197,6 +227,9 @@ class inMission:
                 block = self.world.map[y][x]
                 draw_block(x*TILE_SIZE,y*TILE_SIZE,0,block)
         
+        for interactable in self.interactables:
+            interactable.draw()
+
         for pickup in self.pickups:
             if not pickup.pickedUp:
                 pickup.draw()
@@ -209,14 +242,14 @@ class inMission:
             if not entity.dead:
                 entity.drawOver()
         
+
         self.player.draw() 
         self.player.drawOver()
 
-        if self.playerOnPickup != None:
-            sized_text(x=2, y=239, s=self.playerOnPickup["name"], col=7, size=6, background=True)
-            sized_text(x=2, y=248, s=self.playerOnPickup["short_description"], col=7, size=6, background=True)
-
-            sized_text(x=self.player.x-29, y=self.player.y-9, s="Press [F] to pickup", col=7, size=6, background=True)
+        sized_text(x=2, y=239, s=self.infoText[0], col=7, size=6, background=True)
+        sized_text(x=2, y=248, s=self.infoText[1], col=7, size=6, background=True)
+        if self.infoText != ("", "", ""):
+            sized_text(x=self.player.x-29, y=self.player.y-9, s=f"{self.infoText[2][0]} [F] to {self.infoText[2][1]}", col=7, size=6, background=True)
 
 
     def heal(self, value, healer, target):
@@ -1563,6 +1596,23 @@ class Pickup:
     def draw(self):
         draw(x=self.x, y=self.y, img=0, u=self.pickup["image"][0], v=self.pickup["image"][1], w=self.width, h=self.height, colkey=11)
 
+class Interactable:
+    def __init__(self, x, y, template):
+        self.x = x
+        self.y = y
+
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
+
+        self.template = template
+
+        self.interactedWith = False
+
+    def draw(self):
+        if self.interactedWith :
+            pyxel.rect(x=self.x, y=self.y, w=self.width, h=self.height, col=0)
+        else:
+            draw(x=self.x, y=self.y, img=0, u=self.template["image"][0], v=self.template["image"][1], w=self.width, h=self.height, colkey=11)
 
 class Path:
     def __init__(self,map):

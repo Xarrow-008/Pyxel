@@ -1,3 +1,4 @@
+import inspect
 TILE_SIZE = 16
 FPS = 120
 
@@ -14,7 +15,7 @@ class Weapon:
                     "reload":0*FPS, "cooldown":0*FPS,
                     "mag_ammo":0, "max_ammo":0, "reserve_ammo":0}
 
-    RUSTY_PISTOL = {"name":"Rusty Pistol", "description": "A basic weapon",
+    RUSTY_PISTOL = {"name":"Rusty Pistol", "short_description": "A basic weapon",
                     "hand_number":1, "type":"ranged", "mode":"automatic",
                     "image":(0,112), "width":TILE_SIZE, "height":TILE_SIZE,
                     "bullet_image":(32,64), "bullet_width":4, "bullet_height":4,
@@ -25,7 +26,7 @@ class Weapon:
                     "reload":3*FPS, "cooldown":0.25*FPS,
                     "mag_ammo":20, "max_ammo":20, "reserve_ammo":120}
 
-    TEST_2_HANDS = {"name":"2HANDS", "description": "A basic weapon",
+    TEST_2_HANDS = {"name":"2HANDS", "short_description": "A basic weapon",
                     "hand_number":2, "type":"ranged", "mode":"automatic",
                     "image":(0,112), "width":TILE_SIZE, "height":TILE_SIZE,
                     "bullet_image":(32,64), "bullet_width":4, "bullet_height":4,
@@ -35,3 +36,8 @@ class Weapon:
                     "damage":10, "piercing":0, "knockback_coef":1,
                     "reload":3*FPS, "cooldown":0.25*FPS,
                     "mag_ammo":20, "max_ammo":20, "reserve_ammo":120}
+
+WEAPON_LIST = []
+for i in inspect.getmembers(Weapon):
+    if (not i[0].startswith('_')) and i[1]!=Weapon.NONE:
+        WEAPON_LIST.append(i[1])
