@@ -600,9 +600,15 @@ class Room:
         pyxel.rect(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE,5)
         pyxel.rectb(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE+1,6)
         pyxel.rect(self.x,self.y,self.width,self.height,2)
+        self.floorPatternDraw()
         pyxel.rectb(self.x,self.y,self.width,self.height,6)
 
         self.assetDraw()
+
+    def floorPatternDraw(self):
+        for y in range(self.height//TILE_SIZE):
+            for x in range(self.width//TILE_SIZE):
+                pass
 
     def assetAppend(self, assetClass, pos):
         index = 0
@@ -661,8 +667,8 @@ class LoadRoom(Room):
             else:
                 menu = Menu()
                 for asset in settingValue:
-                    classIndex = getIndex(menu.assetsNames,asset['name'])
-                    classAsset = menu.assetsList[classIndex]
+                    classIndex = getIndex(menu.allAssetsNames,asset['name'])
+                    classAsset = menu.allAssets[classIndex]
 
                     self.assetAppend(classAsset,(self.x + asset['relativeX'],self.y + asset['relativeY']))
 
@@ -703,30 +709,6 @@ class WallsEditor:
     def draw(self):
         pass
 
-
-class Menu:
-    def __init__(self):
-        self.assetsList = [DoorHorizontal, DoorVertical, TableVertical, ClosetFront, 
-                        WallHorizontalInside, 
-                        WallVerticalInside,]
-        self.assetsNames = [asset.name for asset in self.assetsList]
-        self.assetPlace = 'N/A'
-
-    def update(self):
-        for i in range(9):
-            if pyxel.btnp(getattr(pyxel,'KEY_'+str(i+1))):
-                self.assetPlace = i
-
-        if pyxel.btnp(pyxel.KEY_P):
-            string = ''
-            i=0
-            for name in self.assetsNames:
-                i += 1
-                string += str(i)+': '+name + ',   '
-            print(string)
-
-    def draw(self):
-        pass
 
 
 class Asset:
@@ -844,7 +826,86 @@ class ClosetFront(Asset):
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
 
+class ClosetBack(Asset):
+    name = 'ClosetBack'
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.img = (6,6)
+        self.width = 2*TILE_SIZE
+        self.height = 3*TILE_SIZE
 
+class Dressing(Asset):
+    name = 'Dressing'
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.img = (8,3)
+        self.width = 3*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class WallTelevision(Asset):
+    name = 'WallTelevision'
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.img = (0,3)
+        self.width = 2*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
+class WallShelf(Asset):
+    name = 'WallShelf'
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.img = (2,3)
+        self.width = 2*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
+class CouchFront(Asset):
+    name = 'CouchFront'
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.img = (0,4)
+        self.width = 3*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class TableHorizontal(Asset):
+    name = 'TableHorizontal'
+    def __init__(self,x,y):
+        super().__init__(x,y)
+        self.img = (0,6)
+        self.width = 3*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+
+
+class Menu:
+    def __init__(self):
+        self.allAssets = [DoorHorizontal, DoorVertical, CouchFront, TableVertical, TableHorizontal, 
+                        ClosetFront, Dressing, WallTelevision, WallShelf, BedVertical, ClosetBack,
+                        WallHorizontalInside,  WallHorizontalStart, WallHorizontalEnd,
+                        WallVerticalInside, WallVerticalStart, WallVerticalEnd]
+
+        self.assetsList = [DoorHorizontal, CouchFront, TableVertical, ClosetFront, Dressing, WallTelevision, TableHorizontal, BedVertical, ClosetBack,
+                        WallHorizontalInside, 
+                        WallVerticalInside,]
+
+        self.allAssetsNames = [asset.name for asset in self.allAssets]
+        self.assetsNames = [asset.name for asset in self.assetsList]
+        self.assetPlace = 'N/A'
+
+    def update(self):
+        for i in range(9):
+            if pyxel.btnp(getattr(pyxel,'KEY_'+str(i+1))):
+                self.assetPlace = i
+
+        if pyxel.btnp(pyxel.KEY_P):
+            string = ''
+            i=0
+            for name in self.assetsNames:
+                i += 1
+                string += str(i)+': '+name + ',   '
+            print(string)
+
+    def draw(self):
+        pass
 
 
 def openToml(path):
