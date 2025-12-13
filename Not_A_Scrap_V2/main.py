@@ -161,7 +161,7 @@ class inMission:
                 if (not pickedUpAnItem) and keyPress("INTERACT","btnp"):
                     pickup.pickedUp = True
                     pickedUpAnItem = True
-                    self.player.inventory.items[pickup.pickup["name"]] += 1
+                    self.player.inventory.addItem(pickup.pickup)
                     
 
         for pickup in self.pickups:
@@ -324,6 +324,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def update(self):
 
+        if hasattr(self, "inventory") and self.inventory.recalculateStats:
+            self.getNewStats()
+
         self.hitstun()
 
         if  self.canDoActions():
@@ -352,6 +355,22 @@ class Entity: #General Entity class with all the methods describing what entitie
     def drawAnims(self):
         for anim in self.anims:
             anim.draw(self.x,self.y)
+
+
+    def getNewStats(self):
+        self.maxHealth = self.baseHealth + self.inventory.flatMaxHealth
+
+        if hasattr(self, "maxSpeed"):
+            self.maxSpeed = self.baseSpeed * (1+(self.inventory.moveSpeedBoost)/100)
+
+        if hasattr(self, "dashCooldown"):
+            self.dashCooldown = self.baseDashCooldown * (1-(self.inventory.dashCooldownReduction)/100)
+
+        self.inventory.critChance = self.inventory.baseCritChance + self.inventory.critChanceIncrease
+        if self.inventory.critChance > 50 :
+            self.inventory.critChance = 50
+
+
 
 
     def canDoActions(self):
@@ -635,10 +654,14 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.keyboard = 'zqsd'
 
         self.health = 80
-        self.maxHealth = 80
+        self.baseHealth = 80
+        self.maxHealth = self.baseHealth
 
-        self.initWalk(priority=0, maxSpeed=0.5, speedChangeRate=20, knockbackCoef=1)
-        self.initDash(priority=1, cooldown=40, speed=1.5, duration=20)
+        self.baseSpeed = 0.5
+        self.baseDashCooldown = 40
+
+        self.initWalk(priority=0, maxSpeed=self.baseSpeed, speedChangeRate=20, knockbackCoef=1)
+        self.initDash(priority=1, cooldown=self.baseDashCooldown, speed=1.5, duration=20)
         self.initRangedAttack(priority=0)
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
@@ -1044,7 +1067,8 @@ class Enemy(Entity): #Creates an entity that fights the player
         self.image = template["image"]
 
         self.health = template["health"]
-        self.maxHealth = template["max_health"]
+        self.baseHealth = template["maxHealth"]
+        self.maxHealth = template["maxHealth"]
 
         #We initialise all of the enemies abilities
         for ability in template["abilities"].items():
@@ -1052,6 +1076,12 @@ class Enemy(Entity): #Creates an entity that fights the player
             initialiser = getattr(self, "init"+ability[0])
             parameters = ability[1].values()
             initialiser(*parameters)
+
+            if ability[0] == "Walk":
+                self.baseSpeed = ability[1]["maxSpeed"]
+            elif ability[0] == "Dash":
+                self.baseDashCooldown = ability[1]["cooldown"]
+
 
         self.inventory = Inventory()
 
@@ -1115,11 +1145,18 @@ class Inventory:
         self.backpack2 = Weapon.NONE
         self.backpack2Occupied = False
 
-        self.critChance = 50
+        self.baseCritChance = 5
+        self.critChance = 5
+
+        self.recalculateStats = False
 
         self.items = {}
         for item in ITEM_LIST:
             self.items[item["name"]] = 0
+
+            for effect in item["effects"]:
+                setattr(self, effect["stat"], 0)
+
 
     def addWeapon(self, weapon, hand): #Function used when the player picks up a weapon
 
@@ -1297,6 +1334,27 @@ class Inventory:
             return "backpack1"
         if hand == "rightHand":
             return "backpack2"
+
+
+    def addItem(self, item):
+        self.items[item["name"]]+=1
+
+        for effect in item["effects"]:
+
+            if effect["scaling"]=="constant":
+                setattr(self, effect["stat"], effect["value"])
+
+            elif effect["scaling"]=="arithmetic":
+                setattr(self, effect["stat"], effect["initial_term"]+(self.items[item["name"]]-1)*effect["reason"])
+
+            elif effect["scaling"]=="geometric":
+                setattr(self, effect["stat"], effect["initial_term"]*(1-effect["reason"]**(self.items[item["name"]]))/(1-effect["reason"]))
+
+            print(effect["stat"], getattr(self, effect["stat"]))
+        
+        self.recalculateStats = True
+
+
 
 class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
     def __init__(self, weapon, x, y, vector, team, shot):
