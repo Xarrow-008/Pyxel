@@ -121,7 +121,8 @@ class inMission:
 
         if pyxel.btnp(pyxel.KEY_P):
             item = random.choice(ITEM_LIST)
-            self.pickups.append(Pickup(100,100, item))
+            self.pickups.append(Pickup(100,100, Item.CARD_DECK))
+
 
     def updateAllEntityAnims(self):
         for entity in self.entities:
@@ -129,12 +130,24 @@ class inMission:
 
         self.player.updateAnims()
 
+
     def entity_gestion(self):
 
         if self.player.bulletList != []:
                 for bullet in self.player.bulletList:
                     self.entities.append(bullet)
                 self.player.bulletList = []
+
+        if self.player.reloadedThisFrame:
+            for entity in self.entities:
+                if distanceObjects(self.player, entity) <= 1.5*TILE_SIZE:
+                    self.player.heal += self.player.inventory.healReloadCloseEnemies
+                    break
+            self.player.reloadedThisFrame = False
+
+        if self.player.heal > 0:
+            self.heal(self.player.heal, self.player, self.player)
+            self.player.heal = 0
         
         for entity in self.entities:
             
@@ -146,6 +159,15 @@ class inMission:
             if entity.dead:
                 self.entities.remove(entity)
                 break
+
+            if hasattr(entity, "reloadedThisFrame") and entity.reloadedThisFrame : 
+                if hasattr(entity, "inventory") and distanceObjects(entity, self.player)<=1.5*TILE_SIZE:
+                    entity.heal += entity.inventory.healReloadCloseEnemies
+                entity.reloadedThisFrame = False
+
+            if entity.heal > 0:
+                self.heal(entity.heal, entity, entity)
+                entity.heal = 0
             
             entity.update()
 
@@ -167,6 +189,7 @@ class inMission:
         for pickup in self.pickups:
             if pickup.pickedUp:
                 self.pickups.remove(pickup)
+
 
     def draw(self):
         for y in range(HEIGHT):
@@ -195,34 +218,54 @@ class inMission:
 
             sized_text(x=self.player.x-29, y=self.player.y-9, s="Press [F] to pickup", col=7, size=6, background=True)
 
+
     def heal(self, value, healer, target):
         target.health += value
         if target.health > target.maxHealth:
             target.health = target.maxHealth
+        target.addDamageNumber(target, value, 11)
 
     def hurt(self, value, vector, knockback_coef, shot, damager, target):
         global freeze_start, freeze_duration, game_frame
 
-        damagerIsOwnedbyPlayer = (type(damager)==Projectile and damager.team == "player")
+        damagerIsOwned = (type(damager)==Projectile)
 
-        if damagerIsOwnedbyPlayer :
-            crit = self.player.inventory.critChance >= random.randint(0,100)
+        target.combatStartFrame = game_frame
+        target.inCombat = True
+        damager.combatStartFrame = game_frame
+        damager.inCombat = True
+
+        if damagerIsOwned:
+            damager.owner.combatStartFrame = game_frame
+            damager.owner.inCombat = True
+            value = self.calculateNewDamageValue(value, damager.owner, target)
+        else:
+            value = self.calculateNewDamageValue(value, damager, target)
+
+        if hasattr(target, "inventory") and target.inventory.ignoreHitChance >= random.randint(0,100):
+            target.addIgnoreDamageMarker((damager.x-4, damager.y-4))
+            return
+
+        
+
+        if damagerIsOwned :
+            crit = damager.owner.inventory.critChance >= random.randint(0,100)
         else :
-            crit = hasattr(damager, "inventory") and damager.inventory.critChance >= random.randint(0,100)
+            crit = hasattr(damager, "inventory") and damager.inventory.critChance >= random.randint(1,100)
 
         if hasattr(target, "isHitStun"):
             if (not target.isHitStun or target.hitBy == shot) and not target.isInvincible():
                 
                 if crit:
-                    target.health -= value*2
-                    if damagerIsOwnedbyPlayer :
-                        self.player.addDamageNumber(target, value*2, 8)
+                    target.sufferDamage(value*2)
+                    if damagerIsOwned :
+                        damager.owner.addDamageNumber(target, value*2, 8)
                     else:
                         damager.addDamageNumber(target, value*2, 8)
                 else:
-                    target.health -= value
-                    if damagerIsOwnedbyPlayer :
-                        self.player.addDamageNumber(target, value, 7)
+                    target.sufferDamage(value)
+                    if damagerIsOwned :
+                        damager.owner.addDamageNumber(target, value, 7)
                     else:
                         damager.addDamageNumber(target, value, 7)
 
@@ -242,43 +285,77 @@ class inMission:
 
 
         else:
-            target.health -= value
+            if crit:
+                target.sufferDamage(value*2)
+                if damagerIsOwned :
+                    damager.owner.addDamageNumber(target, value*2, 8)
+                else:
+                    damager.addDamageNumber(target, value*2, 8)
+            else:
+                target.sufferDamage(value)
+                if damagerIsOwned :
+                    damager.owner.addDamageNumber(target, value, 7)
+                else:
+                    damager.addDamageNumber(target, value, 7)
             if hasattr(target, "maxSpeed"):
                 knockback_value = len(str(value))*knockback_coef*target.knockbackCoef
                 target.momentum[0] += vector[0]*knockback_value
                 target.momentum[1] += vector[1]*knockback_value
                 
         target.addAnimationHit((damager.x-4,damager.y-4))
-        #print(damager)
+
+        if target.health <= 0:
+            if damagerIsOwned:
+                if hasattr(damager.owner, "inventory"):
+                    damager.owner.triggerOnKillEffects()
+            else:
+                if hasattr(damager, "inventory"):
+                    damager.triggerOnKillEffects()
+
+    def calculateNewDamageValue(self, value, damager, target):
+
+        if hasattr(target, "inventory"):
+
+            if target.lowHealth:
+                value *= 1-target.inventory.lowHealthDamageReduction
+
+            value -= target.inventory.flatDamageReduction
+        
+        value = int(value)
+        if value < 1 : 
+            value = 1
+
+        return value
 
     def enemy_collision(self): #Handles collisions with enemies by entities
-        original_length = len(self.entities)
         for i in range(len(self.entities)-1): #Entities colliding with enemies
-            offset = original_length - len(self.entities)
-            entity1 = self.entities[i-offset]
+            entity1 = self.entities[i]
             for j in range(i+1, len(self.entities)):
-                offset = original_length - len(self.entities)
-                entity2 = self.entities[j-offset]
+                entity2 = self.entities[j]
 
-                if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2) :
-                    self.hurt(entity1.enemyCollisionEffect[0], entity1.enemyCollisionEffect[1], entity1.enemyCollisionEffect[2], entity1.shot, entity1, entity2)
-                    if entity1.enemyCollisionEffect[3] == 0:
-                        if type(entity1) == Enemy:
-                            entity1.health = 0
-                        elif type(entity1) == Projectile:
-                            entity1.range = 0
-                    else:
-                        entity1.enemyCollisionEffect[3] -= 1
+                if not ((type(entity1)==Enemy and entity1.health<=0) or (type(entity1)==Projectile and entity1.range<=0) or (type(entity2)==Enemy and entity2.health<=0) or (type(entity2)==Projectile and entity2.range<=0)):
 
-                if entity2.canCollideWithEnemy() and entity2.collidingWithEnemy(entity1):
-                    self.hurt(entity2.enemyCollisionEffect[0], entity2.enemyCollisionEffect[1], entity2.enemyCollisionEffect[2], entity2.shot, entity2, entity1)
-                    if entity2.enemyCollisionEffect[3] == 0:
-                        if type(entity2) == Enemy:
-                            entity2.health = 0
-                        elif type(entity2) == Projectile:
-                            entity2.range = 0
-                    else:
-                        entity2.enemyCollisionEffect[3] -= 1
+                    if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2):
+                        
+                        self.hurt(entity1.enemyCollisionEffect[0], entity1.enemyCollisionEffect[1], entity1.enemyCollisionEffect[2], entity1.shot, entity1, entity2)
+                        if entity1.enemyCollisionEffect[3] == 0:
+                            if type(entity1) == Enemy:
+                                entity1.health = 0
+                            elif type(entity1) == Projectile:
+                                entity1.range = 0
+                        else:
+                            entity1.enemyCollisionEffect[3] -= 1
+
+                    if entity2.canCollideWithEnemy() and entity2.collidingWithEnemy(entity1):
+    
+                        self.hurt(entity2.enemyCollisionEffect[0], entity2.enemyCollisionEffect[1], entity2.enemyCollisionEffect[2], entity2.shot, entity2, entity1)
+                        if entity2.enemyCollisionEffect[3] == 0:
+                            if type(entity2) == Enemy:
+                                entity2.health = 0
+                            elif type(entity2) == Projectile:
+                                entity2.range = 0
+                        else:
+                            entity2.enemyCollisionEffect[3] -= 1
 
     def player_collision(self): #Handles collisions with the player by entities
         for entity in self.entities:
@@ -314,15 +391,29 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.anims = []
 
+        self.heal = 0
+
+        self.tempHealth = 0
+
+        self.inCombat = False
+        self.combatStartFrame = 0
+
+        self.lowHealth = False
+
     def __str__(self):
         if type(self) == Player:
-            return f"Type : Player, x : {self.x}, y : {self.y}, momentum : {self.momentum}"
+            return f"Type : Player, x : {self.x}, y : {self.y}, momentum : {self.momentum}, health : {self.health}"
         elif type(self) == Enemy:
-            return f"Type : Enemy, x : {self.x}, y : {self.y}, momentum : {self.momentum}"
+            return f"Type : Enemy, x : {self.x}, y : {self.y}, momentum : {self.momentum}, health : {self.health}"
         elif type(self) == Projectile:
-            return f"Type : Projectile, x : {self.x}, y : {self.y}, momentum : {self.momentum}"
+            return f"Type : Projectile, x : {self.x}, y : {self.y}, momentum : {self.momentum}, range : {self.range}"
 
     def update(self):
+
+        self.getConditions()
+
+        if self.tempHealth > 0 :
+            self.tempHealthDecay()
 
         if hasattr(self, "inventory") and self.inventory.recalculateStats:
             self.getNewStats()
@@ -357,6 +448,19 @@ class Entity: #General Entity class with all the methods describing what entitie
             anim.draw(self.x,self.y)
 
 
+    def getConditions(self): #Basically just a bunch of booleans used to check whether or not an item's effect has to be triggered
+
+        if self.inCombat and timer(self.combatStartFrame, 5*FPS, game_frame): #The player leaves combat if they haven't received or dealt damage in 5s
+            self.inCombat = False
+
+            if hasattr(self, "inventory"):
+                self.heal += self.inventory.healLeftCombat
+        
+
+        if hasattr(self, "health"):
+            self.lowHealth = self.health <= int(self.maxHealth)/10 #The player is low health if they are at less than 10% of their max health
+
+
     def getNewStats(self):
         self.maxHealth = self.baseHealth + self.inventory.flatMaxHealth
 
@@ -371,10 +475,13 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.inventory.critChance = 50
 
 
-
-
     def canDoActions(self):
         return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun")
+
+
+    def tempHealthDecay(self):
+        if on_tick(FPS):
+            self.tempHealth -= math.ceil(self.tempHealth/10)
 
 
     def movement(self):
@@ -520,7 +627,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.bulletList = []
 
-    def rangedAttack(self, hand, x, y, team):
+        self.reloadedThisFrame = False
+
+    def rangedAttack(self, hand, x, y):
         weapon = getattr(self.inventory, hand)
         if self.canRangedAttack(hand):
 
@@ -549,7 +658,7 @@ class Entity: #General Entity class with all the methods describing what entitie
                     cos = 0
                     sin = 0
 
-                bullet_shot = Projectile(weapon, self.x, self.y, [cos,sin], team, self.shotsFired)
+                bullet_shot = Projectile(weapon, self.x, self.y, [cos,sin], self, self.shotsFired)
 
                 self.bulletList.append(bullet_shot)
 
@@ -569,11 +678,13 @@ class Entity: #General Entity class with all the methods describing what entitie
                 weapon["mag_ammo"] = weapon["reserve_ammo"]
                 weapon["reserve_ammo"] = 0
                 setattr(self.inventory, hand+"CanNoLongerReload", True)
+            self.reloadedThisFrame = True
+            
 
     def canReloadWeapon(self, hand):
         weapon = getattr(self.inventory, hand)
         startFrame = getattr(self.inventory, hand+"StartFrame")
-        return timer(startFrame, weapon["reload"], game_frame) and weapon["mag_ammo"]==0
+        return timer(startFrame, weapon["reload"], game_frame) and weapon["mag_ammo"]==0 and weapon!=Weapon.NONE
 
 
 
@@ -610,9 +721,21 @@ class Entity: #General Entity class with all the methods describing what entitie
         y_center = target.y+target.height/2
         self.addAnimation(pos=[x_center+math.cos(angle)*1.5*target.width, y_center+math.sin(angle)*1.5*target.height, False], settings={"width":0, "height":0, "text":(str(value),7,colour,True), "movementVector":[math.cos(angle)*0.1, math.sin(angle)*0.1]}, lifetime=48)
 
+    def addIgnoreDamageMarker(self, pos):
+        self.addAnimation(pos=[pos[0], pos[1], False], settings={"width":0, "height":0, "text":("Blocked", 7, 7, True)}, lifetime=24)
+
 
     def addAnimation(self,pos=[0,0],settings=0,lifetime='1 cycle'):
         self.anims.append(Animation(pos,settings,lifetime))
+
+
+    def sufferDamage(self, value):
+        if self.tempHealth >= value:
+            self.tempHealth -= value
+        else:
+            value -= self.tempHealth
+            self.tempHealth = 0
+            self.health -= value
 
 
     def initHitstun(self, duration, freezeFrame, invincibility):
@@ -640,6 +763,12 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             if timer(self.hitStunStartFrame, self.hitStunDuration, game_frame):
                 self.isHitStun = False
+
+
+    def triggerOnKillEffects(self):
+        self.tempHealth += self.inventory.onKillTempHealth
+        if self.tempHealth > self.maxHealth:
+            self.tempHealth = self.maxHealth
 
 class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self):
@@ -708,8 +837,20 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
             health_bar_size = int(40*(self.health/self.maxHealth))
 
+            if self.lowHealth:
+                pyxel.dither(0.5)
             pyxel.rect(x=2,y=2,w=health_bar_size,h=8,col=8)
-            sized_text(x=12, y=3, s=str(self.health)+"/"+str(self.maxHealth),col=7,size=7)
+            pyxel.dither(1)
+
+            if self.tempHealth > 0 :
+                pyxel.rect(x=1, y=12, w=42, h=10, col=0)
+                temp_health_bar_size = int(40*(self.tempHealth/self.maxHealth))
+                pyxel.dither(0.5)
+                pyxel.rect(x=2, y=13, w=temp_health_bar_size, h=8, col=10)
+                pyxel.dither(1)
+
+
+            sized_text(x=12, y=3, s=str(self.health+self.tempHealth)+"/"+str(self.maxHealth),col=7,size=7)
 
             #Weapons
             pyxel.rectb(x=237, y=218, w=18, h=18, col=0)
@@ -725,6 +866,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
             if self.inventory.rightHand != Weapon.NONE:
                 sized_text(x=198, y=243, s=str(self.inventory.rightHand["mag_ammo"])+"/"+str(self.inventory.rightHand["max_ammo"])+" ("+str(self.inventory.rightHand["reserve_ammo"])+")", col=7)
 
+            #Combat Indicator #(You should probably change how it looks, this mostly for debug purposes so that I can know when the player is or isn't in combat)
+            if self.inCombat:
+                sized_text(x=50, y= 1, s="In Combat", background=True)
 
     def updateInventory(self):
         if not self.inventoryIsMoving:
@@ -1000,10 +1144,10 @@ class Player(Entity): #Creates an entity that's controlled by the player
             
     def attack(self):
         if keyPress("ATTACK_LEFT", "btn"):
-            self.rangedAttack("leftHand", pyxel.mouse_x, pyxel.mouse_y, "player")
+            self.rangedAttack("leftHand", pyxel.mouse_x, pyxel.mouse_y)
 
         if keyPress("ATTACK_RIGHT", "btn"):
-            self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y, "player")
+            self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y)
 
         if keyPress("LEFT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
             self.inventory.leftHand["mag_ammo"] = 0
@@ -1357,7 +1501,7 @@ class Inventory:
 
 
 class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
-    def __init__(self, weapon, x, y, vector, team, shot):
+    def __init__(self, weapon, x, y, vector, owner, shot):
         super().__init__(x=x, y=y, width=weapon["bullet_width"], height=weapon["bullet_height"])
 
         self.momentum = vector
@@ -1369,15 +1513,15 @@ class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
 
         self.range = weapon["range"]
 
-        self.team = team
+        self.owner = owner
 
         self.shot = shot
 
         self.initWalk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
         self.initDeath(spawnItem=False)
-        if self.team == "player":
+        if type(self.owner)==Player:
             self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, weapon["knockback_coef"], self.piercing], [0, 0, 0, -1])
-        if self.team == "enemy":
+        elif type(self.owner)==Enemy:
             self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, weapon["knockback_coef"], self.piercing])
 
     def draw(self):
@@ -1549,6 +1693,11 @@ class Animation:
         return pyxel.frame_count - self.start
       
 
+def distance(x1, y1, x2, y2):
+    return math.sqrt((x2-x1)**2 + (y2-y1)**2)
+
+def distanceObjects(object1, object2):
+    return math.sqrt((object1.x+object1.width - object2.x-object2.width)**2 + (object1.y+object1.height - object2.y-object2.height)**2)
 
 def on_tick(tickrate=60):
     return pyxel.frame_count % tickrate == 0
