@@ -93,7 +93,7 @@ class Item:
                 "type":"support", 
                 "effects":[
                     {"stat":"lowHealthMoveSpeed","scaling":"arithmetic", "initial_term":15, "reason":10},
-                    {"stat":"explosionTimerMoveSpeed", "scaling":"constant", "value":25}],
+                    {"stat":"explosionTimerMoveSpeed", "scaling":"constant", "value":25}], #TODO : Implement this one when we implement the timer
                 "short_description":"Increased movement speed when in danger", 
                 "long_description":"Movement speed increases by 15% (+10% per stack) when under 20% health. Movement speed increases by 25% once the explosion timer starts."}
 
@@ -103,7 +103,7 @@ class Item:
                 "type":"support",
                 "effects":[
                     {"stat":"rangedKnockback","scaling":"arithmetic", "initial_term":10, "reason":10},
-                    {"stat":"meleeKnockback", "scaling":"arithmetic", "initial_term":15, "reason":15}],
+                    {"stat":"meleeKnockback", "scaling":"arithmetic", "initial_term":15, "reason":15}], #TODO : Implement this one when we implement melee weapons
                 "short_description":"Deal increased knockback",
                 "long_description":"Increases knockback with ranged weapons by 10% (+10% per stack). Increases knockback with melee weapons by 15% (+15% per stack)"}
 
@@ -112,7 +112,7 @@ class Item:
                 "rarity":"common",
                 "type":"support",
                 "effects":[
-                    {"stat":"timerTime","scaling":"arithmetic", "initial_term":15, "reason":15}],
+                    {"stat":"timerTime","scaling":"arithmetic", "initial_term":15, "reason":15}], #TODO : Implement this one when we implement the tiler
                 "short_description":"Get more time to explore",
                 "long_description":"Increases the time before the Horde spawns and the Explosion triggers by 15s (+15 per stack)"}
 

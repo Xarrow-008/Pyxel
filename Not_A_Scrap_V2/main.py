@@ -126,7 +126,7 @@ class inMission:
 
         if pyxel.btnp(pyxel.KEY_P):
             item = random.choice(ITEM_LIST)
-            self.pickups.append(Pickup(100,100, Item.KEY_CHAIN))
+            self.pickups.append(Pickup(100,100, item))
 
         if pyxel.btnp(pyxel.KEY_L):
             self.interactables.append(Interactable(120,120, InteractableTemplate.CHEST))
@@ -275,14 +275,14 @@ class inMission:
         else:
             value = self.calculateNewDamageValue(value, damager, target)
 
-        if hasattr(target, "inventory") and target.inventory.ignoreHitChance >= random.randint(0,100):
+        if hasattr(target, "inventory") and target.inventory.ignoreHitChance >= random.randint(1,100):
             target.addIgnoreDamageMarker((damager.x-4, damager.y-4))
             return
 
         
 
         if damagerIsOwned :
-            crit = damager.owner.inventory.critChance >= random.randint(0,100)
+            crit = damager.owner.inventory.critChance >= random.randint(1,100)
         else :
             crit = hasattr(damager, "inventory") and damager.inventory.critChance >= random.randint(1,100)
 
@@ -491,14 +491,22 @@ class Entity: #General Entity class with all the methods describing what entitie
         
 
         if hasattr(self, "health"):
+            statusLastFrame = self.lowHealth
             self.lowHealth = self.health <= int(self.maxHealth)/10 #The player is low health if they are at less than 10% of their max health
+
+            if hasattr(self, "inventory") and  statusLastFrame is (not self.lowHealth): #Triggers if you enter or leave low health status
+                self.inventory.recalculateStats = True
+
 
 
     def getNewStats(self):
         self.maxHealth = self.baseHealth + self.inventory.flatMaxHealth
 
         if hasattr(self, "maxSpeed"):
-            self.maxSpeed = self.baseSpeed * (1+(self.inventory.moveSpeedBoost)/100)
+            if self.lowHealth :
+                self.maxSpeed = self.baseSpeed * (1+(self.inventory.moveSpeedBoost)/100) * (1+(self.inventory.lowHealthMoveSpeed)/100)
+            else:
+                self.maxSpeed = self.baseSpeed * (1+(self.inventory.moveSpeedBoost)/100)
 
         if hasattr(self, "dashCooldown"):
             self.dashCooldown = self.baseDashCooldown * (1-(self.inventory.dashCooldownReduction)/100)
@@ -663,8 +671,10 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.reloadedThisFrame = False
 
     def rangedAttack(self, hand, x, y):
-        weapon = getattr(self.inventory, hand)
         if self.canRangedAttack(hand):
+            weapon = getattr(self.inventory, hand)
+
+            weapon["knockback_coef"] *= (1+(self.inventory.rangedKnockback)/100)
 
             self.currentActionPriority = self.rangedAttackPriority
 
