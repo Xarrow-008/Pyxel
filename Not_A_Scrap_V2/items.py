@@ -15,7 +15,7 @@ import inspect
 class Item:
 
     WAR_FIGURINE = {"name":"War Figurine", 
-                "image":(0,192),
+                "image":(0,160),
                 "rarity":"common",
                 "type":"healing",
                 "effects":[
@@ -24,7 +24,7 @@ class Item:
                 "long_description":"Every time you get hit, you have a 15% chance to ignore damage. Each stack grants half of the previous one."}
 
     LUNCHBOX = {"name":"Workman's Lunchbox", 
-                "image":(0,192),
+                "image":(16,160),
                 "rarity":"common",
                 "type":"healing",
                 "effects":[
@@ -33,7 +33,7 @@ class Item:
                 "long_description":"After you haven't gotten hit or dealt damage for 10s, heal for 10HP (+10 per stack)"}    
 
     PILLOW = {"name":"Pillow", 
-                "image":(0,192),
+                "image":(32,160),
                 "rarity":"common",
                 "type":"healing",
                 "effects":[
@@ -42,7 +42,7 @@ class Item:
                 "long_description":"Decreases all physical damage by 1 (+1 per stack). Cannot make attacks deal less than 1 damage."}
 
     MEDICATION = {"name":"Expired Medication",
-                "image":(0,192),
+                "image":(48,160),
                 "rarity":"common",
                 "type":"healing",
                 "effects":[
@@ -51,7 +51,7 @@ class Item:
                 "long_description":"If you have less than 10% of your max health, take 10% less damage. Every stack gives 4/5th of the last ones effect."}
 
     TIN_CAN = {"name":"Tin Can", 
-                "image":(0,192),
+                "image":(64,160),
                 "rarity":"common",
                 "type":"healing",
                 "effects":[
@@ -60,7 +60,7 @@ class Item:
                 "long_description":"Increases max health by 15 (+15 per stack)"}
 
     LEATHER_JACKET = {"name":"Leather Jacket", 
-                "image":(0,192),
+                "image":(80,160),
                 "rarity":"common",
                 "type":"healing",
                 "effects":[
@@ -69,7 +69,7 @@ class Item:
                 "long_description":"Every time you kill an enemy, gain temporay health equal to 5% of that enemy's max health (+5% per stack). Temporary health cannot exceed max health."}
 
     CARD_DECK = {"name":"Mostly Full Deck of Cards", #Gambling
-                "image":(0,192),
+                "image":(96,160),
                 "rarity":"common",
                 "type":"healing",
                 "effects":[
@@ -78,7 +78,7 @@ class Item:
                 "long_description":"If you finish reloading while you are close to an enemy, heal for 15HP (+15 per stack)"}
 
     KEY_CHAIN = {"name":"Key Chain",  
-                "image":(0,192),
+                "image":(112,160),
                 "rarity":"common",
                 "type":"support",
                 "effects":[
@@ -88,7 +88,7 @@ class Item:
                 "long_description":"Interacting with interactables is 10% (+5% per stack) faster and interactables have an extra 5% (+5% per stack) chance of being of a higher quality"}
 
     WARNING_SIGN = {"name":"Warning Sign", #A "slippery when wet" sign for example
-                "image":(0,192), 
+                "image":(128,160), 
                 "rarity":"common", 
                 "type":"support", 
                 "effects":[
@@ -98,7 +98,7 @@ class Item:
                 "long_description":"Movement speed increases by 15% (+10% per stack) when under 20% health. Movement speed increases by 25% once the explosion timer starts."}
 
     SQUEAKY_TOY = {"name":"Squeaky Toy", 
-                "image":(0,192),
+                "image":(144,160),
                 "rarity":"common",
                 "type":"support",
                 "effects":[
@@ -108,7 +108,7 @@ class Item:
                 "long_description":"Increases knockback with ranged weapons by 10% (+10% per stack). Increases knockback with melee weapons by 15% (+15% per stack)"}
 
     WIRE_CUTTER = {"name":"Wire Cutter", 
-                "image":(0,192),
+                "image":(160,160),
                 "rarity":"common",
                 "type":"support",
                 "effects":[
@@ -117,7 +117,7 @@ class Item:
                 "long_description":"Increases the time before the Horde spawns and the Explosion triggers by 15s (+15 per stack)"}
 
     SHOE_BOX = {"name":"Shoe Box", 
-                "image":(0,192), 
+                "image":(0,176), 
                 "rarity":"common",
                 "type":"support",
                 "effects":[
@@ -126,7 +126,7 @@ class Item:
                 "long_description":"Increases movement speed by 10% (+10% per stack)"}
 
     BATTERIES = {"name":"Spare Batteries",
-                "image":(0,192),
+                "image":(16,176),
                 "rarity":"common",
                 "type":"support",
                 "effects":[
@@ -135,7 +135,7 @@ class Item:
                 "long_description":"Decreases the dash cooldown by 15%. Every stack gives 5/6th of the last ones effect."}
 
     JERRYCAN = {"name":"All-Purposes Jerrycan",
-                "image":(0,192),
+                "image":(32,176),
                 "rarity":"common",
                 "type":"support",
                 "effects":[
@@ -145,7 +145,7 @@ class Item:
                 "long_description":"Increases chance to get fuel on kill by 5% (+5% per stack). Extra 10% (+10% per stack) chance to get extra fuel on kill."}
 
     PAMPHLET = {"name":"Pamphlet", #like a political pamphlet that tells you to go vote for a party
-                "image":(0,192),
+                "image":(48,176),
                 "rarity":"common",
                 "type":"support",
                 "effects":[
@@ -154,7 +154,7 @@ class Item:
                 "long_description":"You have a 10% chance to get 5% of your amunitions and durability back on kill. Every stack gives 3/5th of the last ones effect."}
 
     RED_BOOK = {"name":"Little Red Book", 
-                "image":(0,192),
+                "image":(64,176),
                 "rarity":"common",
                 "type":"damage",
                 "effects":[
@@ -163,7 +163,7 @@ class Item:
                 "long_description":"Increases damage by 15% (+15% per stack) against bosses and enemies with a higher level than your weapons"} #Considering the fact enemies will outscale the player's stats, I think this item is pretty much a must-have if we want the player to have the ability tp have long runs (but it won't have much of an effect in the early game)
 
     BOTTLE = {"name":"Broken Bottle", #Broken Glass Bottle
-                "image":(0,192),
+                "image":(80,176),
                 "rarity":"common",
                 "type":"damage",
                 "effects":[
@@ -172,7 +172,7 @@ class Item:
                 "long_description":"Increases your chance of dealing critical hits by 5% (+5% per stack). You cannot increase critical hit chance over 50%"}
 
     BADGES = {"name":"Scout's Badges", #Like boyscout badges
-                "image":(0,192),
+                "image":(96,176),
                 "rarity":"common",
                 "type":"damage",
                 "effects":[
@@ -181,7 +181,7 @@ class Item:
                 "long_description":"Melee weapons deal 15% (+15% per stack) more damage when under 10% durability. Ranged weapons deal 15% (+15% per stack) more damage on the last shot before reloading. Does not affect weapons who only have one shot before reloading."}
 
     PUZZLE_CUBE = {"name":"Puzzle Cube", #Its just a rubik's cube (I don't think the organisers will allow us to name actual brands)
-                "image":(0,192),
+                "image":(112,176),
                 "rarity":"common",
                 "type":"damage",
                 "effects":[
@@ -190,7 +190,7 @@ class Item:
                 "long_description":"Reduces the time between two attacks by 15%. Each stack gives 5/6th of the last ones effect."} #This makes it so that the reduction between attacks is at most 90% (so you can't just make every weapon fire their entire clip in less than 1s with many stacks of this item)
 
     METAL_SHEET = {"name":"Rusted Metal Sheet", #just a random sheet of metal
-                "image":(0,192),
+                "image":(128,176),
                 "rarity":"common",
                 "type":"damage",
                 "effects":[
@@ -199,7 +199,7 @@ class Item:
                 "long_description":"Increases damage by 100%(+50% per stack) against enemies who have not taken damage"}
 
     BINOCULAR = {"name":"Dirty Binocular",
-                "image":(0,192),
+                "image":(144,176),
                 "rarity":"common",
                 "type":"damage",
                 "effects":[
@@ -208,7 +208,7 @@ class Item:
                 "long_description":"Bullets can go 10% (+10% per stack) further. Melee attacks have 15% (+15% per stack) more range"}
 
     GLASSES = {"name":"Glasses", 
-                    "image":(0,192),
+                    "image":(160,176),
                     "rarity":"common",
                     "type":"damage",
                     "effects":[
