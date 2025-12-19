@@ -14,7 +14,6 @@ PONCTUATION = [' ', ',', ';', ':', '!', '&', '', '"', "'", '(', '-', '', '_', ''
 PONC_SHIFT = [' ', '?', '.', '/', '§', '1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '', '+']
 PONC_ALT = [' ', '', '', '', '', '', '', '', "{", '[', '|', '`', '', '', '', ']', '}']
 PONC_PYXEL = ['SPACE','COMMA','SEMICOLON','COLON','EXCLAIM','1','2','3','4','5','6','7','8','9','0','RIGHTPAREN','EQUALS']
-KEYS = list(LETTERS)+PONCTUATION
 
 
 class App:
@@ -23,6 +22,7 @@ class App:
         pyxel.init(width=128,height=128,fps=120)
         pyxel.load('../makers_asset.pyxres')
         pyxel.colors[2] = get_color('740152')
+        pyxel.colors[14] = get_color('C97777')
 
         #self.save = toml.load('save.toml')
 

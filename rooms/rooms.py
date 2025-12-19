@@ -20,6 +20,8 @@ class App:
     def __init__(self):
         pyxel.init(CAM_WIDTH, CAM_HEIGHT, fps=120)
         pyxel.load('../rooms.pyxres')
+        pyxel.colors[2] = get_color('740152')
+        pyxel.colors[14] = get_color('C97777')
 
         self.show = Roombuild()
 
@@ -403,7 +405,10 @@ class Roombuild:
         self.player = Player(TILE_SIZE,TILE_SIZE)
         self.editor = WallsEditor()
         self.rooms = []
-        self.selectedRoom = 0
+        self.exitStartPos = (0,0)
+        self.exitEndPos = (0,0)
+        self.currentExitSide = 'N/A'
+        self.selectedRoom = -1
         self.editWallsMode = False
         self.editRoomsMode = False
         self.menu = Menu()
@@ -423,15 +428,6 @@ class Roombuild:
     def actionsCheck(self):
         if pyxel.btn(pyxel.KEY_LCTRL) and pyxel.btnp(pyxel.KEY_S):
             self.savePresets()
-
-    def savePresets(self):
-        path = 'preset_rooms.toml'
-        file = openToml(path)
-        
-        dic = self.rooms[0].convertDic(nbName=0)
-
-        file['presetRooms'].append(dic)
-        dumpToml(path,file)
 
     def editorUpdate(self):
         if pyxel.btnp(pyxel.KEY_LALT):
@@ -504,7 +500,7 @@ class Roombuild:
 
         assetNumber = self.menu.assetPlace
         if assetNumber != 'N/A':
-            if type(assetNumber) is int and assetNumber <= 9:
+            if type(assetNumber) is int and assetNumber <= len(self.menu.assetsList)-1:
                 self.assetAdd(self.selectedRoom, assetNumber)
             self.menu.assetPlace = 'N/A'
 
@@ -530,8 +526,48 @@ class Roombuild:
         if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT):
             self.loadRoom()
 
+        self.exitsActions()
+
+
         if len(self.rooms) != 0:
             self.rooms[self.selectedRoom].update()
+
+    def exitsActions(self):
+        global camera
+        if pyxel.btnp(pyxel.KEY_F):
+            x = (pyxel.mouse_x + camera[0])//TILE_SIZE
+            y = (pyxel.mouse_y + camera[1])//TILE_SIZE
+
+            room = self.rooms[-1]
+
+            if y == room.y//TILE_SIZE:
+                self.currentExitSide = 'up'
+            elif x == room.x//TILE_SIZE:
+                self.currentExitSide = 'left'
+            elif y == (room.y+room.height)//TILE_SIZE-1:
+                self.currentExitSide = 'down'
+            elif x == (room.x+room.width)//TILE_SIZE-1:
+                self.currentExitSide = 'right'
+
+            self.exitStartPos = [x - room.x//TILE_SIZE, y - room.y//TILE_SIZE]
+            print('exitStartPos: ', self.exitStartPos)
+            print('side: ', self.currentExitSide)
+
+        
+        if pyxel.btnr(pyxel.KEY_F):
+            x = (pyxel.mouse_x + camera[0])//TILE_SIZE
+            y = (pyxel.mouse_y + camera[1])//TILE_SIZE
+
+            room = self.rooms[-1]
+
+            self.exitEndPos = [x - room.x//TILE_SIZE, y - room.y//TILE_SIZE]
+            if self.currentExitSide != 'N/A':
+                self.rooms[-1].exitsFree[self.currentExitSide] = (self.exitStartPos, self.exitEndPos)
+
+            print(self.rooms[-1].exitsFree)
+            print('exitEndPos: ', self.exitEndPos)
+            
+            self.currentExitSide = 'N/A'
 
     def roomsDraw(self):
         for room in self.rooms:
@@ -546,23 +582,48 @@ class Roombuild:
         x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE
         y = (pyxel.mouse_y + self.camera[1])//TILE_SIZE
 
-        path = 'preset_rooms.toml'
+        path = 'finished_rooms.toml'
         file = openToml(path)
-        settings = file['presetRooms'][-1]
+        settings = file['presetRooms'][random.randint(0,len(file['presetRooms'])-1)]
 
         self.rooms.append(LoadRoom(settings,x,y))
+
+    def savePresets(self):
+        path = 'finished_rooms.toml'
+        file = openToml(path)
+        
+        roomDic = self.rooms[-1].convertDic()
+
+        """ replace the room if name in file, else append in file"""
+        index = None
+        for i in range(len(file['presetRooms'])):
+            if file['presetRooms'][i]['name'] == roomDic['name']:
+                index = i
+                print('found', index, roomDic['name'])
+        
+        if index != None:
+            file['presetRooms'].pop(index)
+            file['presetRooms'].insert(index,roomDic)
+        else:
+            file['presetRooms'].append(roomDic)
+
+        
+        dumpToml(path,file)
+
 
 
 class Room:
     def __init__(self,x,y,width,height):
-        self.x = x
-        self.y = y
-        self.width = width
-        self.height = height
+        self.x = x*TILE_SIZE
+        self.y = y*TILE_SIZE
+        self.width = width*TILE_SIZE
+        self.height = height*TILE_SIZE
+        self.exitsFree = {'up':[],'down':[],'left':[],'right':[]}
 
-    def convertDic(self,nbName):
+    def convertDic(self):
         wallsIn = self.getWallsIn()
-        dic = {'name':'room_'+str(nbName),'width':self.width,'height':self.height,'walls':wallsIn,'assets':[asset.convertDic((self.x,self.y)) for asset in self.assets]}
+        dic = {'name':self.name,'width':self.width,'height':self.height,'walls':wallsIn, 'exitsFree':self.exitsFree,
+                'assets':[asset.convertDic((self.x,self.y)) for asset in self.assets]}
         return dic
 
     def getWallsIn(self):
@@ -576,9 +637,6 @@ class Room:
                     wallsIn.append((x-1, y-2))
 
         return wallsIn
-
-
-
 
     def __str__(self):
         string = ''
@@ -599,9 +657,9 @@ class Room:
     def draw(self):
         pyxel.rect(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE,5)
         pyxel.rectb(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE+1,6)
-        pyxel.rect(self.x,self.y,self.width,self.height,2)
+        pyxel.rect(self.x,self.y,self.width,self.height+1,2)
         self.floorPatternDraw()
-        pyxel.rectb(self.x,self.y,self.width,self.height,6)
+        pyxel.rectb(self.x,self.y,self.width,self.height+1,6)
 
         self.assetDraw()
 
@@ -610,13 +668,13 @@ class Room:
             for x in range(self.width//TILE_SIZE):
                 pass
 
-    def assetAppend(self, assetClass, pos):
+    def assetAppend(self, assetClass, pos, reversed=False):
         index = 0
         for i in range(len(self.assets)):
             if pos[1] > self.assets[i].y:
                 index = i+1
 
-        self.assets.insert(index,assetClass(*pos))
+        self.assets.insert(index,assetClass(*pos, reversed))
 
     def assetDraw(self):
         for asset in self.assets:
@@ -631,11 +689,9 @@ class Room:
 
 class NewRoom(Room):
     def __init__(self,x,y,width,height):
+        super().__init__(x, y, width, height)
         self.loaded = False
-        self.x = x*TILE_SIZE
-        self.y = y*TILE_SIZE
-        self.width = width*TILE_SIZE
-        self.height = height*TILE_SIZE
+        self.name = 'unnamed'
 
         self.assets = []
         self.assets.append(TableVertical(self.x+16,self.y+16))
@@ -644,14 +700,16 @@ class NewRoom(Room):
 
 class LoadRoom(Room):
     def __init__(self,settings,x,y):
+        super().__init__(x, y, TILE_SIZE, TILE_SIZE)
         self.loaded = True
-        self.x = x*TILE_SIZE
-        self.y = y*TILE_SIZE
         self.settings = settings
-        self.defaultSettings = {'name':'room_48','width':15*TILE_SIZE,'height':15*TILE_SIZE,'walls':[],'assets':[{'name':'tableVertical','relativeX':48,'relativeY':48}]}
+        self.defaultSettings = {'name':'room_48','width':15*TILE_SIZE,'height':15*TILE_SIZE,
+        'walls':[], 'exitsFree':{'up':[],'down':[],'left':[],'right':[]},'assets':[{'name':'tableVertical','relativeX':48,'relativeY':48, 'reversed':False}]}
         self.assets = []
 
         self.initSettings()
+
+                
 
     def initSettings(self):
         for setting in self.defaultSettings.keys():
@@ -670,7 +728,7 @@ class LoadRoom(Room):
                     classIndex = getIndex(menu.allAssetsNames,asset['name'])
                     classAsset = menu.allAssets[classIndex]
 
-                    self.assetAppend(classAsset,(self.x + asset['relativeX'],self.y + asset['relativeY']))
+                    self.assetAppend(classAsset,(self.x + asset['relativeX'],self.y + asset['relativeY']),asset['reversed'])
 
         self.buildWalls()
 
@@ -713,12 +771,13 @@ class WallsEditor:
 
 class Asset:
     name = 'N/A'
-    def __init__(self,x,y):
+    def __init__(self,x,y, reversed=False):
         self.x = x
         self.y = y
         self.img = (0,0)
         self.width = 2*TILE_SIZE
         self.height = 2*TILE_SIZE
+        self.reversed = reversed
         self.removeSelf = False
 
 
@@ -727,43 +786,51 @@ class Asset:
         if mouseInside(self.x,self.y,self.width,self.height,camera):
             if pyxel.btnp(pyxel.KEY_X):
                 self.removeSelf = True
+            if pyxel.btnp(pyxel.KEY_E):
+                self.reversed = not self.reversed
 
     def draw(self):
-        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width,self.height,11)
+        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
 
     def convertDic(self,pos):
-        dic = {'name':self.name,'relativeX':self.x-pos[0],'relativeY':self.y-pos[1]}
+        dic = {'name':self.name,'relativeX':self.x-pos[0],'relativeY':self.y-pos[1], 'reversed':self.reversed}
         return dic
+
+    def coeff(self):
+        if self.reversed:
+            return -1
+        else:
+            return 1
 
 
 
 class DoorHorizontal(Asset):
     name = 'DoorHorizontal'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class DoorVertical(Asset):
     name = 'DoorVertical'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (2,0)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class TableVertical(Asset):
     name = 'TableVertical'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (6,0)
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
 
 class BedVertical(Asset):
     name = 'BedVertical'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (8,0)
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
@@ -771,24 +838,24 @@ class BedVertical(Asset):
 
 class WallHorizontalInside(Asset):
     name = 'WallHorizontalInside'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (10,0)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class WallHorizontalStart(Asset):
     name = 'WallHorizontalStart'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (11,0)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
         
 class WallHorizontalEnd(Asset):
     name = 'WallHorizontalEnd'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (12,0)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
@@ -796,96 +863,170 @@ class WallHorizontalEnd(Asset):
 
 class WallVerticalInside(Asset):
     name = 'WallVerticalInside'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (13,0)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class WallVerticalStart(Asset):
     name = 'WallVerticalStart'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (14,0)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class WallVerticalEnd(Asset):
     name = 'WallVerticalEnd'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (15,0)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class ClosetFront(Asset):
     name = 'ClosetFront'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (6,3)
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
 
 class ClosetBack(Asset):
     name = 'ClosetBack'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (6,6)
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
 
 class Dressing(Asset):
     name = 'Dressing'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (8,3)
         self.width = 3*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class WallTelevision(Asset):
     name = 'WallTelevision'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (0,3)
         self.width = 2*TILE_SIZE
         self.height = 1*TILE_SIZE
 
 class WallShelf(Asset):
     name = 'WallShelf'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (2,3)
         self.width = 2*TILE_SIZE
         self.height = 1*TILE_SIZE
 
 class CouchFront(Asset):
     name = 'CouchFront'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (0,4)
+        self.width = 3*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class CouchBack(Asset):
+    name = 'CouchBack'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (3,4)
         self.width = 3*TILE_SIZE
         self.height = 2*TILE_SIZE
 
 class TableHorizontal(Asset):
     name = 'TableHorizontal'
-    def __init__(self,x,y):
-        super().__init__(x,y)
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
         self.img = (0,6)
         self.width = 3*TILE_SIZE
         self.height = 2*TILE_SIZE
+
+class FridgeFront(Asset):
+    name = 'FridgeFront'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (0,8)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class ShelfStorage(Asset):
+    name = 'ShelfStorage'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (1,8)
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
+class CounterTopDrawer(Asset):
+    name = 'CounterTopDrawer'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (1,9)
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
+class CounterTop(Asset):
+    name = 'CounterTop'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (2,9)
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
+class CounterTopSide(Asset):
+    name = 'CounterTopSide'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (3,9)
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
+class ChairFront(Asset):
+    name = 'ChairFront'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (1,0)
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
+class ChairBack(Asset):
+    name = 'ChairBack'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (1,1)
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
+class FloorLamp(Asset):
+    name = 'FloorLamp'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (4,2)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
 
 
 
 class Menu:
     def __init__(self):
-        self.allAssets = [DoorHorizontal, DoorVertical, CouchFront, TableVertical, TableHorizontal, 
+        self.allAssets = [DoorHorizontal, DoorVertical, CouchFront, CouchBack, TableVertical, TableHorizontal, 
                         ClosetFront, Dressing, WallTelevision, WallShelf, BedVertical, ClosetBack,
                         WallHorizontalInside,  WallHorizontalStart, WallHorizontalEnd,
-                        WallVerticalInside, WallVerticalStart, WallVerticalEnd]
+                        WallVerticalInside, WallVerticalStart, WallVerticalEnd,
+                        FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp]
 
-        self.assetsList = [DoorHorizontal, CouchFront, TableVertical, ClosetFront, Dressing, WallTelevision, TableHorizontal, BedVertical, ClosetBack,
-                        WallHorizontalInside, 
-                        WallVerticalInside,]
+        self.assetsList = [DoorHorizontal, ChairFront, ChairBack, CouchFront, CouchBack, TableVertical, ClosetFront, TableHorizontal, BedVertical, ClosetBack,
+                        WallHorizontalInside, FloorLamp, 
+                        WallVerticalInside, DoorVertical, WallShelf, FridgeFront, ShelfStorage, CounterTopDrawer, CounterTop, CounterTopSide]
 
         self.allAssetsNames = [asset.name for asset in self.allAssets]
         self.assetsNames = [asset.name for asset in self.assetsList]
@@ -894,14 +1035,18 @@ class Menu:
     def update(self):
         for i in range(9):
             if pyxel.btnp(getattr(pyxel,'KEY_'+str(i+1))):
-                self.assetPlace = i
+                if pyxel.btn(pyxel.KEY_LSHIFT):
+                    self.assetPlace = i+9
+                else:
+                    self.assetPlace = i
+
 
         if pyxel.btnp(pyxel.KEY_P):
             string = ''
             i=0
             for name in self.assetsNames:
                 i += 1
-                string += str(i)+': '+name + ',   '
+                string += str(i)+': '+ name + ',   '
             print(string)
 
     def draw(self):
@@ -921,6 +1066,9 @@ def getIndex(tab, value):
         if tab[i] == value:
             return i
     return None
+
+def get_color(hex):
+    return int(hex, 16)
 
 
 if __name__ == '__main__':

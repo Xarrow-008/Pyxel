@@ -1,6 +1,6 @@
 import toml, pyperclip, pathlib, zipfile
 from pynput.keyboard import Key, Listener
-from utility import *
+#from utility import *
 
 
 """
@@ -29,7 +29,8 @@ for i in range(16):
 
 pyxel.show()
 """
-os.system('cls')
+
+
 canvas = [['.' for x in range(20)] for y in range(20)]
 
 digits = [0,1,2,3,4,5,6,7,8,9]
@@ -156,234 +157,6 @@ with Listener(
         on_release=on_release) as listener:
     listener.join()
 """
-
-class Actions:
-    def __init__(self, map, entities, player, owner):
-        self.map = map
-        self.entities = entities
-        self.player = player
-        self.owner = owner
-        self.currentActionPriority = 0
-        self.collision_happened = False
-
-    def move(self, vector): #We give a movement vector and get the new coordinates of the entity
-        X = int(self.owner.x//TILE_SIZE)
-        Y = int(self.owner.y//TILE_SIZE)
-
-        #We handle horizontal and vertical movement separatly to make problem solving easier
-
-        #Calculate the new position
-        new_x = self.owner.x + vector[0]
-        new_X = X+pyxel.sgn(vector[0])
-
-        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
-            new_x = new_X*TILE_SIZE
-
-        if vector[0]!=0:
-            next_X_1 = self.map[Y][new_X]
-            if self.owner.y != Y*TILE_SIZE:
-                next_X_2 = self.map[Y+1][new_X]
-            else:
-                next_X_2 = Blocks.GROUND
-            #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 not in Blocks.WALLS or not collision(new_x, self.owner.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 not in Blocks.WALLS or not collision(new_x, self.owner.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
-                self.owner.x = new_x
-            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
-            elif (next_X_1 in Blocks.WALLS or next_X_2 in Blocks.WALLS) and new_x+self.owner.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
-                self.collision_happened = True
-                self.owner.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
-        
-        X = int(self.owner.x//TILE_SIZE)
-
-        #We calculate vertical movement in the same way we do horizontal movement
-
-        new_y = self.owner.y + vector[1]
-        new_Y = Y+pyxel.sgn(vector[1])
-        
-        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
-            new_y = new_Y*TILE_SIZE
-
-        
-        if vector[1]!=0:
-            next_Y_1 = self.map[new_Y][X]
-            if self.owner.x != X*TILE_SIZE:
-                next_Y_2 = self.map[new_Y][X+1]
-            else:
-                next_Y_2 = Blocks.GROUND
-            
-            if (next_Y_1 not in Blocks.WALLS or not collision(self.owner.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 not in Blocks.WALLS or not collision(self.owner.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.owner.width, self.owner.height], [TILE_SIZE, TILE_SIZE])):
-                self.owner.y = new_y
-            elif (next_Y_1 in Blocks.WALLS or next_Y_2 in Blocks.WALLS) and new_y+self.owner.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
-                self.collision_happened = True
-                self.owner.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
-
-    def init_walk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
-        self.walkPriority = priority
-        self.maxSpeed = maxSpeed
-        self.speedChangeRate = speedChangeRate
-        self.knockbackCoef = knockbackCoef
-
-    def walk(self, vector): #Used for regular walking.
-        if self.currentActionPriority <= self.walkPriority:
-            self.currentActionPriority = self.walkPriority
-
-            self.move(vector)
-
-    def init_dash(self, priority, cooldown, speed, duration): #Gets the parameters of the "dash" action, and initialises the related variables
-        self.dashPriority = priority
-        self.dashCooldown = cooldown
-        self.dashSpeed = speed
-        self.dashDuration = duration
-
-        self.isDashing = False
-        self.dashFrame = 0
-        self.dashVector = [0,0]
-
-    def start_dash(self, vector): #Used for dashing/lunging
-        if self.dashFrame >= self.dashCooldown and self.currentActionPriority <= self.dashPriority:
-            self.currentActionPriority = self.dashPriority
-
-            self.dashFrame = 0
-            self.isDashing = True
-            self.dashVector = copy(vector)
-    
-    def dash(self):
-        if self.dashFrame < self.dashDuration:
-            self.move([self.dashVector[0]*self.dashSpeed, self.dashVector[1]*self.dashSpeed])
-
-        else :
-            self.currentActionPriority = 0
-            self.isDashing = False
-            self.dashFrame = 0
-            self.owner.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
-            self.dashVector = [0,0]
-
-        self.dashFrame += 1
-
-    def heal(self, value, target):
-        target.health += value
-        if target.health > target.maxHealth:
-            target.health = target.maxHealth
-
-    def hurt(self, value, vector, knockback_coef, target, shot):
-        if hasattr(target.actions, "isHitStun"):
-            if not target.actions.isHitStun or target.hitBy == shot:
-                target.health -= value
-                target.actions.isHitStun = True
-                target.actions.hitStunFrame = 0
-                target.actions.frozen = target.actions.hitFreezeFrame
-                target.hitBy = shot
-                if hasattr(target.actions, "maxSpeed"):
-                    knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
-                    target.momentum[0] += vector[0]*knockback_value
-                    target.momentum[1] += vector[1]*knockback_value
-        else:
-            target.health -= value
-            if hasattr(target.actions, "maxSpeed"):
-                knockback_value = len(str(value))*knockback_coef*target.actions.knockbackCoef
-                target.momentum[0] += vector[0]*knockback_value
-                target.momentum[1] += vector[1]*knockback_value
-
-    def init_death(self, spawn_item):
-        self.deathItemSpawn = spawn_item
-
-        self.dead = False
-
-    def add_death_list(self, list):
-        self.deathList = list
-
-    def death(self):
-        if self.dead == False:
-            self.deathList.remove(self.owner)
-            self.dead = True
-
-    def init_ranged_attack(self, priority):
-        self.rangedAttackPriority = priority
-        self.rangedAttackFrame = 0
-        self.shotsFired = 0
-
-    def ranged_attack(self, weapon, x, y, team):
-        if self.rangedAttackPriority >= self.currentActionPriority and self.rangedAttackFrame >= weapon["cooldown"] and weapon["mag_ammo"]:
-
-            self.currentActionPriority = self.rangedAttackPriority
-
-            self.rangedAttackFrame = 0
-            weapon["mag_ammo"] -= 1
-            self.shotsFired += 1
-
-            for i in range(weapon["bullet_count"]):
-                horizontal = x - (self.owner.x + self.owner.width/2)
-                vertical = y - (self.owner.y + self.owner.height/2)
-                norm = math.sqrt(horizontal**2 + vertical**2)
-
-                if norm != 0:
-                    cos = horizontal/norm
-                    sin = vertical/norm
-                    angle = math.acos(cos) * pyxel.sgn(sin)
-                    lowest_angle = angle - weapon["spread"]*(math.pi/180)
-                    highest_angle = angle + weapon["spread"]*(math.pi/180)
-                    angle = random.uniform(lowest_angle, highest_angle)
-                    cos = math.cos(angle)
-                    sin = math.sin(angle)
-                else:
-                    cos = 0
-                    sin = 0
-                Projectile(weapon, self.owner.x, self.owner.y, [cos,sin], self.map, self.entities, self.player, team, self.shotsFired)
-
-    def reload_weapon(self, weapon):
-        if self.rangedAttackFrame >= weapon["reload"] and weapon["reserve_ammo"]>0 and weapon["mag_ammo"]==0:
-            if weapon["reserve_ammo"]>=weapon["max_ammo"]:
-                weapon["mag_ammo"] = weapon["max_ammo"]
-                weapon["reserve_ammo"] -= weapon["max_ammo"]
-            else:
-                weapon["mag_ammo"] = weapon["reserve_ammo"]
-                weapon["reserve_ammo"] = 0
-
-    def init_collision(self, wall, enemy, player):
-        self.wallCollision = wall
-        self.enemyCollision = enemy
-        self.playerCollision = player
-
-    def collision(self):
-
-        if self.wallCollision[3] != -1:
-            if self.collision_happened:
-                if self.wallCollision[0] == 0:
-                    self.death()
-
-        if self.enemyCollision[3] != -1:
-            for entity in self.entities:
-                if type(entity) == Enemy and collision(self.owner.x, self.owner.y, entity.x, entity.y, [self.owner.width, self.owner.height], [entity.width, entity.height]):
-                    if (hasattr(entity.actions, "isHitStun") and not entity.actions.isHitStun) or not hasattr(entity.actions, "isHitStun"):
-                        self.hurt(self.enemyCollision[0], self.enemyCollision[1], self.enemyCollision[2], entity, self.owner.shot)
-                        if self.enemyCollision[3] == 0:
-                            self.death()
-                        else:
-                            self.enemyCollision[3] -= 1
-
-        if self.playerCollision[3] != -1 :          
-            if collision(self.owner.x, self.owner.y, self.player.x, self.player.y, [self.owner.width, self.owner.height], [self.player.width, self.player.height]):
-                if not player.actions.isHitStun:
-                    self.hurt(self.playerCollision[0], self.playerCollision[1], self.playerCollision[2], self.player, self.owner.shot)
-                    if self.playerCollision[3] == 0:
-                        self.death()
-                    else :
-                        self.playerCollision[3] -= 1
-
-    def init_hitstun(self, duration, freeze_frame):
-        self.hitStunDuration = duration
-        self.hitFreezeFrame = freeze_frame
-        self.frozen = 0
-
-        self.isHitStun = False
-        self.hitStunFrame = 0
-        self.hitBy = 0
-
-    def hitstun(self):
-        if self.hitStunFrame >= self.hitStunDuration and self.isHitStun:
-            self.isHitStun = False
-        else:
-            self.hitStunFrame += 1
 
 def empty_save_anim():
     dic = {'animations':[{'width':16,'height':16,'name':'N/A','frames':[]}]}
@@ -554,10 +327,6 @@ class LoadRoom:
 
 settings = {'width':10}
 
-A = LoadRoom(settings,0,0)
-
-print(A.__str__())
-
 
 class Animation:
     def __init__(self):
@@ -575,3 +344,82 @@ class Animation:
                 self.slide.pop(0)
                 self.slide.append(random.choice(blocks_list))
                 self.slide_pos = 0
+
+
+
+
+
+"""
+SELECT login
+FROM Joueurs
+
+SELECT login, mot_de_passe
+FROM Joueurs
+
+SELECT gold
+FROM Joueurs
+WHERE login = 'Yphe'
+
+SELECT login, mot_de_passe
+FROM Joueurs
+
+SELECT SUM(gold) AS somme_gold
+FROM Joueurs
+
+SELECT DISTINCT lieu_travail AS lieu_travail_distinct
+FROM Metiers
+
+SELECT COUNT(*)
+FROM Metiers
+
+SELECT COUNT(*)
+FROM Metiers
+WHERE remuneration > 1000
+
+SELECT nom_faction
+FROM Factions
+ORDER BY nom_faction ASC
+
+SELECT AVG(remunaeration)
+FROM Metiers
+
+
+
+SELECT login
+FROM Joueurs
+JOIN Metiers ON Metiers.id_metier = Joueurs.id_metiers
+WHERE nom_metier = 'tailleur'
+
+SELECT login
+FROM Joueurs
+JOIN Factions ON factions.id_faction = Joueurs.id_faction
+WHERE nom_faction = 'Mage'
+
+
+SELECT login
+FROM Joueurs
+JOIN Faction ON Faction.id_faction = Joueurs.id_faction
+JOIN Metiers ON Metiers.id_metier = Joueur.id_metier
+WHERE nom_faction = 'Assassin'
+AND nom_metier = 'Paysan'
+
+SELECT login
+FROM Reputation
+JOIN Joueurs ON Joueurs.login = Reputation.login
+JOIN Faction ON Faction.id_faction = Joueurs.id_faction
+JOIN Metiers ON Metiers.id_metier = Joueur.id_metier
+JOIN Peuple ON Peuple.id_peuple = Reputation.idPeuple
+WHERE nom_faction = 'Sorcier'
+AND nom_metier = 'Mineur'
+AND reputation > 5
+AND nom_peuple = 'Orc'
+
+"""
+BLEU='\033[94m'
+ROUGE='\033[91m'
+VERT='\033[92m'
+JAUNE='\033[93m'
+
+
+print(ROUGE + 'test' +JAUNE)
+os.system('cls')

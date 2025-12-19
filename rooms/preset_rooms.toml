@@ -1,194 +1,175 @@
 [[presetRooms]]
-name = "room_0"
-width = 240
-height = 128
-walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ 14, -2,], [ -1, -1,], [ 1, -1,], [ 2, -1,], [ 3, -1,], [ 4, -1,], [ 6, -1,], [ 7, -1,], [ 10, -1,], [ 11, -1,], [ 12, -1,], [ 13, -1,], [ 14, -1,], [ -1, 0,], [ 13, 0,], [ 14, 0,], [ -1, 1,], [ 13, 1,], [ 14, 1,], [ 13, 2,], [ 14, 2,], [ 13, 3,], [ 14, 3,], [ -1, 4,], [ 13, 4,], [ 14, 4,], [ -1, 5,], [ 1, 5,], [ 2, 5,], [ 4, 5,], [ 5, 5,], [ 10, 5,], [ 11, 5,], [ 13, 5,], [ 14, 5,], [ -1, 6,], [ 1, 6,], [ 2, 6,], [ 4, 6,], [ 5, 6,], [ 6, 6,], [ 7, 6,], [ 8, 6,], [ 10, 6,], [ 11, 6,], [ 13, 6,], [ 14, 6,], [ -1, 7,], [ 1, 7,], [ 2, 7,], [ 4, 7,], [ 5, 7,], [ 6, 7,], [ 7, 7,], [ 8, 7,], [ 10, 7,], [ 11, 7,], [ 13, 7,], [ 14, 7,], [ -1, 8,], [ 0, 8,], [ 1, 8,], [ 2, 8,], [ 3, 8,], [ 4, 8,], [ 5, 8,], [ 6, 8,], [ 7, 8,], [ 8, 8,], [ 9, 8,], [ 10, 8,], [ 11, 8,], [ 12, 8,], [ 13, 8,], [ 14, 8,],]
+name = "room_entry"
+width = 208
+height = 144
+walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ -1, -1,], [ 1, -1,], [ 2, -1,], [ 4, -1,], [ 5, -1,], [ 10, -1,], [ 11, -1,], [ 12, -1,], [ 13, -1,], [ -1, 0,], [ 10, 0,], [ 11, 0,], [ 12, 0,], [ 13, 0,], [ -1, 1,], [ 13, 1,], [ 13, 2,], [ 9, 3,], [ 10, 3,], [ 13, 3,], [ -1, 4,], [ 9, 4,], [ 10, 4,], [ 13, 4,], [ -1, 5,], [ -1, 6,], [ -1, 7,], [ 2, 7,], [ 3, 7,], [ 4, 7,], [ 13, 7,], [ -1, 8,], [ 2, 8,], [ 3, 8,], [ 4, 8,], [ 13, 8,], [ -1, 9,], [ 0, 9,], [ 1, 9,], [ 2, 9,], [ 3, 9,], [ 4, 9,], [ 5, 9,], [ 6, 9,], [ 8, 9,], [ 9, 9,], [ 10, 9,], [ 11, 9,], [ 12, 9,], [ 13, 9,],]
+[[presetRooms.assets]]
+name = "WallShelf"
+relativeX = 128
+relativeY = -32
+reversed = false
+
 [[presetRooms.assets]]
 name = "ClosetFront"
-relativeX = 48
+relativeX = 64
 relativeY = -32
+reversed = false
 
 [[presetRooms.assets]]
 name = "ClosetFront"
 relativeX = 16
 relativeY = -32
+reversed = false
 
 [[presetRooms.assets]]
-name = "ClosetFront"
-relativeX = 96
-relativeY = -32
-
-[[presetRooms.assets]]
-name = "BedVertical"
-relativeX = 208
-relativeY = -16
-
-[[presetRooms.assets]]
-name = "Dressing"
+name = "TableHorizontal"
 relativeX = 160
-relativeY = -16
+relativeY = -8
+reversed = false
 
 [[presetRooms.assets]]
 name = "DoorHorizontal"
 relativeX = 0
 relativeY = 16
+reversed = false
 
 [[presetRooms.assets]]
-name = "BedVertical"
-relativeX = 208
-relativeY = 16
-
-[[presetRooms.assets]]
-name = "BedVertical"
-relativeX = 208
+name = "TableVertical"
+relativeX = 144
 relativeY = 48
+reversed = false
 
 [[presetRooms.assets]]
-name = "BedVertical"
-relativeX = 208
-relativeY = 80
+name = "DoorVertical"
+relativeX = 192
+relativeY = 64
+reversed = false
 
 [[presetRooms.assets]]
-name = "ClosetBack"
-relativeX = 16
-relativeY = 80
-
-[[presetRooms.assets]]
-name = "ClosetBack"
-relativeX = 64
-relativeY = 80
-
-[[presetRooms.assets]]
-name = "ClosetBack"
-relativeX = 160
-relativeY = 80
+name = "ChairFront"
+relativeX = 176
+relativeY = 64
+reversed = false
 
 [[presetRooms.assets]]
 name = "Dressing"
+relativeX = 32
+relativeY = 112
+reversed = false
+
+[[presetRooms.assets]]
+name = "DoorVertical"
 relativeX = 96
-relativeY = 96
+relativeY = 112
+reversed = false
 
 
 [[presetRooms]]
-name = "room_0"
+name = "room_bedroom"
 width = 240
 height = 128
-walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ 14, -2,], [ -1, -1,], [ 1, -1,], [ 2, -1,], [ 3, -1,], [ 4, -1,], [ 6, -1,], [ 7, -1,], [ 10, -1,], [ 11, -1,], [ 12, -1,], [ 13, -1,], [ 14, -1,], [ -1, 0,], [ 13, 0,], [ 14, 0,], [ -1, 1,], [ 13, 1,], [ 14, 1,], [ 13, 2,], [ 14, 2,], [ 13, 3,], [ 14, 3,], [ -1, 4,], [ 13, 4,], [ 14, 4,], [ -1, 5,], [ 1, 5,], [ 2, 5,], [ 4, 5,], [ 5, 5,], [ 13, 5,], [ 14, 5,], [ -1, 6,], [ 1, 6,], [ 2, 6,], [ 4, 6,], [ 5, 6,], [ 6, 6,], [ 7, 6,], [ 8, 6,], [ 13, 6,], [ 14, 6,], [ -1, 7,], [ 1, 7,], [ 2, 7,], [ 4, 7,], [ 5, 7,], [ 6, 7,], [ 7, 7,], [ 8, 7,], [ 13, 7,], [ 14, 7,], [ -1, 8,], [ 0, 8,], [ 1, 8,], [ 2, 8,], [ 3, 8,], [ 4, 8,], [ 5, 8,], [ 6, 8,], [ 7, 8,], [ 8, 8,], [ 9, 8,], [ 10, 8,], [ 12, 8,], [ 13, 8,], [ 14, 8,],]
+walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ 14, -2,], [ -1, -1,], [ 1, -1,], [ 2, -1,], [ 3, -1,], [ 4, -1,], [ 6, -1,], [ 7, -1,], [ 9, -1,], [ 10, -1,], [ 11, -1,], [ 12, -1,], [ 13, -1,], [ 14, -1,], [ -1, 0,], [ 13, 0,], [ 14, 0,], [ -1, 1,], [ 13, 1,], [ 14, 1,], [ 13, 2,], [ 14, 2,], [ 13, 3,], [ 14, 3,], [ -1, 4,], [ 13, 4,], [ 14, 4,], [ -1, 5,], [ 1, 5,], [ 2, 5,], [ 4, 5,], [ 5, 5,], [ 13, 5,], [ 14, 5,], [ -1, 6,], [ 1, 6,], [ 2, 6,], [ 4, 6,], [ 5, 6,], [ 6, 6,], [ 7, 6,], [ 8, 6,], [ 12, 6,], [ 13, 6,], [ 14, 6,], [ -1, 7,], [ 1, 7,], [ 2, 7,], [ 4, 7,], [ 5, 7,], [ 6, 7,], [ 7, 7,], [ 8, 7,], [ 12, 7,], [ 13, 7,], [ 14, 7,], [ -1, 8,], [ 0, 8,], [ 1, 8,], [ 2, 8,], [ 3, 8,], [ 4, 8,], [ 5, 8,], [ 6, 8,], [ 7, 8,], [ 8, 8,], [ 9, 8,], [ 12, 8,], [ 13, 8,], [ 14, 8,],]
 [[presetRooms.assets]]
-name = "WallShelf"
-relativeX = 144
+name = "ClosetFront"
+relativeX = 48
 relativeY = -32
+reversed = false
+
+[[presetRooms.assets]]
+name = "ClosetFront"
+relativeX = 16
+relativeY = -32
+reversed = false
+
+[[presetRooms.assets]]
+name = "ClosetFront"
+relativeX = 96
+relativeY = -32
+reversed = true
 
 [[presetRooms.assets]]
 name = "WallTelevision"
 relativeX = 192
 relativeY = -32
+reversed = false
 
 [[presetRooms.assets]]
-name = "ClosetFront"
-relativeX = 96
+name = "WallShelf"
+relativeX = 144
 relativeY = -32
+reversed = false
 
 [[presetRooms.assets]]
-name = "ClosetFront"
-relativeX = 16
-relativeY = -32
-
-[[presetRooms.assets]]
-name = "ClosetFront"
-relativeX = 48
-relativeY = -32
+name = "BedVertical"
+relativeX = 208
+relativeY = -16
+reversed = false
 
 [[presetRooms.assets]]
 name = "Dressing"
 relativeX = 160
 relativeY = -16
+reversed = false
 
 [[presetRooms.assets]]
-name = "BedVertical"
-relativeX = 208
+name = "FloorLamp"
+relativeX = 144
 relativeY = -16
-
-[[presetRooms.assets]]
-name = "BedVertical"
-relativeX = 208
-relativeY = 16
+reversed = false
 
 [[presetRooms.assets]]
 name = "DoorHorizontal"
 relativeX = 0
 relativeY = 16
+reversed = false
+
+[[presetRooms.assets]]
+name = "BedVertical"
+relativeX = 208
+relativeY = 16
+reversed = true
 
 [[presetRooms.assets]]
 name = "BedVertical"
 relativeX = 208
 relativeY = 48
-
-[[presetRooms.assets]]
-name = "ClosetBack"
-relativeX = 64
-relativeY = 80
-
-[[presetRooms.assets]]
-name = "ClosetBack"
-relativeX = 16
-relativeY = 80
+reversed = false
 
 [[presetRooms.assets]]
 name = "BedVertical"
 relativeX = 208
 relativeY = 80
+reversed = true
+
+[[presetRooms.assets]]
+name = "ClosetBack"
+relativeX = 16
+relativeY = 80
+reversed = false
+
+[[presetRooms.assets]]
+name = "ClosetBack"
+relativeX = 64
+relativeY = 80
+reversed = false
 
 [[presetRooms.assets]]
 name = "DoorVertical"
-relativeX = 160
+relativeX = 144
 relativeY = 96
+reversed = false
 
 [[presetRooms.assets]]
 name = "Dressing"
 relativeX = 96
 relativeY = 96
-
-
-[[presetRooms]]
-name = "room_0"
-width = 240
-height = 80
-walls = [ [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ 14, -2,], [ 15, -2,], [ 15, -1,], [ 15, 0,], [ 2, 1,], [ 3, 1,], [ 4, 1,], [ 6, 1,], [ 7, 1,], [ 8, 1,], [ 10, 1,], [ 11, 1,], [ 12, 1,], [ 15, 1,], [ 15, 2,], [ 15, 3,], [ 15, 4,],]
-[[presetRooms.assets]]
-name = "WallTelevision"
-relativeX = 176
-relativeY = -32
+reversed = false
 
 [[presetRooms.assets]]
-name = "WallTelevision"
-relativeX = 128
-relativeY = -32
-
-[[presetRooms.assets]]
-name = "WallTelevision"
-relativeX = 80
-relativeY = -32
-
-[[presetRooms.assets]]
-name = "WallTelevision"
-relativeX = 32
-relativeY = -32
-
-[[presetRooms.assets]]
-name = "CouchFront"
-relativeX = 160
-relativeY = 16
-
-[[presetRooms.assets]]
-name = "CouchFront"
-relativeX = 96
-relativeY = 16
-
-[[presetRooms.assets]]
-name = "CouchFront"
-relativeX = 32
-relativeY = 16
+name = "FloorLamp"
+relativeX = 192
+relativeY = 96
+reversed = false
 
 
 [[presetRooms]]
@@ -198,179 +179,475 @@ height = 80
 walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ 14, -2,], [ 15, -2,], [ -1, -1,], [ 15, -1,], [ -1, 0,], [ -1, 1,], [ 2, 1,], [ 3, 1,], [ 4, 1,], [ 6, 1,], [ 7, 1,], [ 8, 1,], [ 10, 1,], [ 11, 1,], [ 12, 1,], [ -1, 2,], [ 15, 2,], [ 15, 3,], [ 15, 4,], [ -1, 5,], [ 0, 5,], [ 1, 5,], [ 2, 5,], [ 3, 5,], [ 4, 5,], [ 5, 5,], [ 6, 5,], [ 7, 5,], [ 8, 5,], [ 9, 5,], [ 10, 5,], [ 11, 5,], [ 12, 5,], [ 13, 5,], [ 14, 5,], [ 15, 5,],]
 [[presetRooms.assets]]
 name = "WallTelevision"
-relativeX = 32
+relativeX = 176
 relativeY = -32
-
-[[presetRooms.assets]]
-name = "WallTelevision"
-relativeX = 80
-relativeY = -32
+reversed = false
 
 [[presetRooms.assets]]
 name = "WallTelevision"
 relativeX = 128
 relativeY = -32
+reversed = false
 
 [[presetRooms.assets]]
 name = "WallTelevision"
-relativeX = 176
+relativeX = 80
 relativeY = -32
+reversed = false
 
 [[presetRooms.assets]]
-name = "DoorHorizontal"
+name = "WallTelevision"
+relativeX = 32
+relativeY = -32
+reversed = false
+
+[[presetRooms.assets]]
+name = "DoorVertical"
 relativeX = 224
 relativeY = -16
+reversed = false
 
 [[presetRooms.assets]]
-name = "CouchFront"
-relativeX = 32
-relativeY = 16
-
-[[presetRooms.assets]]
-name = "CouchFront"
-relativeX = 96
-relativeY = 16
-
-[[presetRooms.assets]]
-name = "CouchFront"
+name = "CouchBack"
 relativeX = 160
 relativeY = 16
+reversed = false
+
+[[presetRooms.assets]]
+name = "CouchBack"
+relativeX = 96
+relativeY = 16
+reversed = false
+
+[[presetRooms.assets]]
+name = "CouchBack"
+relativeX = 32
+relativeY = 16
+reversed = false
 
 [[presetRooms.assets]]
 name = "DoorHorizontal"
 relativeX = 0
 relativeY = 32
-
-
-[[presetRooms]]
-name = "room_0"
-width = 208
-height = 176
-walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ 14, -2,], [ -1, -1,], [ -1, 0,], [ -1, 1,], [ 2, 1,], [ 3, 1,], [ 4, 1,], [ 5, 1,], [ 6, 1,], [ 7, 1,], [ -1, 2,], [ -1, 3,], [ 10, 3,], [ 11, 3,], [ -1, 4,], [ 2, 4,], [ 3, 4,], [ 6, 4,], [ 7, 4,], [ 10, 4,], [ 11, 4,], [ -1, 5,], [ 2, 5,], [ 3, 5,], [ 6, 5,], [ 7, 5,], [ 10, 5,], [ 11, 5,], [ -1, 6,], [ 2, 6,], [ 3, 6,], [ 4, 6,], [ 5, 6,], [ 6, 6,], [ 7, 6,], [ 10, 6,], [ 11, 6,], [ -1, 7,], [ 10, 7,], [ 11, 7,], [ -1, 8,], [ 10, 8,], [ 11, 8,], [ -1, 9,],]
-[[presetRooms.assets]]
-name = "WallTelevision"
-relativeX = 96
-relativeY = -32
-
-[[presetRooms.assets]]
-name = "WallTelevision"
-relativeX = 32
-relativeY = -32
-
-[[presetRooms.assets]]
-name = "CouchFront"
-relativeX = 80
-relativeY = 16
-
-[[presetRooms.assets]]
-name = "CouchFront"
-relativeX = 32
-relativeY = 16
-
-[[presetRooms.assets]]
-name = "BedVertical"
-relativeX = 160
-relativeY = 48
-
-[[presetRooms.assets]]
-name = "TableVertical"
-relativeX = 96
-relativeY = 64
-
-[[presetRooms.assets]]
-name = "TableVertical"
-relativeX = 32
-relativeY = 64
-
-[[presetRooms.assets]]
-name = "BedVertical"
-relativeX = 160
-relativeY = 80
-
-[[presetRooms.assets]]
-name = "TableHorizontal"
-relativeX = 80
-relativeY = 96
-
-[[presetRooms.assets]]
-name = "TableHorizontal"
-relativeX = 32
-relativeY = 96
-
-[[presetRooms.assets]]
-name = "BedVertical"
-relativeX = 160
-relativeY = 112
+reversed = false
 
 
 [[presetRooms]]
 name = "room_livingRoom"
 width = 208
 height = 176
-walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ -1, -1,], [ 13, -1,], [ 13, 0,], [ 2, 1,], [ 3, 1,], [ 4, 1,], [ 5, 1,], [ 6, 1,], [ 7, 1,], [ 13, 1,], [ -1, 2,], [ 13, 2,], [ -1, 3,], [ 10, 3,], [ 11, 3,], [ 13, 3,], [ -1, 4,], [ 2, 4,], [ 3, 4,], [ 6, 4,], [ 7, 4,], [ 10, 4,], [ 11, 4,], [ 13, 4,], [ -1, 5,], [ 2, 5,], [ 3, 5,], [ 6, 5,], [ 7, 5,], [ 10, 5,], [ 11, 5,], [ 13, 5,], [ -1, 6,], [ 2, 6,], [ 3, 6,], [ 4, 6,], [ 5, 6,], [ 6, 6,], [ 7, 6,], [ 10, 6,], [ 11, 6,], [ 13, 6,], [ -1, 7,], [ 10, 7,], [ 11, 7,], [ 13, 7,], [ -1, 8,], [ 10, 8,], [ 11, 8,], [ 13, 8,], [ -1, 9,], [ 13, 9,], [ -1, 10,], [ 13, 10,], [ -1, 11,], [ 0, 11,], [ 1, 11,], [ 2, 11,], [ 3, 11,], [ 4, 11,], [ 5, 11,], [ 8, 11,], [ 9, 11,], [ 10, 11,], [ 11, 11,], [ 12, 11,], [ 13, 11,],]
-[[presetRooms.assets]]
-name = "WallTelevision"
-relativeX = 32
-relativeY = -32
-
+walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ 12, -2,], [ 13, -2,], [ -1, -1,], [ 13, -1,], [ 13, 0,], [ 2, 1,], [ 3, 1,], [ 4, 1,], [ 5, 1,], [ 6, 1,], [ 7, 1,], [ 8, 1,], [ 9, 1,], [ 13, 1,], [ -1, 2,], [ 13, 2,], [ -1, 3,], [ 11, 3,], [ 12, 3,], [ 13, 3,], [ -1, 4,], [ 2, 4,], [ 3, 4,], [ 6, 4,], [ 7, 4,], [ 11, 4,], [ 12, 4,], [ 13, 4,], [ -1, 5,], [ 2, 5,], [ 3, 5,], [ 6, 5,], [ 7, 5,], [ 11, 5,], [ 12, 5,], [ 13, 5,], [ -1, 6,], [ 2, 6,], [ 3, 6,], [ 4, 6,], [ 5, 6,], [ 6, 6,], [ 7, 6,], [ 11, 6,], [ 12, 6,], [ 13, 6,], [ -1, 7,], [ 11, 7,], [ 12, 7,], [ 13, 7,], [ -1, 8,], [ 11, 8,], [ 12, 8,], [ 13, 8,], [ -1, 9,], [ 13, 9,], [ -1, 10,], [ 13, 10,], [ -1, 11,], [ 0, 11,], [ 1, 11,], [ 2, 11,], [ 3, 11,], [ 4, 11,], [ 5, 11,], [ 8, 11,], [ 9, 11,], [ 10, 11,], [ 11, 11,], [ 12, 11,], [ 13, 11,],]
 [[presetRooms.assets]]
 name = "WallTelevision"
 relativeX = 96
 relativeY = -32
+reversed = false
+
+[[presetRooms.assets]]
+name = "WallTelevision"
+relativeX = 32
+relativeY = -32
+reversed = false
 
 [[presetRooms.assets]]
 name = "DoorHorizontal"
 relativeX = 0
 relativeY = -16
+reversed = false
+
+[[presetRooms.assets]]
+name = "FloorLamp"
+relativeX = 144
+relativeY = 16
+reversed = false
 
 [[presetRooms.assets]]
 name = "CouchFront"
+relativeX = 96
+relativeY = 16
+reversed = false
+
+[[presetRooms.assets]]
+name = "CouchFront"
+relativeX = 48
+relativeY = 16
+reversed = false
+
+[[presetRooms.assets]]
+name = "FloorLamp"
 relativeX = 32
 relativeY = 16
-
-[[presetRooms.assets]]
-name = "CouchFront"
-relativeX = 80
-relativeY = 16
+reversed = false
 
 [[presetRooms.assets]]
 name = "BedVertical"
-relativeX = 160
+relativeX = 176
 relativeY = 48
-
-[[presetRooms.assets]]
-name = "TableVertical"
-relativeX = 32
-relativeY = 64
+reversed = false
 
 [[presetRooms.assets]]
 name = "TableVertical"
 relativeX = 96
 relativeY = 64
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 32
+relativeY = 64
+reversed = false
 
 [[presetRooms.assets]]
 name = "BedVertical"
-relativeX = 160
+relativeX = 176
 relativeY = 80
-
-[[presetRooms.assets]]
-name = "TableHorizontal"
-relativeX = 32
-relativeY = 96
+reversed = false
 
 [[presetRooms.assets]]
 name = "TableHorizontal"
 relativeX = 80
 relativeY = 96
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableHorizontal"
+relativeX = 32
+relativeY = 96
+reversed = false
 
 [[presetRooms.assets]]
 name = "BedVertical"
-relativeX = 160
+relativeX = 176
 relativeY = 112
+reversed = false
 
 [[presetRooms.assets]]
 name = "DoorHorizontal"
 relativeX = 128
 relativeY = 144
+reversed = false
+
+
+[[presetRooms]]
+name = "room_kitchen"
+width = 144
+height = 112
+walls = [ [ -1, -2,], [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ -1, -1,], [ 2, -1,], [ 3, -1,], [ 4, -1,], [ 5, -1,], [ 6, -1,], [ 7, -1,], [ 8, -1,], [ 9, -1,], [ -1, 0,], [ 7, 0,], [ 8, 0,], [ 9, 0,], [ 9, 1,], [ 3, 2,], [ 4, 2,], [ 5, 2,], [ -1, 3,], [ -1, 4,], [ 9, 4,], [ -1, 5,], [ 9, 5,], [ -1, 6,], [ 9, 6,], [ 0, 7,], [ 1, 7,], [ 2, 7,], [ 3, 7,], [ 6, 7,], [ 7, 7,], [ 8, 7,], [ 9, 7,],]
+[[presetRooms.assets]]
+name = "ShelfStorage"
+relativeX = 64
+relativeY = -16
+reversed = true
+
+[[presetRooms.assets]]
+name = "ShelfStorage"
+relativeX = 96
+relativeY = -16
+reversed = true
+
+[[presetRooms.assets]]
+name = "ShelfStorage"
+relativeX = 80
+relativeY = -16
+reversed = false
+
+[[presetRooms.assets]]
+name = "ShelfStorage"
+relativeX = 48
+relativeY = -16
+reversed = false
+
+[[presetRooms.assets]]
+name = "FridgeFront"
+relativeX = 32
+relativeY = -16
+reversed = false
+
+[[presetRooms.assets]]
+name = "ShelfStorage"
+relativeX = 112
+relativeY = -16
+reversed = true
+
+[[presetRooms.assets]]
+name = "WallVerticalInside"
+relativeX = 128
+relativeY = -16
+reversed = false
+
+[[presetRooms.assets]]
+name = "DoorHorizontal"
+relativeX = 0
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTopSide"
+relativeX = 112
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTop"
+relativeX = 96
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTop"
+relativeX = 80
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTop"
+relativeX = 64
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTopDrawer"
+relativeX = 48
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "WallVerticalInside"
+relativeX = 128
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTopSide"
+relativeX = 112
+relativeY = 8
+reversed = false
+
+[[presetRooms.assets]]
+name = "DoorVertical"
+relativeX = 128
+relativeY = 16
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTopSide"
+relativeX = 112
+relativeY = 16
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairFront"
+relativeX = 32
+relativeY = 32
+reversed = true
+
+[[presetRooms.assets]]
+name = "TableHorizontal"
+relativeX = 48
+relativeY = 32
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairBack"
+relativeX = 96
+relativeY = 48
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairBack"
+relativeX = 64
+relativeY = 64
+reversed = true
+
+[[presetRooms.assets]]
+name = "DoorHorizontal"
+relativeX = 96
+relativeY = 80
+reversed = false
+
+
+[presetRooms.exitsFree]
+up = []
+down = [ [ 0, 6,], [ 8, 6,],]
+left = [ [ 0, 0,], [ 0, 6,],]
+right = [ [ 8, 2,], [ 8, 6,],]
+[[presetRooms]]
+name = "unnamed"
+width = 208
+height = 208
+walls = [ [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 13, -2,], [ -1, -1,], [ 0, -1,], [ 1, -1,], [ 2, -1,], [ 3, -1,], [ 4, -1,], [ 13, -1,], [ -1, 0,], [ 13, 0,], [ -1, 1,], [ 13, 1,], [ -1, 2,], [ 5, 2,], [ 6, 2,], [ 7, 2,], [ 8, 2,], [ 13, 2,], [ -1, 3,], [ 5, 3,], [ 6, 3,], [ 7, 3,], [ 8, 3,], [ 13, 3,], [ -1, 4,], [ 5, 4,], [ 6, 4,], [ 7, 4,], [ 8, 4,], [ 13, 4,], [ -1, 5,], [ 5, 5,], [ 6, 5,], [ 7, 5,], [ 8, 5,], [ 13, 5,], [ -1, 6,], [ 5, 6,], [ 6, 6,], [ 7, 6,], [ 8, 6,], [ 13, 6,], [ 5, 7,], [ 6, 7,], [ 7, 7,], [ 8, 7,], [ 13, 7,], [ 5, 8,], [ 6, 8,], [ 7, 8,], [ 8, 8,], [ 13, 8,], [ -1, 9,], [ 5, 9,], [ 6, 9,], [ 7, 9,], [ 8, 9,], [ 13, 9,], [ -1, 10,], [ -1, 11,], [ -1, 12,], [ 13, 12,], [ 0, 13,], [ 1, 13,], [ 2, 13,], [ 3, 13,], [ 4, 13,], [ 5, 13,], [ 6, 13,], [ 7, 13,], [ 8, 13,], [ 9, 13,], [ 10, 13,], [ 11, 13,], [ 12, 13,], [ 13, 13,],]
+[[presetRooms.assets]]
+name = "WallShelf"
+relativeX = 64
+relativeY = -32
+reversed = false
+
+[[presetRooms.assets]]
+name = "WallShelf"
+relativeX = 128
+relativeY = -32
+reversed = false
+
+[[presetRooms.assets]]
+name = "DoorHorizontal"
+relativeX = 160
+relativeY = -32
+reversed = true
+
+[[presetRooms.assets]]
+name = "CounterTopDrawer"
+relativeX = 0
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTopDrawer"
+relativeX = 64
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTopDrawer"
+relativeX = 48
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTopDrawer"
+relativeX = 32
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "CounterTopDrawer"
+relativeX = 16
+relativeY = 0
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 112
+relativeY = 32
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 80
+relativeY = 32
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairBack"
+relativeX = 144
+relativeY = 48
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairFront"
+relativeX = 64
+relativeY = 48
+reversed = true
+
+[[presetRooms.assets]]
+name = "ChairBack"
+relativeX = 144
+relativeY = 64
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 112
+relativeY = 64
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 80
+relativeY = 64
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairFront"
+relativeX = 144
+relativeY = 80
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairBack"
+relativeX = 64
+relativeY = 80
+reversed = true
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 80
+relativeY = 96
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 112
+relativeY = 96
+reversed = false
+
+[[presetRooms.assets]]
+name = "DoorHorizontal"
+relativeX = 0
+relativeY = 96
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairBack"
+relativeX = 144
+relativeY = 112
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairFront"
+relativeX = 48
+relativeY = 112
+reversed = true
+
+[[presetRooms.assets]]
+name = "ChairFront"
+relativeX = 144
+relativeY = 128
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 112
+relativeY = 128
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 80
+relativeY = 128
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairFront"
+relativeX = 160
+relativeY = 144
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairFront"
+relativeX = 64
+relativeY = 144
+reversed = true
+
+[[presetRooms.assets]]
+name = "DoorHorizontal"
+relativeX = 192
+relativeY = 144
+reversed = true
+
+[[presetRooms.assets]]
+name = "ChairFront"
+relativeX = 144
+relativeY = 160
+reversed = false
 
 
