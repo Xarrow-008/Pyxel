@@ -126,7 +126,7 @@ class inMission:
 
         if pyxel.btnp(pyxel.KEY_P):
             item = random.choice(ITEM_LIST)
-            self.pickups.append(Pickup(100,100, item))
+            self.pickups.append(Pickup(100,100, Item.PAMPHLET))
 
         if pyxel.btnp(pyxel.KEY_L):
             self.interactables.append(Interactable(120,120, InteractableTemplate.CHEST))
@@ -826,6 +826,17 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.tempHealth += self.inventory.onKillTempHealth
         if self.tempHealth > self.maxHealth:
             self.tempHealth = self.maxHealth
+
+        if random.randint(1,100) <= 10:
+            if self.inventory.leftHand["type"]=="melee":
+                pass #TODO : Implement this once we implement melee weapons
+            else:
+                self.inventory.leftHand["reserve_ammo"] = math.ceil(self.inventory.leftHand["reserve_ammo"]*(1+self.inventory.ressourceKillEffect/100))
+            
+            if self.inventory.rightHand["type"]=="melee":
+                pass #TODO : Implement this once we implement melee weapons
+            else:
+                self.inventory.rightHand["reserve_ammo"] = math.ceil(self.inventory.rightHand["reserve_ammo"]*(1+self.inventory.ressourceKillEffect/100))
 
 class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self):

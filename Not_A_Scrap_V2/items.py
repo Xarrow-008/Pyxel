@@ -149,7 +149,7 @@ class Item:
                 "rarity":"common",
                 "type":"support",
                 "effects":[
-                    {"stat":"ressourceKillChance","scaling":"geometric", "initial_term":5, "reason":0.6}],
+                    {"stat":"ressourceKillEffect","scaling":"geometric", "initial_term":5, "reason":0.6}],
                 "short_description":"Chance to get ressources back on kill",
                 "long_description":"You have a 10% chance to get 5% of your amunitions and durability back on kill. Every stack gives 3/5th of the last ones effect."}
 
