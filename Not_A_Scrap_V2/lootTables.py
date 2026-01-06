@@ -1,6 +1,7 @@
 import random
 from weapons import*
 from items import*
+from fuel import*
 
 class LootTable:
     def __init__(self, table):
@@ -42,7 +43,7 @@ COMMON_TABLE = LootTable([[x,1,1] for x in ITEM_LIST if x["rarity"]=="common"])
 RARE_TABLE = LootTable([[x,1,1] for x in ITEM_LIST if x["rarity"]=="rare"])
 LEGENDARY_TABLE = LootTable([[x,1,1] for x in ITEM_LIST if x["rarity"]=="legendary"])
 RARITY_TABLE = LootTable([[COMMON_TABLE,80,1], [RARE_TABLE,15,2], [LEGENDARY_TABLE,5,3]])
-FUEL_TABLE = LootTable([["1Fuel",80, 1], ["2Fuel",15,2], ["3Fuel",5,3]])
+FUEL_TABLE = LootTable([[Fuel.SMALL_FUEL,80, 1], [Fuel.MEDIUM_FUEL,15,2], [Fuel.BIG_FUEL,5,3]])
 WEAPON_TABLE = LootTable([[x, 1, 1] for x in WEAPON_LIST])
 GENERAL_TABLE = LootTable([[RARITY_TABLE,1,1], [FUEL_TABLE,1,1], [WEAPON_TABLE,1,1]])
 
