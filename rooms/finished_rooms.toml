@@ -46,7 +46,7 @@ relativeY = 112
 reversed = false
 
 
-[presetRooms.exitsFree]
+[presetRooms.exitsPos]
 up = [ 7, 0,]
 down = [ 7, 8,]
 left = [ 0, 2,]
@@ -123,7 +123,7 @@ relativeY = 96
 reversed = false
 
 
-[presetRooms.exitsFree]
+[presetRooms.exitsPos]
 up = [ 9, 0,]
 down = [ 10, 7,]
 left = [ 0, 2,]
@@ -176,7 +176,7 @@ relativeY = 16
 reversed = false
 
 
-[presetRooms.exitsFree]
+[presetRooms.exitsPos]
 up = []
 down = [ 6, 4,]
 left = [ 0, 2,]
@@ -253,7 +253,7 @@ relativeY = 112
 reversed = false
 
 
-[presetRooms.exitsFree]
+[presetRooms.exitsPos]
 up = [ 10, 0,]
 down = [ 6, 10,]
 left = [ 0, 1,]
@@ -378,7 +378,7 @@ relativeY = 64
 reversed = true
 
 
-[presetRooms.exitsFree]
+[presetRooms.exitsPos]
 up = []
 down = [ 4, 6,]
 left = [ 0, 1,]
@@ -515,7 +515,7 @@ relativeY = 192
 reversed = false
 
 
-[presetRooms.exitsFree]
+[presetRooms.exitsPos]
 up = [ 1, 0,]
 down = [ 6, 13,]
 left = []

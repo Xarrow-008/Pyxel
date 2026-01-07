@@ -6,8 +6,8 @@ TILE_SIZE = 16
 WID = 256
 HEI = 256 
 
-CAM_WIDTH = TILE_SIZE*32
-CAM_HEIGHT = TILE_SIZE*32
+CAM_WIDTH = TILE_SIZE*60
+CAM_HEIGHT = TILE_SIZE*60
 
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
@@ -559,14 +559,9 @@ class Roombuild:
                 self.currentExitSide = 'right'
 
             self.exitPos = [x - room.x//TILE_SIZE, y - room.y//TILE_SIZE]
-            print(self.rooms[self.roomIndex].exit_up)
-            print(self.rooms[self.roomIndex].exit_down)
-            print(self.rooms[self.roomIndex].exit_left)
-            print(self.rooms[self.roomIndex].exit_right)
-            print(self.roomIndex, len(self.rooms))
 
             if self.currentExitSide != 'N/A':
-                self.rooms[self.roomIndex].exitsFree[self.currentExitSide] = copy(self.exitPos)
+                self.rooms[self.roomIndex].exitsPos[self.currentExitSide] = copy(self.exitPos)
 
 
                    
@@ -619,21 +614,30 @@ class Roombuild:
         dumpToml(path,file)
 
     def extendRooms(self):
-        end = False
-        loops = 0
         nb_rooms = len(self.rooms)
-        while not end:
-            for i in range(2):
-                self.addNeighbor()
-                if nb_rooms != len(self.rooms):
-                    end = True
-                    break
+
+        for i in range(3):
+            self.addNeighbor()
+            if nb_rooms != len(self.rooms):
+                break
+
+        loops = 0
+        while loops < 10:
             
+            if nb_rooms == len(self.rooms):
+                self.goBack()
+                for i in range(3):
+                    self.addNeighbor()
+                    if nb_rooms != len(self.rooms):
+                        break
+            if nb_rooms != len(self.rooms):
+                break
+
+            loops += 1
+            if loops == 10:
+                print('gave up')
 
             
-            loops += 1
-            if loops >= 3:
-                end = True
 
     def goBack(self):
         self.roomIndex = self.rooms[self.roomIndex].previousRoom
@@ -650,49 +654,53 @@ class Roombuild:
 
         # --- find a room that has the exit inversed to the one we have ---
 
-        nextRoom = findNextRoom(side, room)
+        if side != 'N/A':
+            nextRoom = findNextRoom(side, room)
 
-        roomExitRelativeX = room.exitsFree[side][0]
-        roomExitRelativeY = room.exitsFree[side][1]
+            roomExitRelativeX = room.exitsPos[side][0]
+            roomExitRelativeY = room.exitsPos[side][1]
 
-        exitX = room.x//TILE_SIZE + roomExitRelativeX
-        exitY = room.y//TILE_SIZE + roomExitRelativeY
+            exitX = room.x//TILE_SIZE + roomExitRelativeX
+            exitY = room.y//TILE_SIZE + roomExitRelativeY
 
 
-        nextRoomExitX = nextRoom['exitsFree'][sideInverse(side)][0]
-        nextRoomExitY = nextRoom['exitsFree'][sideInverse(side)][1]
+            nextRoomExitX = nextRoom['exitsPos'][sideInverse(side)][0]
+            nextRoomExitY = nextRoom['exitsPos'][sideInverse(side)][1]
 
-        x = exitX - nextRoomExitX
-        y = exitY - nextRoomExitY
+            x = exitX - nextRoomExitX
+            y = exitY - nextRoomExitY
 
-        # --- change if new exits --- 
+            # --- change if new exits --- 
 
-        if side == 'up':
-            y += -5
-        if side == 'down':
-            y += 5
-        if side == 'left':
-            x += -5
-        if side == 'right':
-            x += 5
+            if side == 'up':
+                y += -5
+            if side == 'down':
+                y += 5
+            if side == 'left':
+                x += -5
+            if side == 'right':
+                x += 5
 
-        entryX = x + nextRoomExitX
-        entryY = y + nextRoomExitY
+            entryX = x + nextRoomExitX
+            entryY = y + nextRoomExitY
 
         
-        if not self.isRoomColliding(x,y,15,14):
+            self.rooms[self.roomIndex].exitsFree[side] = False
 
-            self.rooms.append(LoadRoom(nextRoom, x, y))
-            setattr(self.rooms[-1], 'exit_'+sideInverse(side), len(self.rooms)-1)
-            self.rooms[-1].previousRoom = self.roomIndex
+            if not self.isRoomColliding(x,y,15,13):
 
-            self.addDoors(exitX,exitY,entryX,entryY, side)
+                self.rooms.append(LoadRoom(nextRoom, x, y))
+                self.rooms[-1].exitsFree[sideInverse(side)] = False
+                self.rooms[-1].previousRoom = self.roomIndex
+                self.rooms[-1].index = len(self.rooms)
+
+                self.addDoors(exitX,exitY,entryX,entryY, side)
+                
+                self.addExit(exitX, exitY, side)
+
+                self.roomIndex = len(self.rooms)-1
+
             
-            self.addExit(exitX, exitY, side)
-
-            self.roomIndex += 1
-        else:
-            setattr(self.rooms[self.roomIndex], 'exit_'+sideInverse(side), False)
 
 
     def addDoors(self,exitX,exitY,entryX,entryY,side):
@@ -729,10 +737,10 @@ class Roombuild:
             y2 = room.y//TILE_SIZE
             w2 = room.width//TILE_SIZE
             h2 = room.height//TILE_SIZE
-            if collision(x1,y1-2,x2,y2,(w1+1,h1+3),(w2,h2)):
+            if collision(x1-1,y1-3,x2,y2,(w1+2,h1+7),(w2,h2)):
                 return True
-        
-        if x1 <= 0 or y1 <= 3 or x1 + w1 > WID or y1 + h1 > HEI:
+
+        if x1 <= 0 or y1 <= 3 or x1 + w1 + 2 > WID or y1 + h1 + 2 > HEI:
             return True
         
         return False
@@ -746,11 +754,8 @@ class Room:
         self.y = y*TILE_SIZE
         self.width = width*TILE_SIZE
         self.height = height*TILE_SIZE
-        self.exitsFree = {'up':[],'down':[],'left':[],'right':[]}
-        self.exit_up = None
-        self.exit_left = None
-        self.exit_down = None
-        self.exit_right = None
+        self.exitsPos = {'up':[],'down':[],'left':[],'right':[]}
+        self.exitsFree = {'up':True,'down':True,'left':True,'right':True}
 
         self.index = 0
         self.previousRoom = 0
@@ -760,7 +765,7 @@ class Room:
 
     def convertDic(self):
         wallsIn = self.getWallsIn()
-        dic = {'name':self.name,'width':self.width,'height':self.height,'walls':wallsIn, 'exitsFree':self.exitsFree,
+        dic = {'name':self.name,'width':self.width,'height':self.height,'walls':wallsIn, 'exitsPos':self.exitsPos,
                 'assets':[asset.convertDic((self.x,self.y)) for asset in self.assets]}
         return dic
 
@@ -824,7 +829,7 @@ class Room:
         return mouseInside(self.x,self.y-2*TILE_SIZE,self.width,self.height+2*TILE_SIZE,camera)
          
     def isExitUsable(self,side):
-        return self.exitsFree[side] != [] and getattr(self,'exit_'+side) == None
+        return self.exitsPos[side] != [] and self.exitsFree[side] and not self.isLeaf
 
 
 
@@ -845,7 +850,7 @@ class LoadRoom(Room):
         self.loaded = True
         self.settings = settings
         self.defaultSettings = {'name':'room_48','width':15*TILE_SIZE,'height':15*TILE_SIZE,
-        'walls':[], 'exitsFree':{'up':[],'down':[],'left':[],'right':[]},'assets':[{'name':'tableVertical','relativeX':48,'relativeY':48, 'reversed':False}]}
+        'walls':[], 'exitsPos':{'up':[],'down':[],'left':[],'right':[]},'assets':[{'name':'tableVertical','relativeX':48,'relativeY':48, 'reversed':False}]}
         self.assets = []
 
         self.initSettings()
@@ -1281,11 +1286,14 @@ def wallsRect(x,y,w,h,wall):
 
 def pickRoomSide(room):
     sideList = []
-    for side in room.exitsFree.keys():
+    for side in room.exitsPos.keys():
         if room.isExitUsable(side):
             sideList.append(side)
-    print(sideList)
-    side = random.choice(sideList)
+
+    if len(sideList) != 0:
+        side = random.choice(sideList)
+    else:
+        side = 'N/A'
 
 
     return side
@@ -1334,7 +1342,7 @@ def findNextRoom(side, room):
             if nextRoom['name'] == room.name:
                 nextRoom = random.choice(roomsList)
         
-        if nextRoom['exitsFree'][sideInverse(side)] != []:
+        if nextRoom['exitsPos'][sideInverse(side)] != []:
             found = True
         else:
             roomsList.remove(nextRoom)
