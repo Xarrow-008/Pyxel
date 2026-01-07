@@ -112,7 +112,7 @@ class Item:
                 "rarity":"common",
                 "type":"support",
                 "effects":[
-                    {"stat":"timerTime","scaling":"arithmetic", "initial_term":15, "reason":15}], #TODO : Implement this one when we implement the tiler
+                    {"stat":"timerTime","scaling":"arithmetic", "initial_term":15, "reason":15}], #TODO : Implement this one when we implement the timer
                 "short_description":"Get more time to explore",
                 "long_description":"Increases the time before the Horde spawns and the Explosion triggers by 15s (+15 per stack)"}
 
@@ -140,16 +140,16 @@ class Item:
                 "type":"support",
                 "effects":[
                     {"stat":"fuelKillChance","scaling":"arithmetic", "initial_term":5, "reason":5},
-                    {"stat":"extraFuelKillChance", "scaling":"arithmetic", "initial_term":10, "reason":10}],
+                    {"stat":"extraFuelKillChance", "scaling":"arithmetic", "initial_term":1, "reason":1}],
                 "short_description":"Get more fuel",
-                "long_description":"Increases chance to get fuel on kill by 5% (+5% per stack). Extra 10% (+10% per stack) chance to get extra fuel on kill."}
+                "long_description":"Increases chance to get fuel on kill by 5% (+5% per stack). Increases chance to get more fuel."}
 
     PAMPHLET = {"name":"Pamphlet", #like a political pamphlet that tells you to go vote for a party
                 "image":(48,176),
                 "rarity":"common",
                 "type":"support",
                 "effects":[
-                    {"stat":"ressourceKillChance","scaling":"geometric", "initial_term":5, "reason":0.6}],
+                    {"stat":"ressourceKillEffect","scaling":"geometric", "initial_term":5, "reason":0.6}],
                 "short_description":"Chance to get ressources back on kill",
                 "long_description":"You have a 10% chance to get 5% of your amunitions and durability back on kill. Every stack gives 3/5th of the last ones effect."}
 

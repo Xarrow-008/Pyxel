@@ -126,7 +126,7 @@ class inMission:
 
         if pyxel.btnp(pyxel.KEY_P):
             item = random.choice(ITEM_LIST)
-            self.pickups.append(Pickup(100,100, item))
+            self.pickups.append(Pickup(100,100, Item.PAMPHLET))
 
         if pyxel.btnp(pyxel.KEY_L):
             self.interactables.append(Interactable(120,120, InteractableTemplate.CHEST))
@@ -164,6 +164,11 @@ class inMission:
                     self.entities.append(bullet)
                 entity.bulletList = []
 
+            if hasattr(entity, "spawnedPickups") and entity.spawnedPickups != []:
+                for pickup in entity.spawnedPickups:
+                    self.pickups.append(pickup)
+                entity.spawnedPickups = []
+
             if entity.dead:
                 self.entities.remove(entity)
                 break
@@ -184,20 +189,23 @@ class inMission:
         pickedUpSomething = False
         for pickup in self.pickups:
             if collisionObjects(pickup, self.player):
-                
                 self.infoText = (pickup.pickup["name"], pickup.pickup["short_description"], ("Press","pickup"))
 
-                if (not pickedUpSomething) and keyPress("INTERACT","btnp"):
-                    pickup.pickedUp = True
-                    pickedUpSomething = True
-                    if "rarity" in pickup.pickup.keys(): #This means the pickup is an item
-                        self.player.inventory.addItem(pickup.pickup)
-                    elif "damage" in pickup.pickup.keys(): #This means the pickup is a weapon
-                        if keyPress("RIGHT_HAND", "btn"):
-                            self.player.inventory.addWeapon(pickup.pickup, "rightHand")
-                        else:
+
+        for i in range(1, len(self.pickups)+1):
+            pickup = self.pickups[-i]
+            if collisionObjects(pickup, self.player) and (not pickedUpSomething) and keyPress("INTERACT","btnp"):
+                pickup.pickedUp = True
+                pickedUpSomething = True
+                if "rarity" in pickup.pickup.keys(): #This means the pickup is an item
+                    self.player.inventory.addItem(pickup.pickup)
+                elif "damage" in pickup.pickup.keys(): #This means the pickup is a weapon
+                    if keyPress("RIGHT_HAND", "btn"):
+                        self.player.inventory.addWeapon(pickup.pickup, "rightHand")
+                    else:
                             self.player.inventory.addWeapon(pickup.pickup, "leftHand")
-                    
+                elif "value" in pickup.pickup.keys(): #This means the pickup is fuel
+                    self.player.fuel += pickup.pickup["value"]
 
         for pickup in self.pickups:
             if pickup.pickedUp:
@@ -213,10 +221,9 @@ class inMission:
                 if holdKey("INTERACT", interactable.template["duration"]*(1-self.player.inventory.interactableSpeed/100), game_frame):
                     interactable.interactedWith = True
                     pickup = interactable.template["function"][1].pickRandom(0)
-                    print(type(pickup))
                     pickupObject = Pickup(interactable.x, interactable.y, pickup)
-                    if type(pickup) == str or pickup is None:
-                        print("Its meant to drop fuel or a rare/legendary item, but I haven't actually impleted those yet")
+                    if pickup is None:
+                        print("Its meant to drop a rare/legendary item, but I haven't actually implemented those yet")
                     else:
                         self.pickups.append(pickupObject)
 
@@ -285,6 +292,11 @@ class inMission:
             crit = damager.owner.inventory.critChance >= random.randint(1,100)
         else :
             crit = hasattr(damager, "inventory") and damager.inventory.critChance >= random.randint(1,100)
+
+        if damagerIsOwned :
+            target.lastHitBy = damager.owner
+        else:
+            target.lastHitBy = damager
 
         if hasattr(target, "isHitStun"):
             if (not target.isHitStun or target.hitBy == shot) and not target.isInvincible():
@@ -432,6 +444,8 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.combatStartFrame = 0
 
         self.lowHealth = False
+
+        self.lastHitBy = None
 
     def __str__(self):
         if type(self) == Player:
@@ -656,8 +670,10 @@ class Entity: #General Entity class with all the methods describing what entitie
         return not timer(self.dashStartFrame, self.dashDuration, game_frame)  
 
 
-    def initDeath(self, spawnItem):
+    def initDeath(self, spawnItem, spawnFuel, spawnWeapon):
         self.deathItemSpawn = spawnItem
+        self.deathFuelSpawn = spawnFuel
+        self.deathWeaponSpawn = spawnWeapon
 
         self.dead = False
 
@@ -673,8 +689,6 @@ class Entity: #General Entity class with all the methods describing what entitie
     def rangedAttack(self, hand, x, y):
         if self.canRangedAttack(hand):
             weapon = getattr(self.inventory, hand)
-
-            weapon["knockback_coef"] *= (1+(self.inventory.rangedKnockback)/100)
 
             self.currentActionPriority = self.rangedAttackPriority
 
@@ -813,6 +827,17 @@ class Entity: #General Entity class with all the methods describing what entitie
         if self.tempHealth > self.maxHealth:
             self.tempHealth = self.maxHealth
 
+        if random.randint(1,100) <= 10:
+            if self.inventory.leftHand["type"]=="melee":
+                pass #TODO : Implement this once we implement melee weapons
+            else:
+                self.inventory.leftHand["reserve_ammo"] = math.ceil(self.inventory.leftHand["reserve_ammo"]*(1+self.inventory.ressourceKillEffect/100))
+            
+            if self.inventory.rightHand["type"]=="melee":
+                pass #TODO : Implement this once we implement melee weapons
+            else:
+                self.inventory.rightHand["reserve_ammo"] = math.ceil(self.inventory.rightHand["reserve_ammo"]*(1+self.inventory.ressourceKillEffect/100))
+
 class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self):
         super().__init__(x=10, y=10, width=TILE_SIZE, height=TILE_SIZE)
@@ -857,6 +882,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.inventoryIsMoving = False
         self.inventoryStartFrame = 0
         self.inventoryDirection = 0
+
+        self.fuel = 0
 
     def draw(self):
         step_y = self.y
@@ -912,6 +939,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
             #Combat Indicator #(You should probably change how it looks, this mostly for debug purposes so that I can know when the player is or isn't in combat)
             if self.inCombat:
                 sized_text(x=50, y= 1, s="In Combat", background=True)
+
+            #Fuel
+            sized_text(x=210, y=3, s="Fuel : "+str(self.fuel), col=7, size=7, background=True)
 
     def updateInventory(self):
         if not self.inventoryIsMoving:
@@ -1272,6 +1302,8 @@ class Enemy(Entity): #Creates an entity that fights the player
 
         self.inventory = Inventory()
 
+        self.spawnedPickups = []
+
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
@@ -1309,6 +1341,29 @@ class Enemy(Entity): #Creates an entity that fights the player
     def death(self):
         if self.health <= 0 and not self.dead:
             self.dead = True
+
+            if random.randint(1,100) <= self.deathItemSpawn:
+                pickup = RARITY_TABLE.pickRandom(0)
+                if pickup is not None:
+                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+
+            if hasattr(self.lastHitBy, "inventory"):
+                if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChance:
+                    pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance)
+                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+            else:
+                if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChancce:
+                    pickup = FUEL_TABLE.pickRandom(0)
+                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+
+            if random.randint(1,100) <= self.deathWeaponSpawn:
+                pickup = WEAPON_TABLE.pickRandom(0)
+                self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+
+            
+
+            
+
 
 class Inventory:
     def __init__(self):
@@ -1560,12 +1615,17 @@ class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
 
         self.shot = shot
 
+        if hasattr(owner, "inventory"):
+            knockbackCoef = weapon["knockback_coef"]*(1+owner.inventory.rangedKnockback/100)
+        else:
+            knockbackCoef = weapon["knockback_coef"]
+
         self.initWalk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
-        self.initDeath(spawnItem=False)
+        self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         if type(self.owner)==Player:
-            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, weapon["knockback_coef"], self.piercing], [0, 0, 0, -1])
+            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, knockbackCoef, self.piercing], [0, 0, 0, -1])
         elif type(self.owner)==Enemy:
-            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, weapon["knockback_coef"], self.piercing])
+            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, knockbackCoef                                      , self.piercing])
 
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)

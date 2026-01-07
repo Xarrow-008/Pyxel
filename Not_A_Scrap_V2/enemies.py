@@ -8,6 +8,6 @@ class EnemyTemplate:
              "health":100, "maxHealth":100,
              "abilities":{
                  "Walk":{"priority":0, "maxSpeed":1, "speedChangeRate":10, "knockbackCoef":1},
-                 "Death":{"spawnItem":True},
+                 "Death":{"spawnItem":10, "spawnFuel":10, "spawnWeapon":10},
                  "Hitstun":{"duration":0.75*FPS, "freezeFrame":0, "invincibility":0}
              }}
