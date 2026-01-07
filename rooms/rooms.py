@@ -6,8 +6,8 @@ TILE_SIZE = 16
 WID = 256
 HEI = 256 
 
-CAM_WIDTH = TILE_SIZE*14
-CAM_HEIGHT = TILE_SIZE*14
+CAM_WIDTH = TILE_SIZE*32
+CAM_HEIGHT = TILE_SIZE*32
 
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
@@ -402,13 +402,13 @@ class Player(Entity):
 class Roombuild:
     def __init__(self):
         self.camera = [0,0]
-        self.player = Player(TILE_SIZE,TILE_SIZE)
+        self.player = Player(WID*16//2,HEI*16//3)
         self.editor = WallsEditor()
         self.rooms = []
-        self.exitStartPos = (0,0)
-        self.exitEndPos = (0,0)
+        self.exits = []
+        self.exitPos = (0,0)
         self.currentExitSide = 'N/A'
-        self.selectedRoom = -1
+        self.roomIndex = -1
         self.editWallsMode = False
         self.editRoomsMode = False
         self.menu = Menu()
@@ -444,6 +444,10 @@ class Roombuild:
             self.editRoomsMode = not self.editRoomsMode
             self.editWallsMode = False
             self.showWalls = False
+            print(self.roomIndex)
+
+        if pyxel.btnp(pyxel.KEY_K):
+            self.showWalls = True
 
         self.player.constructorHat = self.editRoomsMode
         if self.editRoomsMode:
@@ -483,6 +487,7 @@ class Roombuild:
         pyxel.blt(0,0,0,0,0,256,256)
 
         self.roomsDraw()
+        self.exitsDraw()
 
         if self.showWalls:
             self.wallsDraw()
@@ -501,7 +506,7 @@ class Roombuild:
         assetNumber = self.menu.assetPlace
         if assetNumber != 'N/A':
             if type(assetNumber) is int and assetNumber <= len(self.menu.assetsList)-1:
-                self.assetAdd(self.selectedRoom, assetNumber)
+                self.assetAdd(self.roomIndex, assetNumber)
             self.menu.assetPlace = 'N/A'
 
     def assetAdd(self, room, assetNb):
@@ -528,9 +533,13 @@ class Roombuild:
 
         self.exitsActions()
 
+        if pyxel.btnp(pyxel.KEY_N):
+            self.extendRooms()
+            
+
 
         if len(self.rooms) != 0:
-            self.rooms[self.selectedRoom].update()
+            self.rooms[self.roomIndex].update()
 
     def exitsActions(self):
         global camera
@@ -538,7 +547,7 @@ class Roombuild:
             x = (pyxel.mouse_x + camera[0])//TILE_SIZE
             y = (pyxel.mouse_y + camera[1])//TILE_SIZE
 
-            room = self.rooms[-1]
+            room = self.rooms[self.roomIndex]
 
             if y == room.y//TILE_SIZE:
                 self.currentExitSide = 'up'
@@ -549,29 +558,27 @@ class Roombuild:
             elif x == (room.x+room.width)//TILE_SIZE-1:
                 self.currentExitSide = 'right'
 
-            self.exitStartPos = [x - room.x//TILE_SIZE, y - room.y//TILE_SIZE]
-            print('exitStartPos: ', self.exitStartPos)
-            print('side: ', self.currentExitSide)
+            self.exitPos = [x - room.x//TILE_SIZE, y - room.y//TILE_SIZE]
+            print(self.rooms[self.roomIndex].exit_up)
+            print(self.rooms[self.roomIndex].exit_down)
+            print(self.rooms[self.roomIndex].exit_left)
+            print(self.rooms[self.roomIndex].exit_right)
+            print(self.roomIndex, len(self.rooms))
 
-        
-        if pyxel.btnr(pyxel.KEY_F):
-            x = (pyxel.mouse_x + camera[0])//TILE_SIZE
-            y = (pyxel.mouse_y + camera[1])//TILE_SIZE
-
-            room = self.rooms[-1]
-
-            self.exitEndPos = [x - room.x//TILE_SIZE, y - room.y//TILE_SIZE]
             if self.currentExitSide != 'N/A':
-                self.rooms[-1].exitsFree[self.currentExitSide] = (self.exitStartPos, self.exitEndPos)
+                self.rooms[self.roomIndex].exitsFree[self.currentExitSide] = copy(self.exitPos)
 
-            print(self.rooms[-1].exitsFree)
-            print('exitEndPos: ', self.exitEndPos)
-            
+
+                   
             self.currentExitSide = 'N/A'
 
     def roomsDraw(self):
         for room in self.rooms:
             room.draw()
+
+    def exitsDraw(self):
+        for exit in self.exits:
+            exit.draw()
 
     def addRoom(self):
         x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE
@@ -587,12 +594,13 @@ class Roombuild:
         settings = file['presetRooms'][random.randint(0,len(file['presetRooms'])-1)]
 
         self.rooms.append(LoadRoom(settings,x,y))
+        self.roomIndex += 1
 
     def savePresets(self):
         path = 'finished_rooms.toml'
         file = openToml(path)
         
-        roomDic = self.rooms[-1].convertDic()
+        roomDic = self.rooms[self.roomIndex].convertDic()
 
         """ replace the room if name in file, else append in file"""
         index = None
@@ -610,6 +618,126 @@ class Roombuild:
         
         dumpToml(path,file)
 
+    def extendRooms(self):
+        end = False
+        loops = 0
+        nb_rooms = len(self.rooms)
+        while not end:
+            for i in range(2):
+                self.addNeighbor()
+                if nb_rooms != len(self.rooms):
+                    end = True
+                    break
+            
+
+            
+            loops += 1
+            if loops >= 3:
+                end = True
+
+    def goBack(self):
+        self.roomIndex = self.rooms[self.roomIndex].previousRoom
+            
+            
+
+
+
+
+
+    def addNeighbor(self):
+        room = self.rooms[self.roomIndex]
+        side = pickRoomSide(room)
+
+        # --- find a room that has the exit inversed to the one we have ---
+
+        nextRoom = findNextRoom(side, room)
+
+        roomExitRelativeX = room.exitsFree[side][0]
+        roomExitRelativeY = room.exitsFree[side][1]
+
+        exitX = room.x//TILE_SIZE + roomExitRelativeX
+        exitY = room.y//TILE_SIZE + roomExitRelativeY
+
+
+        nextRoomExitX = nextRoom['exitsFree'][sideInverse(side)][0]
+        nextRoomExitY = nextRoom['exitsFree'][sideInverse(side)][1]
+
+        x = exitX - nextRoomExitX
+        y = exitY - nextRoomExitY
+
+        # --- change if new exits --- 
+
+        if side == 'up':
+            y += -5
+        if side == 'down':
+            y += 5
+        if side == 'left':
+            x += -5
+        if side == 'right':
+            x += 5
+
+        entryX = x + nextRoomExitX
+        entryY = y + nextRoomExitY
+
+        
+        if not self.isRoomColliding(x,y,15,14):
+
+            self.rooms.append(LoadRoom(nextRoom, x, y))
+            setattr(self.rooms[-1], 'exit_'+sideInverse(side), len(self.rooms)-1)
+            self.rooms[-1].previousRoom = self.roomIndex
+
+            self.addDoors(exitX,exitY,entryX,entryY, side)
+            
+            self.addExit(exitX, exitY, side)
+
+            self.roomIndex += 1
+        else:
+            setattr(self.rooms[self.roomIndex], 'exit_'+sideInverse(side), False)
+
+
+    def addDoors(self,exitX,exitY,entryX,entryY,side):
+        door1 = findDoor(exitX,exitY, side)
+        door2 = findDoor(entryX,entryY, sideInverse(side))
+
+        self.rooms[self.roomIndex].assets.append(door1)
+        self.rooms[-1].assets.append(door2)
+
+    def addExit(self, exitX, exitY, side):
+        if side == 'up':
+            x = exitX
+            y = exitY - 4
+        if side == 'down':
+            x = exitX
+            y = exitY + 1
+        if side == 'left':
+            x = exitX - 4
+            y = exitY
+        if side == 'right':
+            x = exitX + 1
+            y = exitY
+
+        if side == 'up' or side == 'down':
+            self.exits.append(ExitBaseVertical(x,y))
+        if side == 'left' or side == 'right':
+            self.exits.append(ExitBaseHorizontal(x,y))
+
+        addExitWalls(exitX, exitY, side)
+            
+    def isRoomColliding(self,x1,y1,w1,h1):
+        for room in self.rooms:
+            x2 = room.x//TILE_SIZE
+            y2 = room.y//TILE_SIZE
+            w2 = room.width//TILE_SIZE
+            h2 = room.height//TILE_SIZE
+            if collision(x1,y1-2,x2,y2,(w1+1,h1+3),(w2,h2)):
+                return True
+        
+        if x1 <= 0 or y1 <= 3 or x1 + w1 > WID or y1 + h1 > HEI:
+            return True
+        
+        return False
+
+
 
 
 class Room:
@@ -619,6 +747,16 @@ class Room:
         self.width = width*TILE_SIZE
         self.height = height*TILE_SIZE
         self.exitsFree = {'up':[],'down':[],'left':[],'right':[]}
+        self.exit_up = None
+        self.exit_left = None
+        self.exit_down = None
+        self.exit_right = None
+
+        self.index = 0
+        self.previousRoom = 0
+
+        self.isLeaf = False
+        self.isBranch = False
 
     def convertDic(self):
         wallsIn = self.getWallsIn()
@@ -662,6 +800,7 @@ class Room:
         pyxel.rectb(self.x,self.y,self.width,self.height+1,6)
 
         self.assetDraw()
+        pyxel.text(self.x, self.y, str(self.index) + ', ' + str(self.previousRoom), 0)
 
     def floorPatternDraw(self):
         for y in range(self.height//TILE_SIZE):
@@ -684,6 +823,8 @@ class Room:
         global camera
         return mouseInside(self.x,self.y-2*TILE_SIZE,self.width,self.height+2*TILE_SIZE,camera)
          
+    def isExitUsable(self,side):
+        return self.exitsFree[side] != [] and getattr(self,'exit_'+side) == None
 
 
 
@@ -766,6 +907,33 @@ class WallsEditor:
 
     def draw(self):
         pass
+
+class Exit:
+    def __init__(self,x,y):
+        self.x = x*TILE_SIZE
+        self.y = y*TILE_SIZE
+        self.direction = 'N/A'
+    def draw(self):
+        pyxel.rect(self.x,self.y,2*TILE_SIZE,2*TILE_SIZE,2)
+        pyxel.rectb(self.x,self.y,2*TILE_SIZE,2*TILE_SIZE+1,6)
+
+class ExitBaseHorizontal(Exit):
+    def __init__(self,x,y):
+        super().__init__(x=x,y=y)
+        self.direction = 'Horizontal'
+    def draw(self):
+        pyxel.rect(self.x,self.y,4*TILE_SIZE,2*TILE_SIZE,2)
+        pyxel.rectb(self.x,self.y,4*TILE_SIZE,2*TILE_SIZE+1,6)
+
+class ExitBaseVertical(Exit):
+    def __init__(self,x,y):
+        super().__init__(x=x,y=y)
+        self.direction = 'Vertical'
+    def draw(self):
+        pyxel.rect(self.x,self.y,2*TILE_SIZE,4*TILE_SIZE,2)
+        pyxel.rectb(self.x,self.y,2*TILE_SIZE,4*TILE_SIZE+1,6)
+
+
 
 
 
@@ -1069,6 +1237,111 @@ def getIndex(tab, value):
 
 def get_color(hex):
     return int(hex, 16)
+
+def sideInverse(side):
+    if side == 'up':
+        return 'down'
+    if side == 'down':
+        return 'up'
+    if side == 'left':
+        return 'right'
+    if side == 'right':
+        return 'left'
+
+def addExitWalls(x, y, side):
+    global wallsMap
+    if side == 'up':
+        wallsMap[y-3][x-1] = 1
+        wallsMap[y-3][x+2] = 1
+        wallsRect(x,y,2,-5,0)
+    if side == 'down':
+        wallsMap[y+2][x-1] = 1
+        wallsMap[y+2][x+2] = 1
+        wallsRect(x,y,2,5,0)
+
+    if side == 'left':
+        wallsMap[y-1][x-2] = 1
+        wallsMap[y-1][x-3] = 1
+        wallsMap[y+2][x-2] = 1
+        wallsMap[y+2][x-3] = 1
+        wallsRect(x,y,-5,2,0)
+    if side == 'right':
+        wallsMap[y-1][x+2] = 1
+        wallsMap[y-1][x+3] = 1
+        wallsMap[y+2][x+2] = 1
+        wallsMap[y+2][x+3] = 1
+        wallsRect(x,y,5,2,0)
+
+def wallsRect(x,y,w,h,wall):
+    dW = pyxel.sgn(w)
+    dH = pyxel.sgn(h)
+    for inY in range(abs(h)):
+        for inX in range(abs(w)):
+            wallsMap[y+inY*dH][x+inX*dW] = wall #index * direction (neg or pos) + base pos to make rectangle
+
+def pickRoomSide(room):
+    sideList = []
+    for side in room.exitsFree.keys():
+        if room.isExitUsable(side):
+            sideList.append(side)
+    print(sideList)
+    side = random.choice(sideList)
+
+
+    return side
+
+def findDoor(x, y, side):
+    reverse = False
+
+    if side == 'left' or side == 'right':
+        if random.randint(0,1) == 0:
+            door = DoorHorizontal
+            y += -1
+        else:
+            door = DoorVertical
+            y += 1
+
+        if side == 'right':
+            reverse = True
+
+
+
+    if side == 'down' or side == 'up':
+        x += 2
+        y += -1
+        if side == 'down':
+            door = DoorHorizontal
+
+        if side == 'up':
+            door = DoorVertical
+        
+        if random.randint(0,1) == 0:
+            reverse = True
+            x += -3
+        
+
+    return door(x*TILE_SIZE, y*TILE_SIZE, reverse)
+
+def findNextRoom(side, room):
+    path = 'finished_rooms.toml'
+    file = openToml(path)
+    roomsList = file['presetRooms']
+
+    found = False
+    while not found:
+        nextRoom = random.choice(roomsList)
+        for reroll in range(2):              #try to make it less likely to have same room multiple times in a row
+            if nextRoom['name'] == room.name:
+                nextRoom = random.choice(roomsList)
+        
+        if nextRoom['exitsFree'][sideInverse(side)] != []:
+            found = True
+        else:
+            roomsList.remove(nextRoom)
+    return nextRoom
+        
+
+    
 
 
 if __name__ == '__main__':

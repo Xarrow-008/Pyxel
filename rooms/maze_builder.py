@@ -1,7 +1,7 @@
 from utility import *
 from rooms import *
 
-path = 'finished_rooms.toml'
+PATH = 'finished_rooms.toml'
 
 class App:
     def __init__(self):
@@ -27,10 +27,11 @@ class App:
 class MazeBuild:
     def __init__(self):
         self.camera = [0,0]
-        self.player = Player(TILE_SIZE,TILE_SIZE)
+        self.player = Player(TILE_SIZE,6*TILE_SIZE)
         self.editor = WallsEditor()
-        self.roomsRoot = Entry()
+        self.roomsRoot = Entry(4,4)
         self.rooms = []
+        self.rooms.append(copy(self.roomsRoot))
         self.editWallsMode = False
 
         self.showWalls = False
@@ -128,13 +129,14 @@ class Area:
     def __init__(self, x, y, settings):
         self.x = x*TILE_SIZE
         self.y = y*TILE_SIZE
+        self.assets = []
         self.settings = settings
         self.defaultSettings = {'name':'room_48','width':15*TILE_SIZE,'height':15*TILE_SIZE,
         'walls':[], 'exitsFree':{'up':[],'down':[],'left':[],'right':[]},'assets':[{'name':'tableVertical','relativeX':48,'relativeY':48, 'reversed':False}]}
-        self.exitUp = None
-        self.exitLeft = None
-        self.exitDown = None
-        self.exitRight = None
+        self.exit_up = None
+        self.exit_left = None
+        self.exit_down = None
+        self.exit_right = None
 
         self.initSettings()
 
@@ -172,17 +174,47 @@ class Area:
             string += str(attribute) + ': ' + str(getattr(self,attribute)) + '\n'
         return string
 
+    def assetAppend(self, assetClass, pos, reversed=False):
+        index = 0
+        for i in range(len(self.assets)):
+            if pos[1] > self.assets[i].y:
+                index = i+1
+
+        self.assets.insert(index,assetClass(*pos, reversed))
+
+    def assetDraw(self):
+        for asset in self.assets:
+            asset.draw()
+
+    def draw(self):
+        pyxel.rect(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE,5)
+        pyxel.rectb(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE+1,6)
+        pyxel.rect(self.x,self.y,self.width,self.height+1,2)
+        self.floorPatternDraw()
+        pyxel.rectb(self.x,self.y,self.width,self.height+1,6)
+
+        self.assetDraw()
+
+    def floorPatternDraw(self):
+        for y in range(self.height//TILE_SIZE):
+            for x in range(self.width//TILE_SIZE):
+                pass
+
 
 
 class Entry(Area):
-    name = 'Entry'
+    name = 'room_entry'
     def __init__(self, x, y):
         self.getRoom()
-        super.__init__(x, y, self.settings)
+        super().__init__(x, y, self.settings)
 
     def getRoom(self):
-
-        openToml()
+        rooms = openToml(PATH)['presetRooms']
+        for room in rooms:
+            if room['name'] == self.name:
+                self.settings = room
+                break
+        
 
 
 if __name__ == '__main__':
