@@ -1,16 +1,27 @@
 class Fuel:
+    def __init__(self):
+        self.name = ""
+        self.shortDescription = ""
+        self.image = (0,192)
+        self.value = 0
 
-    SMALL_FUEL = {"name":"Small Fuel Canister",
-                "short_description":"Increases fuel by 1",
-                "image":(0,192),
-                "value":1}
+class SMALL_FUEL(Fuel):
+    def __init__(self):
+        self.name = "Small Fuel Canister"
+        self.shortDescription = "Increases fuel by 1"
+        self.image = (0,192)
+        self.value = 1
 
-    MEDIUM_FUEL = {"name":"Oil Tank",
-                "short_description":"Increases fuel by 3",
-                "image":(0,192),
-                "value":3}
+class MEDIUM_FUEL(Fuel):
+    def __init__(self):
+        self.name = "Oil Tank"
+        self.shortDescription = "Increases fuel by 3"
+        self.image = (0,192)
+        self.value = 3
 
-    BIG_FUEL = {"name":"Rocket Fuel",
-                "short_description":"Increases fuel by 5",
-                "image":(0,192),
-                "value":5}
+class BIG_FUEL(Fuel):
+    def __init__(self):
+        self.name = "Rocket Fuel"
+        self.shortDescription = "Increases fuel by 5"
+        self.image = (0,192)
+        self.value = 5
