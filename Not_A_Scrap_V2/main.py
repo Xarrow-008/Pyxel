@@ -126,7 +126,7 @@ class inMission:
 
         if pyxel.btnp(pyxel.KEY_P):
             item = random.choice(ITEM_LIST)
-            self.pickups.append(Pickup(100,100, Item.PAMPHLET))
+            self.pickups.append(Pickup(100,100, item))
 
         if pyxel.btnp(pyxel.KEY_L):
             self.interactables.append(Interactable(120,120, InteractableTemplate.CHEST))
@@ -140,7 +140,6 @@ class inMission:
 
 
     def entity_gestion(self):
-
         if self.player.bulletList != []:
                 for bullet in self.player.bulletList:
                     self.entities.append(bullet)
@@ -189,7 +188,7 @@ class inMission:
         pickedUpSomething = False
         for pickup in self.pickups:
             if collisionObjects(pickup, self.player):
-                self.infoText = (pickup.pickup["name"], pickup.pickup["short_description"], ("Press","pickup"))
+                self.infoText = (pickup.pickup.name, pickup.pickup.shortDescription, ("Press","pickup"))
 
 
         for i in range(1, len(self.pickups)+1):
@@ -197,15 +196,18 @@ class inMission:
             if collisionObjects(pickup, self.player) and (not pickedUpSomething) and keyPress("INTERACT","btnp"):
                 pickup.pickedUp = True
                 pickedUpSomething = True
-                if "rarity" in pickup.pickup.keys(): #This means the pickup is an item
+
+                if issubclass(type(pickup.pickup), Item):
                     self.player.inventory.addItem(pickup.pickup)
-                elif "damage" in pickup.pickup.keys(): #This means the pickup is a weapon
+
+                elif issubclass(type(pickup.pickup), Weapon): 
                     if keyPress("RIGHT_HAND", "btn"):
                         self.player.inventory.addWeapon(pickup.pickup, "rightHand")
                     else:
                             self.player.inventory.addWeapon(pickup.pickup, "leftHand")
-                elif "value" in pickup.pickup.keys(): #This means the pickup is fuel
-                    self.player.fuel += pickup.pickup["value"]
+
+                elif issubclass(type(pickup.pickup), Fuel): 
+                    self.player.fuel += pickup.pickup.value
 
         for pickup in self.pickups:
             if pickup.pickedUp:
@@ -694,10 +696,10 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             setattr(self.inventory, hand+"StartFrame", game_frame)
 
-            weapon["mag_ammo"] -= 1
+            weapon.magAmmo -= 1
             self.shotsFired += 1
 
-            for i in range(weapon["bullet_count"]):
+            for i in range(weapon.bulletCount):
                 horizontal = x - (self.x + self.width/2)
                 vertical = y - (self.y + self.height/2)
                 norm = math.sqrt(horizontal**2 + vertical**2)
@@ -706,8 +708,8 @@ class Entity: #General Entity class with all the methods describing what entitie
                     cos = horizontal/norm
                     sin = vertical/norm
                     angle = math.acos(cos) * pyxel.sgn(sin)
-                    lowest_angle = angle - weapon["spread"]*(math.pi/180)
-                    highest_angle = angle + weapon["spread"]*(math.pi/180)
+                    lowest_angle = angle - weapon.spread*(math.pi/180)
+                    highest_angle = angle + weapon.spread*(math.pi/180)
                     angle = random.uniform(lowest_angle, highest_angle)
                     cos = math.cos(angle)
                     sin = math.sin(angle)
@@ -722,18 +724,18 @@ class Entity: #General Entity class with all the methods describing what entitie
     def canRangedAttack(self, hand):
         weapon = getattr(self.inventory, hand)
         startFrame = getattr(self.inventory, hand+"StartFrame")
-        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon["cooldown"], game_frame) and weapon["mag_ammo"]>0
+        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon.attackCooldown, game_frame) and weapon.magAmmo>0
 
     def reloadWeapon(self, hand):
         weapon = getattr(self.inventory, hand)
         if self.canReloadWeapon(hand):
             setattr(self.inventory, hand+"IsReloading", False)
-            if weapon["reserve_ammo"]>=weapon["max_ammo"]:
-                weapon["mag_ammo"] = weapon["max_ammo"]
-                weapon["reserve_ammo"] -= weapon["max_ammo"]
+            if weapon.reserveAmmo >= weapon.maxAmmo:
+                weapon.magAmmo = weapon.maxAmmo
+                weapon.reserveAmmo -= weapon.maxAmmo
             else:
-                weapon["mag_ammo"] = weapon["reserve_ammo"]
-                weapon["reserve_ammo"] = 0
+                weapon.magAmmo = weapon.reserveAmmo
+                weapon.reserveAmmo = 0
                 setattr(self.inventory, hand+"CanNoLongerReload", True)
             self.reloadedThisFrame = True
             
@@ -741,7 +743,7 @@ class Entity: #General Entity class with all the methods describing what entitie
     def canReloadWeapon(self, hand):
         weapon = getattr(self.inventory, hand)
         startFrame = getattr(self.inventory, hand+"StartFrame")
-        return timer(startFrame, weapon["reload"], game_frame) and weapon["mag_ammo"]==0 and weapon!=Weapon.NONE
+        return timer(startFrame, weapon.reloadTime, game_frame) and weapon.magAmmo==0 and weapon.name != "None"
 
 
 
@@ -828,15 +830,15 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.tempHealth = self.maxHealth
 
         if random.randint(1,100) <= 10:
-            if self.inventory.leftHand["type"]=="melee":
+            if type(self.inventory.leftHand) == MeleeWeapon:
                 pass #TODO : Implement this once we implement melee weapons
             else:
-                self.inventory.leftHand["reserve_ammo"] = math.ceil(self.inventory.leftHand["reserve_ammo"]*(1+self.inventory.ressourceKillEffect/100))
+                self.inventory.leftHand.reserveAmmo = math.ceil(self.inventory.leftHand.reserveAmmo*(1+self.inventory.ressourceKillEffect/100))
             
-            if self.inventory.rightHand["type"]=="melee":
+            if type(self.inventory.rightHand) == MeleeWeapon:
                 pass #TODO : Implement this once we implement melee weapons
             else:
-                self.inventory.rightHand["reserve_ammo"] = math.ceil(self.inventory.rightHand["reserve_ammo"]*(1+self.inventory.ressourceKillEffect/100))
+                self.inventory.rightHand.reserveAmmo = math.ceil(self.inventory.rightHand.reserveAmmoffffffffffffffffffff*(1+self.inventory.ressourceKillEffect/100))
 
 class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self):
@@ -863,7 +865,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
-        self.inventory.addWeapon(Weapon.RUSTY_PISTOL, "leftHand")
+        self.inventory.addWeapon(RUSTY_PISTOL(), "leftHand")
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -925,16 +927,20 @@ class Player(Entity): #Creates an entity that's controlled by the player
             #Weapons
             pyxel.rectb(x=237, y=218, w=18, h=18, col=0)
             pyxel.rect(x=238, y=219, w=16, h=16, col=13)
-            draw(x=238, y=219, img=0, u=self.inventory.leftHand["image"][0], v=self.inventory.leftHand["image"][1], w=self.inventory.leftHand["width"], h=self.inventory.leftHand["height"], colkey=11)
-            if self.inventory.leftHand != Weapon.NONE:
-                sized_text(x=198, y=224, s=str(self.inventory.leftHand["mag_ammo"])+"/"+str(self.inventory.leftHand["max_ammo"])+"("+str(self.inventory.leftHand["reserve_ammo"])+")", col=7)
+            draw(x=238, y=219, img=0, u=self.inventory.leftHand.image[0], v=self.inventory.leftHand.image[1], w=self.inventory.leftHand.width, h=self.inventory.leftHand.height, colkey=11)
+            if type(self.inventory.leftHand) == RangedWeapon:
+                sized_text(x=198, y=224, s=str(self.inventory.leftHand.magAmmo)+"/"+str(self.inventory.leftHand.maxAmmo)+"("+str(self.inventory.leftHand.reserveAmmo)+")", col=7)
+            else:
+                pass #TODO : melee weapon info
 
 
             pyxel.rectb(x=237, y=237, w=18, h=18, col=0)
             pyxel.rect(x=238, y=238, w=16, h=16, col=13)
-            draw(x=238, y=238, img=0, u=self.inventory.rightHand["image"][0], v=self.inventory.rightHand["image"][1], w=self.inventory.rightHand["width"], h=self.inventory.rightHand["height"], colkey=11)
-            if self.inventory.rightHand != Weapon.NONE:
-                sized_text(x=198, y=243, s=str(self.inventory.rightHand["mag_ammo"])+"/"+str(self.inventory.rightHand["max_ammo"])+" ("+str(self.inventory.rightHand["reserve_ammo"])+")", col=7)
+            draw(x=238, y=238, img=0, u=self.inventory.rightHand.image[0], v=self.inventory.rightHand.image[1], w=self.inventory.rightHand.width, h=self.inventory.rightHand.height, colkey=11)
+            if type(self.inventory.rightHand) == RangedWeapon:
+                sized_text(x=198, y=243, s=str(self.inventory.rightHand.magAmmo)+"/"+str(self.inventory.rightHand.maxAmmo)+"("+str(self.inventory.rightHand.reserveAmmo)+")", col=7)
+            else:
+                pass #TODO : melee weapon info
 
             #Combat Indicator #(You should probably change how it looks, this mostly for debug purposes so that I can know when the player is or isn't in combat)
             if self.inCombat:
@@ -1071,9 +1077,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
         sized_text(x=x+4, y=y+4, s=text, col=7, size=7)
 
         pyxel.rect(x=x+4, y=y+13, w=18, h=18, col=7)
-        draw(x=x+5, y=y+14, img=0, u=weapon["image"][0], v=weapon["image"][1], w=TILE_SIZE, h=TILE_SIZE, colkey=11)
-        if weapon != Weapon.NONE:
-            sized_text(x=x+25, y=y+18, s=f"{weapon["name"]} (LVL 1)", col=7) #We'll have to change this part once we add scaling to the weapons
+        draw(x=x+5, y=y+14, img=0, u=weapon.image[0], v=weapon.image[1], w=TILE_SIZE, h=TILE_SIZE, colkey=11)
+        if weapon.name != "None":
+            sized_text(x=x+25, y=y+18, s=f"{weapon.name} (LVL 1)", col=7) #We'll have to change this part once we add scaling to the weapons
             
             if "backpack" not in hand and getattr(self.inventory, hand+"IsReloading"):
                 sized_text(x=x+25, y=y+25, s="Reloading", col=7)
@@ -1087,16 +1093,16 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
 
 
-            sized_text(x=x+4, y=y+34, s=f"Damage : {weapon["damage"]}", col=7)
-            sized_text(x=x+4, y=y+41, s=f"Piercing : {weapon["piercing"]}", col=7)
-            sized_text(x=x+4, y=y+48, s=f"Attack speed : {round(FPS/(weapon["cooldown"]),2)} ATK/s", col=7)
-            sized_text(x=x+4, y=y+55, s=f"Reload time : {round((weapon["reload"])/FPS,2)}s", col=7)
-            sized_text(x=x+4, y=y+62, s=f"Ammo : {weapon["mag_ammo"]}/{weapon["max_ammo"]} ({weapon["reserve_ammo"]})", col=7)
-            sized_text(x=x+4, y=y+69, s=f"Bullet count : {weapon["bullet_count"]}", col=7)
-            sized_text(x=x+4, y=y+76, s=f"Spread : {weapon["spread"]}°", col=7)
-            sized_text(x=x+4, y=y+83, s=f"Range : {round(weapon["range"]/TILE_SIZE,2)}T", col=7)
+            sized_text(x=x+4, y=y+34, s=f"Damage : {weapon.damage}", col=7)
+            sized_text(x=x+4, y=y+41, s=f"Piercing : {weapon.piercing}", col=7)
+            sized_text(x=x+4, y=y+48, s=f"Attack speed : {round(FPS/(weapon.attackCooldown),2)} ATK/s", col=7)
+            sized_text(x=x+4, y=y+55, s=f"Reload time : {round((weapon.reloadTime)/FPS,2)}s", col=7)
+            sized_text(x=x+4, y=y+62, s=f"Ammo : {weapon.magAmmo}/{weapon.maxAmmo} ({weapon.reserveAmmo})", col=7)
+            sized_text(x=x+4, y=y+69, s=f"Bullet count : {weapon.bulletCount}", col=7)
+            sized_text(x=x+4, y=y+76, s=f"Spread : {weapon.spread}°", col=7)
+            sized_text(x=x+4, y=y+83, s=f"Range : {round(weapon.range/TILE_SIZE,2)}T", col=7)
         else:
-            sized_text(x=x+25, y=y+18, s=f"{weapon["name"]}", col=7)
+            sized_text(x=x+25, y=y+18, s=f"{weapon.name}", col=7)
 
     def drawOccupiedSlot(self, x, y):
         w = 122
@@ -1135,14 +1141,14 @@ class Player(Entity): #Creates an entity that's controlled by the player
                 item_object = getItemFromName(item[0])
                 pyxel.rectb(x=x+item_x, y=item_y, w=TILE_SIZE+2, h=TILE_SIZE+2, col=7)
                 pyxel.rect(x=x+item_x+1, y=item_y+1, w=TILE_SIZE, h=TILE_SIZE, col=0)
-                draw(x=x+item_x+1, y=item_y+1, img=0, u=item_object["image"][0], v=item_object["image"][1], w=TILE_SIZE, h=TILE_SIZE, colkey=11)
+                draw(x=x+item_x+1, y=item_y+1, img=0, u=item_object.image[0], v=item_object.image[1], w=TILE_SIZE, h=TILE_SIZE, colkey=11)
                 pyxel.rect(x=x+item_x+18, y=item_y+1, w=13, h=TILE_SIZE, col=0)
                 sized_text(x=x+item_x+20, y=item_y+5, s=f"*{item[1]}", col=7)
 
                 if pyxel.mouse_x >= x+item_x and pyxel.mouse_x <= x+item_x+18 and pyxel.mouse_y >= item_y and pyxel.mouse_y <= item_y+18:
                     hoveringOverAnItem = True
                     sized_text(x=x+27, y=202, s=item[0], col=7, limit=x+230)
-                    sized_text(x=x+27, y=212, s=item_object["long_description"], col=7, limit=x+230)
+                    sized_text(x=x+27, y=212, s=item_object.longDescription, col=7, limit=x+230)
 
                 item_x += 32
                 if item_x >= 208:
@@ -1216,33 +1222,37 @@ class Player(Entity): #Creates an entity that's controlled by the player
             self.startDash(self.direction)
             
     def attack(self):
-        if keyPress("ATTACK_LEFT", "btn"):
-            self.rangedAttack("leftHand", pyxel.mouse_x, pyxel.mouse_y)
+        if type(self.inventory.leftHand) == RangedWeapon:
 
-        if keyPress("ATTACK_RIGHT", "btn"):
-            self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y)
+            if keyPress("ATTACK_LEFT", "btn"):
+                self.rangedAttack("leftHand", pyxel.mouse_x, pyxel.mouse_y)
 
-        if keyPress("LEFT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
-            self.inventory.leftHand["mag_ammo"] = 0
-            self.inventory.leftHandStartFrame = game_frame
-            self.inventory.leftHandIsReloading = True
+            if keyPress("LEFT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
+                self.inventory.leftHand.magAmmo = 0
+                self.inventory.leftHandStartFrame = game_frame
+                self.inventory.leftHandIsReloading = True
 
-        if keyPress("RIGHT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
-            self.inventory.rightHand["mag_ammo"] = 0
-            self.inventory.rightHandStartFrame = game_frame
-            self.inventory.rightHandIsReloading = True
-        
+            if self.inventory.leftHand.magAmmo == 0 and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
+                self.inventory.leftHandStartFrame = game_frame
+                self.inventory.leftHandIsReloading = True
 
-        if self.inventory.leftHand["mag_ammo"] == 0 and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
-            self.inventory.leftHandStartFrame = game_frame
-            self.inventory.leftHandIsReloading = True
+            self.reloadWeapon("leftHand")
 
-        if self.inventory.rightHand["mag_ammo"] == 0 and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
-            self.inventory.rightHandStartFrame = game_frame
-            self.inventory.rightHandIsReloading = True
+        if type(self.inventory.rightHand) == RangedWeapon:
 
-        self.reloadWeapon("leftHand")
-        self.reloadWeapon("rightHand")
+            if keyPress("ATTACK_RIGHT", "btn"):
+                self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y)
+
+            if keyPress("RIGHT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
+                self.inventory.rightHand.magAmmo = 0
+                self.inventory.rightHandStartFrame = game_frame
+                self.inventory.rightHandIsReloading = True
+
+            if self.inventory.rightHand.magAmmo == 0 and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
+                self.inventory.rightHandStartFrame = game_frame
+                self.inventory.rightHandIsReloading = True
+
+            self.reloadWeapon("rightHand")
 
     def imageGestion(self):
         self.walking = False
@@ -1367,24 +1377,24 @@ class Enemy(Entity): #Creates an entity that fights the player
 
 class Inventory:
     def __init__(self):
-        self.leftHand = Weapon.NONE
+        self.leftHand = NO_WEAPON().copy()
         self.leftHandOccupied = False
         self.leftHandStartFrame = 0
         self.leftHandIsReloading = False
         self.leftHandCanNoLongerReload = False
 
-        self.rightHand = Weapon.NONE
+        self.rightHand = NO_WEAPON().copy()
         self.rightHandOccupied = False
         self.rightHandStartFrame = 0
         self.rightHandIsReloading = False
         self.rightHandCanNoLongerReload = False
 
-        self.backpack1 = Weapon.NONE
+        self.backpack1 = NO_WEAPON().copy()
         self.backpack1Occupied = False
 
         self.canHaveTwoWeaponsInBackPack = True
 
-        self.backpack2 = Weapon.NONE
+        self.backpack2 = NO_WEAPON().copy()
         self.backpack2Occupied = False
 
         self.baseCritChance = 5
@@ -1394,62 +1404,61 @@ class Inventory:
 
         self.items = {}
         for item in ITEM_LIST:
-            self.items[item["name"]] = 0
-
-            for effect in item["effects"]:
+            self.items[item.name] = 0
+            for effect in item.effects:
                 setattr(self, effect["stat"], 0)
 
 
     def addWeapon(self, weapon, hand): #Function used when the player picks up a weapon
 
-        setattr(self, hand, weapon)
+        setattr(self, hand, weapon.copy())
 
         #We can almost definitely make this more efficient but this works and is understandable
 
         if not self.canHaveTwoWeaponsInBackPack:
 
-            if self.backpack1["hand_number"]==1:
+            if self.backpack1.handNumber==1:
 
                 setattr(self, hand+"Occupied", False)
 
                 #We check wether or not its a two handed weapon to block off the other hand
-                if weapon["hand_number"]==1:
+                if weapon.handNumber==1:
                     setattr(self, self.oppositeHand(hand)+"Occupied", False)
-                    if getattr(self, self.oppositeHand(hand))["hand_number"]==2:
-                        setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                    if getattr(self, self.oppositeHand(hand)).handNumber==2:
+                        setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
 
-                elif weapon["hand_number"]==2:
+                elif weapon.handNumber==2:
                     setattr(self, self.oppositeHand(hand)+"Occupied", True)
-                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                    setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
 
-            elif self.backpack1["hand_number"]==2:
+            elif self.backpack1.handNumber==2:
 
                 if getattr(self, hand+"Occupied"):
-                    self.backpack1 = Weapon.NONE
+                    self.backpack1 = NO_WEAPON().copy()
                     setattr(self, hand+"Occupied", False)
 
-                    if weapon["hand_number"]==2:
+                    if weapon.handNumber==2:
                         setattr(self, self.oppositeHand(hand)+"Occupied", True)
-                        setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                        setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
 
                 else:
                     setattr(self, hand+"Occupied", False)
-                    if weapon["hand_number"]==2:
+                    if weapon.handNumber==2:
                         setattr(self, self.oppositeHand(hand)+"Occupied", True)
-                        setattr(self, self.oppositeHand(hand), Weapon.NONE)
-                        self.backpack1 = Weapon.NONE
+                        setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                        self.backpack1 = NO_WEAPON().copy()
 
         else:
             setattr(self, hand+"Occupied", False)
             #We check wether or not its a two handed weapon to block off the other hand
-            if weapon["hand_number"]==1:
+            if weapon.handNumber==1:
                 setattr(self, self.oppositeHand(hand)+"Occupied", False)
-                if getattr(self, self.oppositeHand(hand))["hand_number"]==2:
-                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                if getattr(self, self.oppositeHand(hand)).handNumber==2:
+                    setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
 
-            elif weapon["hand_number"]==2:
+            elif weapon.handNumber==2:
                 setattr(self, self.oppositeHand(hand)+"Occupied", True)
-                setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
 
     def switchWeapon(self, hand): #Function used to switch hand-held weapons with ones stored in the backpack
         
@@ -1457,25 +1466,25 @@ class Inventory:
 
         if not self.canHaveTwoWeaponsInBackPack:
 
-            if self.backpack1["hand_number"]==1:
+            if self.backpack1.handNumber==1:
 
                 setattr(self, hand+"Occupied", False)
                 
-                if self.leftHand["hand_number"]==2:
+                if self.leftHand.handNumber==2:
                     weapon = self.leftHand
                     setattr(self, hand, self.backpack1)
                     self.backpack1 = weapon
 
                     setattr(self, self.oppositeHand(hand)+"Occupied", True)
-                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                    setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
 
-                elif self.rightHand["hand_number"]==2:
+                elif self.rightHand.handNumber==2:
                     weapon = self.rightHand
                     setattr(self, hand, self.backpack1)
                     self.backpack1 = weapon
 
                     setattr(self, self.oppositeHand(hand)+"Occupied", True)
-                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                    setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
 
                 else:
                     weapon = getattr(self, hand)
@@ -1489,7 +1498,7 @@ class Inventory:
                     setattr(self, hand, self.backpack1)
                     self.backpack1 = getattr(self, self.oppositeHand(hand))
 
-                    setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                    setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                     setattr(self, self.oppositeHand(hand)+"Occupied", True)
 
                 else:
@@ -1499,42 +1508,42 @@ class Inventory:
 
         else:
             
-            if self.backpack1["hand_number"]==2:
+            if self.backpack1.handNumber==2:
                 weapon = self.backpack1
                 
                 setattr(self, self.equivalentHand(hand), getattr(self, hand))
                 setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
                 setattr(self, hand, weapon)
 
-                setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                 setattr(self, hand+"Occupied", False)
                 setattr(self, self.oppositeHand(hand)+"Occupied", True)
 
-                if self.backpack1["hand_number"]==2:
+                if self.backpack1.handNumber==2:
                     self.backpack2Occupied = True
                 else:
                     self.backpack2Occupied = False
-                if self.backpack2["hand_number"]==2:
+                if self.backpack2.handNumber==2:
                     self.backpack1Occupied = True
                 else:
                     self.backpack1Occupied = False
 
-            elif self.backpack2["hand_number"]==2:
+            elif self.backpack2.handNumber==2:
                 weapon = self.backpack2
                 
                 setattr(self, self.equivalentHand(hand), getattr(self, hand))
                 setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
                 setattr(self, hand, weapon)
 
-                setattr(self, self.oppositeHand(hand), Weapon.NONE)
+                setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                 setattr(self, hand+"Occupied", False)
                 setattr(self, self.oppositeHand(hand)+"Occupied", True)
 
-                if self.backpack1["hand_number"]==2:
+                if self.backpack1.handNumber==2:
                     self.backpack2Occupied = True
                 else:
                     self.backpack2Occupied = False
-                if self.backpack2["hand_number"]==2:
+                if self.backpack2.handNumber==2:
                     self.backpack1Occupied = True
                 else:
                     self.backpack1Occupied = False
@@ -1551,11 +1560,11 @@ class Inventory:
                 self.leftHandOccupied = False
                 self.rightHandOccupied = False
 
-                if self.backpack1["hand_number"]==2:
+                if self.backpack1.handNumber==2:
                     self.backpack2Occupied = True
                 else:
                     self.backpack2Occupied = False
-                if self.backpack2["hand_number"]==2:
+                if self.backpack2.handNumber==2:
                     self.backpack1Occupied = True
                 else:
                     self.backpack1Occupied = False
@@ -1579,18 +1588,18 @@ class Inventory:
 
 
     def addItem(self, item):
-        self.items[item["name"]]+=1
+        self.items[item.name]+=1
 
-        for effect in item["effects"]:
+        for effect in item.effects:
 
             if effect["scaling"]=="constant":
                 setattr(self, effect["stat"], effect["value"])
 
             elif effect["scaling"]=="arithmetic":
-                setattr(self, effect["stat"], effect["initial_term"]+(self.items[item["name"]]-1)*effect["reason"])
+                setattr(self, effect["stat"], effect["initial_term"]+(self.items[item.name]-1)*effect["reason"])
 
             elif effect["scaling"]=="geometric":
-                setattr(self, effect["stat"], effect["initial_term"]*(1-effect["reason"]**(self.items[item["name"]]))/(1-effect["reason"]))
+                setattr(self, effect["stat"], effect["initial_term"]*(1-effect["reason"]**(self.items[item.name]))/(1-effect["reason"]))
 
             print(effect["stat"], getattr(self, effect["stat"]))
         
@@ -1600,27 +1609,27 @@ class Inventory:
 
 class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
     def __init__(self, weapon, x, y, vector, owner, shot):
-        super().__init__(x=x, y=y, width=weapon["bullet_width"], height=weapon["bullet_height"])
+        super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
 
         self.momentum = vector
 
-        self.image = weapon["bullet_image"]
+        self.image = weapon.bulletImage
 
-        self.damage = weapon["damage"]
-        self.piercing = weapon["piercing"]
+        self.damage = weapon.damage
+        self.piercing = weapon.piercing
 
-        self.range = weapon["range"]
+        self.range = weapon.range
 
         self.owner = owner
 
         self.shot = shot
 
         if hasattr(owner, "inventory"):
-            knockbackCoef = weapon["knockback_coef"]*(1+owner.inventory.rangedKnockback/100)
+            knockbackCoef = weapon.knockbackCoef*(1+owner.inventory.rangedKnockback/100)
         else:
-            knockbackCoef = weapon["knockback_coef"]
+            knockbackCoef = weapon.knockbackCoef
 
-        self.initWalk(priority=0, maxSpeed=weapon["bullet_speed"], speedChangeRate=0, knockbackCoef=0)
+        self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0)
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         if type(self.owner)==Player:
             self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, knockbackCoef, self.piercing], [0, 0, 0, -1])
@@ -1631,6 +1640,7 @@ class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
+        print(self.maxSpeed)
         self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
         self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
 
@@ -1664,7 +1674,7 @@ class Pickup:
         self.pickedUp = False
 
     def draw(self):
-        draw(x=self.x, y=self.y, img=0, u=self.pickup["image"][0], v=self.pickup["image"][1], w=self.width, h=self.height, colkey=11)
+        draw(x=self.x, y=self.y, img=0, u=self.pickup.image[0], v=self.pickup.image[1], w=self.width, h=self.height, colkey=11)
 
 class Interactable:
     def __init__(self, x, y, template):
@@ -1988,7 +1998,7 @@ def holdKey(action, duration, counter):
 
 def getItemFromName(name):
     for item in ITEM_LIST:
-        if item["name"]==name:
+        if item.name==name:
             return item
     
 App()
