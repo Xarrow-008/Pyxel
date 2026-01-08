@@ -6,8 +6,8 @@ TILE_SIZE = 16
 WID = 256
 HEI = 256 
 
-CAM_WIDTH = TILE_SIZE*60
-CAM_HEIGHT = TILE_SIZE*60
+CAM_WIDTH = TILE_SIZE*20
+CAM_HEIGHT = TILE_SIZE*20
 
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
@@ -402,7 +402,7 @@ class Player(Entity):
 class Roombuild:
     def __init__(self):
         self.camera = [0,0]
-        self.player = Player(WID*16//2,HEI*16//3)
+        self.player = Player(WID*16//2,HEI*16//8)
         self.editor = WallsEditor()
         self.rooms = []
         self.exits = []
@@ -413,7 +413,11 @@ class Roombuild:
         self.editRoomsMode = False
         self.menu = Menu()
 
+        self.initBuild()
+        self.anim = Animation([CAM_WIDTH//2-2.5*TILE_SIZE,CAM_HEIGHT//3],{'u':0,'v':4,'width':5*TILE_SIZE,'height':3*TILE_SIZE, 'duration':20}, lifetime='30 cycles')
+
         self.showWalls = False
+        print('[T] then [LSHIFT] + [N] to build a building')
 
         self.margin = 1/4
 
@@ -444,7 +448,6 @@ class Roombuild:
             self.editRoomsMode = not self.editRoomsMode
             self.editWallsMode = False
             self.showWalls = False
-            print(self.roomIndex)
 
         if pyxel.btnp(pyxel.KEY_K):
             self.showWalls = True
@@ -452,6 +455,10 @@ class Roombuild:
         self.player.constructorHat = self.editRoomsMode
         if self.editRoomsMode:
             self.roomsUpdate()
+
+        if self.isBuilding:
+            self.buildContinue()
+            self.anim.update()
         
         
         if self.editWallsMode:
@@ -484,16 +491,21 @@ class Roombuild:
 
     def draw(self):
         pyxel.cls(0)
-        pyxel.blt(0,0,0,0,0,256,256)
 
-        self.roomsDraw()
-        self.exitsDraw()
+        if not self.isBuilding:
+            self.roomsDraw()
+            self.exitsDraw()
 
-        if self.showWalls:
-            self.wallsDraw()
+            if self.showWalls:
+                self.wallsDraw()
 
-        self.player.draw()
-        self.drawMouse()
+            self.player.draw()
+            self.drawMouse()
+        else:
+            self.drawAnimation()
+
+    def drawAnimation(self):
+        self.anim.draw(*self.camera)
 
     def drawMouse(self):
         x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE*TILE_SIZE
@@ -534,7 +546,12 @@ class Roombuild:
         self.exitsActions()
 
         if pyxel.btnp(pyxel.KEY_N):
-            self.extendRooms()
+            if pyxel.btn(pyxel.KEY_LSHIFT):
+                self.buildStart()
+            else:
+                self.extendRooms()
+        if pyxel.btnp(pyxel.KEY_U):
+            print(len(self.rooms))
             
 
 
@@ -637,16 +654,55 @@ class Roombuild:
             if loops == 10:
                 print('gave up')
 
-            
+    def initBuild(self):
+        self.isBuilding = False
+        self.buildLoops = 0
+
+    def buildStart(self):
+        if len(self.rooms) == 0:
+            room = findNextRoom('down', "room_TVRoom") #might switch this to a special beginning room
+            x = self.player.x//TILE_SIZE-1
+            y = self.player.y//TILE_SIZE-1
+
+            self.rooms.append(LoadRoom(room, x, y))
+            self.nbRooms = 1
+            self.isBuilding = True
+        else:
+            if self.isBuilding:
+                self.buildContinue()
+
+
+                if self.nbRooms >= 60 or len(self.rooms) >= 60:
+                    self.isBuilding = False
+                    print(self.nbRooms, len(self.rooms))
+            else:
+                print('cant build there // rooms already here')
+
+    def buildContinue(self):
+        nb_rooms = len(self.rooms)
+        for i in range(3):
+            self.addNeighbor()
+            if nb_rooms != len(self.rooms):
+                break
+    
+    
+        if nb_rooms == len(self.rooms):
+            if self.buildLoops <= 10:
+                self.goBack()
+                self.buildLoops += 1
+            else:
+                self.buildLoops = 0
+                self.isBuilding = False
+        else:
+            self.buildLoops = 0
+
+        
+
+
 
     def goBack(self):
         self.roomIndex = self.rooms[self.roomIndex].previousRoom
             
-            
-
-
-
-
 
     def addNeighbor(self):
         room = self.rooms[self.roomIndex]
@@ -655,7 +711,7 @@ class Roombuild:
         # --- find a room that has the exit inversed to the one we have ---
 
         if side != 'N/A':
-            nextRoom = findNextRoom(side, room)
+            nextRoom = findNextRoom(side, room.name)
 
             roomExitRelativeX = room.exitsPos[side][0]
             roomExitRelativeY = room.exitsPos[side][1]
@@ -692,15 +748,13 @@ class Roombuild:
                 self.rooms.append(LoadRoom(nextRoom, x, y))
                 self.rooms[-1].exitsFree[sideInverse(side)] = False
                 self.rooms[-1].previousRoom = self.roomIndex
-                self.rooms[-1].index = len(self.rooms)
+                self.rooms[-1].index = len(self.rooms)-1
 
                 self.addDoors(exitX,exitY,entryX,entryY, side)
                 
                 self.addExit(exitX, exitY, side)
 
                 self.roomIndex = len(self.rooms)-1
-
-            
 
 
     def addDoors(self,exitX,exitY,entryX,entryY,side):
@@ -805,7 +859,6 @@ class Room:
         pyxel.rectb(self.x,self.y,self.width,self.height+1,6)
 
         self.assetDraw()
-        pyxel.text(self.x, self.y, str(self.index) + ', ' + str(self.previousRoom), 0)
 
     def floorPatternDraw(self):
         for y in range(self.height//TILE_SIZE):
@@ -940,6 +993,78 @@ class ExitBaseVertical(Exit):
 
 
 
+class Animation:
+    def __init__(self,pos,settings,lifetime):
+        self.start = pyxel.frame_count
+        self.settings = settings
+        self.lifetime = lifetime
+        self.pos = pos
+        self.posRelative = True
+        self.colkey = 11
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7,False), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0)}
+
+        self.apply_settings()
+
+
+        self.img = (self.settings['u'],self.settings['v'])
+        self.kill = False
+
+    def update(self):
+        if not self.is_dead():
+            self.get_img()
+            self.pos[0] += self.settings["movementVector"][0]
+            self.pos[1] += self.settings["movementVector"][1]
+            
+    def draw(self,x,y):
+        if self.posRelative:
+            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.img[0]*self.settings["width"], v=self.img[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+        else:
+            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.img[0]*self.settings["width"], v=self.img[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+        
+    def get_img(self):
+        frame_anim = (self.frame() // self.settings['duration']) % self.settings['length']
+        x = self.settings['u'] + self.settings['imageVector'][0]*frame_anim
+        y = self.settings['v'] + self.settings['imageVector'][1]*frame_anim
+        self.img = (x,y)
+
+        #print(x,y,flush=True)
+
+    def apply_settings(self):
+        if type(self.settings) is dict:
+            for setting in self.default_set.keys():
+                if not setting in self.settings:
+                    self.settings[setting] = self.default_set[setting]
+        else:
+            self.settings = self.default_set
+
+        nb = 1
+        if type(self.lifetime) is str:
+            if 'cycle' in self.lifetime[-6:]:
+                for i in range(1,len(self.lifetime)):
+                    if self.lifetime[:i].isdigit():
+                        nb = int(self.lifetime[:i])
+
+        if not type(self.lifetime) is int:
+            self.lifetime = self.settings['duration']*self.settings['length']*nb - 1
+
+
+        if len(self.pos) > 2:
+            if type(self.pos[2]) is bool:
+                self.posRelative = self.pos[2]
+            self.pos = [self.pos[0],self.pos[1]]
+
+        self.colkey = self.settings['colkey']
+
+
+    def is_dead(self):
+        if self.lifetime == 1000:
+            print(self.start, pyxel.frame_count)
+
+        return pyxel.frame_count > self.start + self.lifetime or self.kill
+
+    def frame(self):
+        return pyxel.frame_count - self.start
+    
 
 
 class Asset:
@@ -1330,7 +1455,7 @@ def findDoor(x, y, side):
 
     return door(x*TILE_SIZE, y*TILE_SIZE, reverse)
 
-def findNextRoom(side, room):
+def findNextRoom(side, roomName):
     path = 'finished_rooms.toml'
     file = openToml(path)
     roomsList = file['presetRooms']
@@ -1339,7 +1464,7 @@ def findNextRoom(side, room):
     while not found:
         nextRoom = random.choice(roomsList)
         for reroll in range(2):              #try to make it less likely to have same room multiple times in a row
-            if nextRoom['name'] == room.name:
+            if nextRoom['name'] == roomName:
                 nextRoom = random.choice(roomsList)
         
         if nextRoom['exitsPos'][sideInverse(side)] != []:
