@@ -11,6 +11,8 @@ class Weapon:
         self.width = width
         self.height = height
 
+        self.scaling = 1.5
+
 class RangedWeapon(Weapon):
     def __init__(self, baseWeaponInfo, rangedWeaponInfo):
         super().__init__(*baseWeaponInfo)
@@ -29,13 +31,15 @@ class RangedWeapon(Weapon):
         self.damage = rangedWeaponInfo[8]
         self.piercing = rangedWeaponInfo[9]
         self.knockbackCoef = rangedWeaponInfo[10]
+        self.fallOffCoef = rangedWeaponInfo[11]
+        self.noFallOffArea = rangedWeaponInfo[12]
 
-        self.reloadTime = rangedWeaponInfo[11]
-        self.attackCooldown = rangedWeaponInfo[12]
+        self.reloadTime = rangedWeaponInfo[13]
+        self.attackCooldown = rangedWeaponInfo[14]
 
-        self.magAmmo = rangedWeaponInfo[13]
-        self.maxAmmo = rangedWeaponInfo[14]
-        self.reserveAmmo = rangedWeaponInfo[15]
+        self.magAmmo = rangedWeaponInfo[15]
+        self.maxAmmo = rangedWeaponInfo[16]
+        self.reserveAmmo = rangedWeaponInfo[17]
 
         self.baseWeaponInfo = baseWeaponInfo
         self.rangedWeaponInfo = rangedWeaponInfo
@@ -93,6 +97,8 @@ class RUSTY_PISTOL(RangedWeapon):
         damage = 15
         piercing = 0
         knockbackCoef = 1
+        fallOffCoef = 1 #Positive = damage decreases with distance / Negative = damage increases with distance
+        noFallOffArea = 1-0.4 #This means that there won't be damage fallOff for the first 40% of the projectile's trajectory
 
         reloadTime = 3*FPS
         attackCooldown = 0.25*FPS
@@ -101,7 +107,7 @@ class RUSTY_PISTOL(RangedWeapon):
         maxAmmo = 20
         reserveAmmo = 120
 
-        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
         print(len(rangedWeaponInfo))
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
 
@@ -131,6 +137,8 @@ class TEST_2_HANDS(RangedWeapon):
         damage = 15
         piercing = 0
         knockbackCoef = 1
+        fallOffCoef = 1
+        noFallOffArea = 1-0.4
 
         reloadTime = 3*FPS
         attackCooldown = 0.25*FPS
@@ -139,7 +147,7 @@ class TEST_2_HANDS(RangedWeapon):
         maxAmmo = 20
         reserveAmmo = 120
 
-        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
 
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
 

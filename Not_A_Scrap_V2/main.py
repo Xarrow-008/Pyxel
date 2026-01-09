@@ -61,13 +61,13 @@ class Game:
         
         #Tests for adding weapons
         if keyPress("LEFT_HAND","btn") and pyxel.btn(pyxel.KEY_1):
-            self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "leftHand")
+            self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "leftHand",0)
         if keyPress("LEFT_HAND","btn") and pyxel.btn(pyxel.KEY_2):
-            self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "leftHand")
+            self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "leftHand",0)
         if keyPress("RIGHT_HAND","btn") and pyxel.btn(pyxel.KEY_1):
-            self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "rightHand")
+            self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "rightHand",0)
         if keyPress("RIGHT_HAND","btn") and pyxel.btn(pyxel.KEY_2):
-            self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "rightHand")
+            self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "rightHand",0)
 
         #Allows the player to switch weapons between backpack and handheld
         if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count):
@@ -119,7 +119,7 @@ class inMission:
         self.enemy_player_collision()
 
         if pyxel.btnp(pyxel.KEY_M):
-            self.entities.append(Enemy(50, 50, EnemyTemplate.DUMMY))
+            self.entities.append(Enemy(50, 50, EnemyTemplate.DUMMY, 0))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(5, [0,0], 1, 0, self.player, self.player)
@@ -202,9 +202,9 @@ class inMission:
 
                 elif issubclass(type(pickup.pickup), Weapon): 
                     if keyPress("RIGHT_HAND", "btn"):
-                        self.player.inventory.addWeapon(pickup.pickup, "rightHand")
+                        self.player.inventory.addWeapon(pickup.pickup, "rightHand",0)
                     else:
-                            self.player.inventory.addWeapon(pickup.pickup, "leftHand")
+                            self.player.inventory.addWeapon(pickup.pickup, "leftHand",0)
 
                 elif issubclass(type(pickup.pickup), Fuel): 
                     self.player.fuel += pickup.pickup.value
@@ -361,13 +361,17 @@ class inMission:
 
     def calculateNewDamageValue(self, value, damager, target):
 
+        if hasattr(damager, "inventory"):
+            if (damager.inventory.leftHandLevel < target.level or damager.inventory.leftHand.name == "None") and (damager.inventory.rightHandLevel < target.level or damager.inventory.rightHand.name == "None"): #TODO : Make this also trigger if the enemy is a boss
+                value *= 1+(damager.inventory.strongEnemiesDamageBoost)/100
+        
         if hasattr(target, "inventory"):
 
             if target.lowHealth:
-                value *= 1-target.inventory.lowHealthDamageReduction
+                value *= 1-(target.inventory.lowHealthDamageReduction)/100
 
             value -= target.inventory.flatDamageReduction
-        
+
         value = int(value)
         if value < 1 : 
             value = 1
@@ -448,6 +452,8 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.lowHealth = False
 
         self.lastHitBy = None
+
+        self.level = 0
 
     def __str__(self):
         if type(self) == Player:
@@ -865,7 +871,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
-        self.inventory.addWeapon(RUSTY_PISTOL(), "leftHand")
+        self.inventory.addWeapon(RUSTY_PISTOL(), "leftHand", 0)
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -886,6 +892,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.inventoryDirection = 0
 
         self.fuel = 0
+
+        self.level = 0 #TODO : Make this increase everytime the player escapes a bunker
 
     def draw(self):
         step_y = self.y
@@ -1061,6 +1069,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
     def drawWeaponSlot(self, x, y, hand):
         weapon = getattr(self.inventory, hand)
+        level = getattr(self.inventory, hand+"Level")
         if hand == "leftHand":
             text = "Lefthand weapon"
         elif hand == "rightHand":
@@ -1079,7 +1088,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         pyxel.rect(x=x+4, y=y+13, w=18, h=18, col=7)
         draw(x=x+5, y=y+14, img=0, u=weapon.image[0], v=weapon.image[1], w=TILE_SIZE, h=TILE_SIZE, colkey=11)
         if weapon.name != "None":
-            sized_text(x=x+25, y=y+18, s=f"{weapon.name} (LVL 1)", col=7) #We'll have to change this part once we add scaling to the weapons
+            sized_text(x=x+25, y=y+18, s=f"{weapon.name} (LVL {level})", col=7) #We'll have to change this part once we add scaling to the weapons
             
             if "backpack" not in hand and getattr(self.inventory, hand+"IsReloading"):
                 sized_text(x=x+25, y=y+25, s="Reloading", col=7)
@@ -1287,15 +1296,18 @@ class Player(Entity): #Creates an entity that's controlled by the player
         pass
 
 class Enemy(Entity): #Creates an entity that fights the player
-    def __init__(self, x, y, template):
+    def __init__(self, x, y, template, level):
         super().__init__(x=x, y=y, width=template["width"], height=template["height"])
 
         self.originalImage = template["image"]
         self.image = template["image"]
 
-        self.health = template["health"]
-        self.baseHealth = template["maxHealth"]
-        self.maxHealth = template["maxHealth"]
+        self.scale = template["scaling"]**level
+        self.level = level
+
+        self.health = math.ceil(template["health"]*self.scale)
+        self.baseHealth = math.ceil(template["maxHealth"]*self.scale)
+        self.maxHealth = math.ceil(template["maxHealth"]*self.scale)
 
         #We initialise all of the enemies abilities
         for ability in template["abilities"].items():
@@ -1382,20 +1394,24 @@ class Inventory:
         self.leftHandStartFrame = 0
         self.leftHandIsReloading = False
         self.leftHandCanNoLongerReload = False
+        self.leftHandLevel = 0
 
         self.rightHand = NO_WEAPON().copy()
         self.rightHandOccupied = False
         self.rightHandStartFrame = 0
         self.rightHandIsReloading = False
         self.rightHandCanNoLongerReload = False
+        self.rightHandLevel = 0
 
         self.backpack1 = NO_WEAPON().copy()
         self.backpack1Occupied = False
+        self.backpack1Level = 0
 
         self.canHaveTwoWeaponsInBackPack = True
 
         self.backpack2 = NO_WEAPON().copy()
         self.backpack2Occupied = False
+        self.backpack2Level = 0
 
         self.baseCritChance = 5
         self.critChance = 5
@@ -1409,9 +1425,15 @@ class Inventory:
                 setattr(self, effect["stat"], 0)
 
 
-    def addWeapon(self, weapon, hand): #Function used when the player picks up a weapon
+    def addWeapon(self, weapon, hand, level): #Function used when the player picks up a weapon
 
-        setattr(self, hand, weapon.copy())
+        damage = math.ceil(weapon.damage*(weapon.scaling**level))
+        new_weapon = weapon.copy()
+        new_weapon.rangedWeaponInfo[8] = damage
+
+        setattr(self, hand, new_weapon.copy())
+        setattr(self, hand+"Level", level)
+
 
         #We can almost definitely make this more efficient but this works and is understandable
 
@@ -1426,27 +1448,33 @@ class Inventory:
                     setattr(self, self.oppositeHand(hand)+"Occupied", False)
                     if getattr(self, self.oppositeHand(hand)).handNumber==2:
                         setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                        setattr(self, self.oppositeHand(hand)+"Level", 0)
 
                 elif weapon.handNumber==2:
                     setattr(self, self.oppositeHand(hand)+"Occupied", True)
                     setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                    setattr(self, self.oppositeHand(hand)+"Level", 0)
 
             elif self.backpack1.handNumber==2:
 
                 if getattr(self, hand+"Occupied"):
                     self.backpack1 = NO_WEAPON().copy()
+                    self.backpack1Level = 0
                     setattr(self, hand+"Occupied", False)
 
                     if weapon.handNumber==2:
                         setattr(self, self.oppositeHand(hand)+"Occupied", True)
                         setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                        setattr(self, self.oppositeHand(hand)+"Level", 0)
 
                 else:
                     setattr(self, hand+"Occupied", False)
                     if weapon.handNumber==2:
                         setattr(self, self.oppositeHand(hand)+"Occupied", True)
                         setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                        setattr(self, self.oppositeHand(hand)+"Level", 0)
                         self.backpack1 = NO_WEAPON().copy()
+                        self.backpack1Level = 0
 
         else:
             setattr(self, hand+"Occupied", False)
@@ -1455,10 +1483,12 @@ class Inventory:
                 setattr(self, self.oppositeHand(hand)+"Occupied", False)
                 if getattr(self, self.oppositeHand(hand)).handNumber==2:
                     setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                    setattr(self, self.oppositeHand(hand)+"Level", 0)
 
             elif weapon.handNumber==2:
                 setattr(self, self.oppositeHand(hand)+"Occupied", True)
                 setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                setattr(self, self.oppositeHand(hand)+"Level", 0)
 
     def switchWeapon(self, hand): #Function used to switch hand-held weapons with ones stored in the backpack
         
@@ -1472,50 +1502,75 @@ class Inventory:
                 
                 if self.leftHand.handNumber==2:
                     weapon = self.leftHand
+                    level = self.leftHandLevel
                     setattr(self, hand, self.backpack1)
+                    setattr(self, hand+"Level", self.backpack1Level)
                     self.backpack1 = weapon
+                    self.backpack1Level = level
+                    
 
                     setattr(self, self.oppositeHand(hand)+"Occupied", True)
                     setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                    setattr(self, self.oppositeHand(hand)+"Level", 0)
 
                 elif self.rightHand.handNumber==2:
                     weapon = self.rightHand
+                    level = self.rightHandLevel
                     setattr(self, hand, self.backpack1)
+                    setattr(self, hand+"Level", self.backpack1Level)
                     self.backpack1 = weapon
+                    self.backpack1Level = level
 
                     setattr(self, self.oppositeHand(hand)+"Occupied", True)
                     setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                    setattr(self, self.oppositeHand(hand)+"Level", 0)
 
                 else:
                     weapon = getattr(self, hand)
+                    level = getattr(self, hand+"Level")
                     setattr(self, hand, self.backpack1)
+                    setattr(self, hand+"Level", self.backpack1Level)
                     self.backpack1 = weapon
+                    self.backpack1Level = level
 
             else:
                 if getattr(self, hand+"Occupied"):
                     setattr(self, hand+"Occupied", False)
 
                     setattr(self, hand, self.backpack1)
+                    setattr(self, hand+"Level", self.backpack1Level)
                     self.backpack1 = getattr(self, self.oppositeHand(hand))
+                    self.backpack1Level = getattr(self, self.oppositeHand(hand)+"Level")
 
                     setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                     setattr(self, self.oppositeHand(hand)+"Occupied", True)
+                    setattr(self, self.oppositeHand(hand)+"Level", 0)
 
                 else:
                     weapon = getattr(self, hand)
+                    level = getattr(self, hand+"Level")
                     setattr(self, hand, self.backpack1)
+                    setattr(self, hand+"Level", self.backpack1Level)
                     self.backpack1 = weapon
+                    self.backpack1Level = level
 
         else:
             
             if self.backpack1.handNumber==2:
                 weapon = self.backpack1
+                level = self.backpack1Level
                 
+
                 setattr(self, self.equivalentHand(hand), getattr(self, hand))
+                setattr(sefl, self.equivalentHand(hand)+"Level", getattr(self, hand)+"Level")
                 setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
+                setattr(self, self.equivalentHand(self.oppositeHand(hand))+"Level", getattr(self, self.oppositeHand(hand))+"Level")
+
                 setattr(self, hand, weapon)
+                setattr(self, hand, level)
 
                 setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                setattr(self, self.oppositeHand(hand)+"Level", 0)
                 setattr(self, hand+"Occupied", False)
                 setattr(self, self.oppositeHand(hand)+"Occupied", True)
 
@@ -1530,12 +1585,17 @@ class Inventory:
 
             elif self.backpack2.handNumber==2:
                 weapon = self.backpack2
+                level = self.backpack2Level
                 
                 setattr(self, self.equivalentHand(hand), getattr(self, hand))
+                setattr(self, self.equivalenntHand(hand)+"Level", getattr(self, hand+"Level"))
                 setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
+                setattr(self, self.equivalentHand(self.oppositeHand(hand)+"Level"), getattr(self, self.oppositeHand(hand)+"Level"))
                 setattr(self, hand, weapon)
+                setattr(self, hand, level)
 
                 setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
+                setattr(self, self.oppositeHand(hand)+"Level", 0)
                 setattr(self, hand+"Occupied", False)
                 setattr(self, self.oppositeHand(hand)+"Occupied", True)
 
@@ -1549,13 +1609,19 @@ class Inventory:
                     self.backpack1Occupied = False
             else:
                 weapon1 = self.backpack1
+                level1 = self.backpack1Level
                 weapon2 = self.backpack2
+                level2 = self.backpack2Level
 
                 setattr(self, self.equivalentHand(hand), getattr(self, hand))
+                setattr(self, self.equivalentHand(hand)+"Level", getattr(self, hand+"Level"))
                 setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
+                setattr(self, self.equivalentHand(self.oppositeHand(hand))+"Level", getattr(self, self.oppositeHand(hand)+"Level"))
 
                 setattr(self, hand, weapon1)
+                setattr(self, hand, level1)
                 setattr(self, self.oppositeHand(hand), weapon2)
+                setattr(self, self.oppositeHand(hand), level2)
 
                 self.leftHandOccupied = False
                 self.rightHandOccupied = False
@@ -1615,34 +1681,50 @@ class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
 
         self.image = weapon.bulletImage
 
-        self.damage = weapon.damage
+        
+        if owner is Enemy:
+            self.baseDamage = weapon.damage*owner.scale
+            self.damage = weapon.damage*owner.scale
+        else:
+            self.baseDamage = weapon.damage
+            self.damage = weapon.damage
+
         self.piercing = weapon.piercing
 
+        self.baseRange = weapon.range
         self.range = weapon.range
+
+        self.fallOffCoef = weapon.fallOffCoef
+        self.noFallOffArea = weapon.noFallOffArea
 
         self.owner = owner
 
         self.shot = shot
 
         if hasattr(owner, "inventory"):
-            knockbackCoef = weapon.knockbackCoef*(1+owner.inventory.rangedKnockback/100)
+            self.damageKnockbackCoef = weapon.knockbackCoef*(1+owner.inventory.rangedKnockback/100)
         else:
-            knockbackCoef = weapon.knockbackCoef
+            self.damageKnockbackCoef = weapon.knockbackCoef
 
         self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0)
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
-        if type(self.owner)==Player:
-            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, knockbackCoef, self.piercing], [0, 0, 0, -1])
-        elif type(self.owner)==Enemy:
-            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, knockbackCoef                                      , self.piercing])
+        self.initialiseNewCollisions()
+        
 
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
-        print(self.maxSpeed)
         self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
         self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
+
+        if self.range != 0 and self.range < (self.baseRange*self.noFallOffArea):
+            if self.fallOffCoef >= 0 :
+                self.damage = self.baseDamage*self.fallOffCoef*(self.range/(self.baseRange*self.noFallOffArea))
+            else:
+                self.damage = -self.baseDamage*self.fallOffCoef*(2 - self.range/(self.baseRange*self.noFallOffArea))
+            self.initialiseNewCollisions()
+
 
     def dash(self):
         pass
@@ -1660,6 +1742,11 @@ class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
         if self.range <= 0:
             self.dead = True
 
+    def initialiseNewCollisions(self):
+        if type(self.owner)==Player:
+            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing], [0, 0, 0, -1])
+        elif type(self.owner)==Enemy:
+            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing])
 
 class Pickup:
     def __init__(self, x, y, pickup):
