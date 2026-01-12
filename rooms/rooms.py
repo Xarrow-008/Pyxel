@@ -670,11 +670,6 @@ class Roombuild:
         else:
             if self.isBuilding:
                 self.buildContinue()
-
-
-                if self.nbRooms >= 60 or len(self.rooms) >= 60:
-                    self.isBuilding = False
-                    print(self.nbRooms, len(self.rooms))
             else:
                 print('cant build there // rooms already here')
 
@@ -695,6 +690,10 @@ class Roombuild:
                 self.isBuilding = False
         else:
             self.buildLoops = 0
+        
+        if self.nbRooms >= 60 or len(self.rooms) >= 60:
+            self.isBuilding = False
+            print(self.nbRooms, len(self.rooms))
 
         
 
@@ -1088,7 +1087,8 @@ class Asset:
                 self.reversed = not self.reversed
 
     def draw(self):
-        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
+        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11) #replace white by black?
+        #colorReplace(self.x,self.y)
 
     def convertDic(self,pos):
         dic = {'name':self.name,'relativeX':self.x-pos[0],'relativeY':self.y-pos[1], 'reversed':self.reversed}
@@ -1310,6 +1310,22 @@ class FloorLamp(Asset):
         self.img = (4,2)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
+        
+class BarrelFront(Asset):
+    name = 'BarrelFront'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (0,10)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+        
+class BarrelSide(Asset):
+    name = 'BarrelSide'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (1,10)
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
 
 
 
@@ -1319,12 +1335,12 @@ class Menu:
         self.allAssets = [DoorHorizontal, DoorVertical, CouchFront, CouchBack, TableVertical, TableHorizontal, 
                         ClosetFront, Dressing, WallTelevision, WallShelf, BedVertical, ClosetBack,
                         WallHorizontalInside,  WallHorizontalStart, WallHorizontalEnd,
-                        WallVerticalInside, WallVerticalStart, WallVerticalEnd,
+                        WallVerticalInside, WallVerticalStart, WallVerticalEnd, BarrelFront, BarrelSide,
                         FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp]
 
-        self.assetsList = [DoorHorizontal, ChairFront, ChairBack, CouchFront, CouchBack, TableVertical, ClosetFront, TableHorizontal, BedVertical, ClosetBack,
+        self.assetsList = [DoorHorizontal, ChairFront, ChairBack, BarrelFront, BarrelSide, TableVertical, ClosetFront, TableHorizontal, BedVertical, ClosetBack,
                         WallHorizontalInside, FloorLamp, 
-                        WallVerticalInside, DoorVertical, WallShelf, FridgeFront, ShelfStorage, CounterTopDrawer, CounterTop, CounterTopSide]
+                        WallVerticalInside, DoorVertical, WallShelf, ShelfStorage, CounterTopDrawer, CounterTop, CounterTopSide]
 
         self.allAssetsNames = [asset.name for asset in self.allAssets]
         self.assetsNames = [asset.name for asset in self.assetsList]

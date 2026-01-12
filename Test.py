@@ -1,4 +1,4 @@
-import toml, pyperclip, pathlib, zipfile
+import toml, pyperclip, pathlib, zipfile, pyxel
 from pynput.keyboard import Key, Listener
 #from utility import *
 
@@ -422,4 +422,40 @@ JAUNE='\033[93m'
 
 
 print(ROUGE + 'test' +JAUNE)
-os.system('cls')
+
+
+
+def findDoor(relX, relY, side):
+    x = relX
+    y = relY
+    reverse = False
+
+    if side == 'left' or side == 'right':
+        if random.randint(0,1) == 0:
+            door = DoorVertical
+        else:
+            door = DoorHorizontal
+            y += 2
+        
+        if side == 'right':
+            reverse = True
+
+    if side == 'up':
+        door = DoorVertical
+        if random.randint(0,1) == 0:
+            reverse = True
+            x += -1
+        else:
+            x += 2
+
+    if side == 'down':
+        door = DoorHorizontal
+        if random.randint(0,1) == 0:
+            reverse = True
+            x += -1
+        else:
+            x += 2
+
+    return door(x,y,reverse)
+
+pyxel.
