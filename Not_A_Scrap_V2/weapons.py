@@ -91,7 +91,7 @@ class RUSTY_PISTOL(RangedWeapon):
         spread = 0
         bulletCount = 1
 
-        bulletSpeed = 0.5
+        bulletSpeed = 1
 
         range = 6*TILE_SIZE
         damage = 15

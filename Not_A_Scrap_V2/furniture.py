@@ -1,5 +1,6 @@
+import pyxel
 
-
+TILE_SIZE = 16
 
 
 class Asset:
@@ -23,7 +24,7 @@ class Asset:
                 self.reversed = not self.reversed
 
     def draw(self):
-        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
+        pyxel.blt(self.x,self.y,2,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
 
     def convertDic(self,pos):
         dic = {'name':self.name,'relativeX':self.x-pos[0],'relativeY':self.y-pos[1], 'reversed':self.reversed}
@@ -246,6 +247,22 @@ class FloorLamp(Asset):
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
 
+class BarrelFront(Asset):
+    name = 'BarrelFront'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (0,10)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+        
+class BarrelSide(Asset):
+    name = 'BarrelSide'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (1,10)
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
 
 class Menu:
     def __init__(self):
@@ -253,7 +270,7 @@ class Menu:
                         ClosetFront, Dressing, WallTelevision, WallShelf, BedVertical, ClosetBack,
                         WallHorizontalInside,  WallHorizontalStart, WallHorizontalEnd,
                         WallVerticalInside, WallVerticalStart, WallVerticalEnd,
-                        FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp]
+                        FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp, BarrelFront, BarrelSide]
 
         self.assetsList = [DoorHorizontal, ChairFront, ChairBack, CouchFront, CouchBack, TableVertical, ClosetFront, TableHorizontal, BedVertical, ClosetBack,
                         WallHorizontalInside, FloorLamp, 

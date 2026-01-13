@@ -458,4 +458,7 @@ def findDoor(relX, relY, side):
 
     return door(x,y,reverse)
 
-pyxel.
+def getColor(hex):
+    return int(hex, 16)
+
+    
