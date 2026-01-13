@@ -20,6 +20,7 @@ class App:
     def __init__(self):
         pyxel.init(CAM_WIDTH, CAM_HEIGHT, fps=120)
         pyxel.load('../rooms.pyxres')
+        pyxel.colors[1] = get_color('232A4F')
         pyxel.colors[2] = get_color('740152')
         pyxel.colors[14] = get_color('C97777')
 
@@ -1068,7 +1069,7 @@ class Animation:
 
 class Asset:
     name = 'N/A'
-    def __init__(self,x,y, reversed=False):
+    def __init__(self,x,y, reversed=False, interactable=False):
         self.x = x
         self.y = y
         self.img = (0,0)
@@ -1076,6 +1077,12 @@ class Asset:
         self.height = 2*TILE_SIZE
         self.reversed = reversed
         self.removeSelf = False
+        self.interactable = interactable
+
+        if self.name in ['ClosetFront', 'ClosetBack']:
+            if random.randint(0,1) == 0:
+                self.interactable = True # TODO remove this paragraph when interactables implemented
+                 
 
 
     def update(self):
@@ -1087,8 +1094,11 @@ class Asset:
                 self.reversed = not self.reversed
 
     def draw(self):
-        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11) #replace white by black?
-        #colorReplace(self.x,self.y)
+        if not self.interactable:
+            pyxel.pal(7,0)
+        
+        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
+        pyxel.pal()
 
     def convertDic(self,pos):
         dic = {'name':self.name,'relativeX':self.x-pos[0],'relativeY':self.y-pos[1], 'reversed':self.reversed}
