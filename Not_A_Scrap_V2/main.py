@@ -59,20 +59,6 @@ class Game:
         
         else:
             self.player.updateInventory()
-        
-
-        #Allows the player to switch weapons between backpack and handheld
-        if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count):
-            self.player.inventory.switchWeapon("leftHand")
-        if holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count):
-            self.player.inventory.switchWeapon("rightHand")
-        
-
-        if keyPress("INVENTORY","btnp"):
-            if self.player.inInventory:
-                self.player.inInventory = False
-            else:
-                self.player.inInventory = True
 
     def draw(self):
         if not self.player.inInventory:
@@ -907,6 +893,10 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         self.level = 0 #TODO : Make this increase everytime the player escapes a bunker
 
+    def update(self):
+        super().update()
+        self.inventoryControl()
+
     def draw(self):
         step_y = self.y
         second_step_y = self.y
@@ -969,7 +959,22 @@ class Player(Entity): #Creates an entity that's controlled by the player
             #Fuel
             sized_text(x=210, y=3, s="Fuel : "+str(self.fuel), col=7, size=7, background=True)
 
+    def inventoryControl(self): #Player being able to go in and out of their inventory and switch weapons between backpack and handheld
+        #Allows the player to switch weapons between backpack and handheld
+        if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count):
+            self.inventory.switchWeapon("leftHand")
+        if holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count):
+            self.inventory.switchWeapon("rightHand")
+        
+
+        if keyPress("INVENTORY","btnp"):
+            if self.inInventory:
+                self.inInventory = False
+            else:
+                self.inInventory = True
+
     def updateInventory(self):
+        self.inventoryControl()
         if not self.inventoryIsMoving:
 
             if self.moveInventoryLeft():
@@ -1572,7 +1577,7 @@ class Inventory:
                 
 
                 setattr(self, self.equivalentHand(hand), getattr(self, hand))
-                setattr(sefl, self.equivalentHand(hand)+"Level", getattr(self, hand)+"Level")
+                setattr(self, self.equivalentHand(hand)+"Level", getattr(self, hand)+"Level")
                 setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
                 setattr(self, self.equivalentHand(self.oppositeHand(hand))+"Level", getattr(self, self.oppositeHand(hand))+"Level")
 
