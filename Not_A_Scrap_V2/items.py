@@ -219,7 +219,7 @@ class BADGES(Item):
         self.rarity = "common"
         self.type = "damage"
         self.effects = [
-            {"stat":"lowRessourcesDamageIncrease","scaling":"arithmetic", "initial_term":15, "reason":15}]
+            {"stat":"lowRessourcesDamageIncrease","scaling":"arithmetic", "initial_term":15, "reason":15}] #TODO : make this work for melee weapons
         self.shortDescription = "Increases damage when low on ressources"
         self.longDescription = "Melee weapons deal 15% (+15% per stack) more damage when under 10% durability. Ranged weapons deal 15% (+15% per stack) more damage on the last shot before reloading. Does not affect weapons who only have one shot before reloading."
 
@@ -230,7 +230,7 @@ class PUZZLE_CUBE(Item):
         self.rarity = "common"
         self.type = "damage"
         self.effects = [
-            {"stat":"attackSpeedIncrease","scaling":"geometric", "initial_term":15, "reason":5/6}]
+            {"stat":"attackSpeedIncrease","scaling":"geometric", "initial_term":15, "reason":5/6}] #TODO : make this work for melee weapons
         self.shortDescription = "Increases attack speed"
         self.longDescription = "Reduces the time between two attacks by 15%. Each stack gives 5/6th of the last ones effect."
 
@@ -252,7 +252,7 @@ class BINOCULAR(Item):
         self.rarity = "common"
         self.type = "damage"
         self.effects = [
-            {"stat":"rangeIncrease","scaling":"arithmetic", "initial_term":10, "reason":10}]
+            {"stat":"rangeIncrease","scaling":"arithmetic", "initial_term":10, "reason":10}] #TODO : make this work for melee weapons
         self.shortDescription = "Increased range"
         self.longDescription = "Bullets can go 10% (+10% per stack) further. Melee attacks have 15% (+15% per stack) more range"
 
@@ -263,7 +263,8 @@ class GLASSES(Item):
         self.rarity = "common"
         self.type = "damage"
         self.effects = [
-            {"stat":"precisionIncrease","scaling":"arithmetic", "initial_term":5, "reason":5}]
+            {"stat":"precisionIncrease","scaling":"arithmetic", "initial_term":5, "reason":5},
+            {"stat":"movingPrecisionIncrease", "scaling":"constant", "value":10}]
         self.shortDescription = "Increased precision"
         self.longDescription = "Increases precision on ranged weapons by 5° (+5° per stack). Decreases by 10° the precision loss while moving."
 

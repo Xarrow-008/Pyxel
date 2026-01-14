@@ -15,6 +15,7 @@ HEI = 256
 TILE_SIZE = 16
 FPS = 120
 
+
 class App:
     def __init__(self):
 
@@ -59,15 +60,6 @@ class Game:
         else:
             self.player.updateInventory()
         
-        #Tests for adding weapons
-        if keyPress("LEFT_HAND","btn") and pyxel.btn(pyxel.KEY_1):
-            self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "leftHand",0)
-        if keyPress("LEFT_HAND","btn") and pyxel.btn(pyxel.KEY_2):
-            self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "leftHand",0)
-        if keyPress("RIGHT_HAND","btn") and pyxel.btn(pyxel.KEY_1):
-            self.player.inventory.addWeapon(Weapon.RUSTY_PISTOL, "rightHand",0)
-        if keyPress("RIGHT_HAND","btn") and pyxel.btn(pyxel.KEY_2):
-            self.player.inventory.addWeapon(Weapon.TEST_2_HANDS, "rightHand",0)
 
         #Allows the player to switch weapons between backpack and handheld
         if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count):
@@ -126,7 +118,7 @@ class inMission:
 
         if pyxel.btnp(pyxel.KEY_P):
             item = random.choice(ITEM_LIST)
-            self.pickups.append(Pickup(100,100, item))
+            self.pickups.append(Pickup(100,100, GLASSES()))
 
         if pyxel.btnp(pyxel.KEY_L):
             self.interactables.append(Interactable(120,120, InteractableTemplate.CHEST))
@@ -364,6 +356,9 @@ class inMission:
         if hasattr(damager, "inventory"):
             if (damager.inventory.leftHandLevel < target.level or damager.inventory.leftHand.name == "None") and (damager.inventory.rightHandLevel < target.level or damager.inventory.rightHand.name == "None"): #TODO : Make this also trigger if the enemy is a boss
                 value *= 1+(damager.inventory.strongEnemiesDamageBoost)/100
+
+            if target.health == target.maxHealth :
+                value *= 1+(damager.inventory.fullHealthEnemyDamageBoost)/100
         
         if hasattr(target, "inventory"):
 
@@ -450,6 +445,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.combatStartFrame = 0
 
         self.lowHealth = False
+        self.isMoving = False
 
         self.lastHitBy = None
 
@@ -518,6 +514,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             if hasattr(self, "inventory") and  statusLastFrame is (not self.lowHealth): #Triggers if you enter or leave low health status
                 self.inventory.recalculateStats = True
+
+        self.isMoving = (self.momentum != [0,0])
+
 
 
 
@@ -714,8 +713,21 @@ class Entity: #General Entity class with all the methods describing what entitie
                     cos = horizontal/norm
                     sin = vertical/norm
                     angle = math.acos(cos) * pyxel.sgn(sin)
-                    lowest_angle = angle - weapon.spread*(math.pi/180)
-                    highest_angle = angle + weapon.spread*(math.pi/180)
+
+                    spread = (weapon.spread-self.inventory.precisionIncrease)
+                    if self.isMoving:
+                        spreadIncrease = weapon.movingSpreadIncrease
+                        if hasattr(self, "inventory"):
+                            spreadIncrease -= self.inventory.movingPrecisionIncrease
+                            if spreadIncrease < 0:
+                                spreadIncrease = 0
+                        spread += spreadIncrease
+                    if spread < 0 :
+                        spread = 0
+                    spread *= (math.pi/180)
+
+                    lowest_angle = angle - spread
+                    highest_angle = angle + spread
                     angle = random.uniform(lowest_angle, highest_angle)
                     cos = math.cos(angle)
                     sin = math.sin(angle)
@@ -730,7 +742,7 @@ class Entity: #General Entity class with all the methods describing what entitie
     def canRangedAttack(self, hand):
         weapon = getattr(self.inventory, hand)
         startFrame = getattr(self.inventory, hand+"StartFrame")
-        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon.attackCooldown, game_frame) and weapon.magAmmo>0
+        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon.attackCooldown*(1-self.inventory.attackSpeedIncrease/100), game_frame) and weapon.magAmmo>0
 
     def reloadWeapon(self, hand):
         weapon = getattr(self.inventory, hand)
@@ -1035,6 +1047,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         sized_text(x=x+10, y=50, s=f"Health : {self.health}/{self.maxHealth}", col=7, size=6)
         sized_text(x=x+10, y=57, s=f"Speed : {round(self.maxSpeed*FPS/TILE_SIZE, 2)} T/s", col=7, size=6)
         sized_text(x=x+10, y=64, s=f"Dash cooldown : {round(self.dashCooldown/FPS,2)}s", col=7, size=6)
+        sized_text(x=x+10, y=71, s=f"Fuel : {self.fuel}", col=7, size=6)
 
         #Character upsides and downsides
         pyxel.rectb(x=x+10, y=97, w=117, h=45, col=7)
@@ -1384,9 +1397,6 @@ class Enemy(Entity): #Creates an entity that fights the player
 
             
 
-            
-
-
 class Inventory:
     def __init__(self):
         self.leftHand = NO_WEAPON().copy()
@@ -1429,7 +1439,7 @@ class Inventory:
 
         damage = math.ceil(weapon.damage*(weapon.scaling**level))
         new_weapon = weapon.copy()
-        new_weapon.rangedWeaponInfo[8] = damage
+        new_weapon.damage = damage
 
         setattr(self, hand, new_weapon.copy())
         setattr(self, hand+"Level", level)
@@ -1689,10 +1699,14 @@ class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
             self.baseDamage = weapon.damage
             self.damage = weapon.damage
 
+        if weapon.maxAmmo != 1 and weapon.magAmmo == 0 :
+            self.baseDamage *= 1+owner.inventory.lowRessourcesDamageIncrease/100
+            self.damage *= 1+owner.inventory.lowRessourcesDamageIncrease/100
+
         self.piercing = weapon.piercing
 
         self.baseRange = weapon.range
-        self.range = weapon.range
+        self.range = weapon.range * (1+owner.inventory.rangeIncrease/100)
 
         self.fallOffCoef = weapon.fallOffCoef
         self.noFallOffArea = weapon.noFallOffArea
@@ -1709,7 +1723,6 @@ class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
         self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0)
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         self.initialiseNewCollisions()
-        
 
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
