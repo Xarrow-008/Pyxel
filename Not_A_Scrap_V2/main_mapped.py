@@ -1491,7 +1491,7 @@ class Inventory:
 
         damage = math.ceil(weapon.damage*(weapon.scaling**level))
         new_weapon = weapon.copy()
-        new_weapon.rangedWeaponInfo[8] = damage
+        new_weapon.damage = damage
 
         setattr(self, hand, new_weapon.copy())
         setattr(self, hand+"Level", level)
