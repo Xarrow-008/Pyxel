@@ -520,3 +520,98 @@ up = [ 1, 0,]
 down = [ 6, 13,]
 left = []
 right = [ 14, 9,]
+[[presetRooms]]
+name = "wine_cave"
+width = 192
+height = 144
+walls = [ [ 0, -2,], [ 1, -2,], [ 2, -2,], [ 3, -2,], [ 4, -2,], [ 5, -2,], [ 6, -2,], [ 7, -2,], [ 8, -2,], [ 9, -2,], [ 10, -2,], [ 11, -2,], [ -1, -1,], [ 2, -1,], [ 3, -1,], [ 4, -1,], [ 5, -1,], [ 12, -1,], [ -1, 0,], [ 12, 0,], [ -1, 1,], [ 11, 1,], [ 12, 1,], [ -1, 2,], [ 11, 2,], [ 12, 2,], [ -1, 3,], [ 2, 3,], [ 3, 3,], [ 4, 3,], [ 5, 3,], [ 12, 3,], [ -1, 4,], [ 2, 4,], [ 3, 4,], [ 4, 4,], [ 5, 4,], [ 12, 4,], [ -1, 5,], [ 12, 5,], [ -1, 6,], [ 12, 6,], [ -1, 7,], [ 12, 7,], [ -1, 8,], [ 12, 8,], [ 0, 9,], [ 1, 9,], [ 2, 9,], [ 3, 9,], [ 4, 9,], [ 5, 9,], [ 6, 9,], [ 7, 9,], [ 8, 9,], [ 9, 9,], [ 10, 9,], [ 11, 9,],]
+[[presetRooms.assets]]
+name = "BarrelFront"
+relativeX = 80
+relativeY = -16
+reversed = false
+
+[[presetRooms.assets]]
+name = "BarrelFront"
+relativeX = 64
+relativeY = -16
+reversed = false
+
+[[presetRooms.assets]]
+name = "BarrelFront"
+relativeX = 48
+relativeY = -16
+reversed = false
+
+[[presetRooms.assets]]
+name = "BarrelFront"
+relativeX = 32
+relativeY = -16
+reversed = false
+
+[[presetRooms.assets]]
+name = "BarrelSide"
+relativeX = 176
+relativeY = 16
+reversed = false
+
+[[presetRooms.assets]]
+name = "BarrelSide"
+relativeX = 176
+relativeY = 24
+reversed = false
+
+[[presetRooms.assets]]
+name = "BarrelSide"
+relativeX = 176
+relativeY = 32
+reversed = false
+
+[[presetRooms.assets]]
+name = "BarrelSide"
+relativeX = 176
+relativeY = 40
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 64
+relativeY = 48
+reversed = false
+
+[[presetRooms.assets]]
+name = "TableVertical"
+relativeX = 32
+relativeY = 48
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairFront"
+relativeX = 96
+relativeY = 48
+reversed = false
+
+[[presetRooms.assets]]
+name = "BarrelSide"
+relativeX = 176
+relativeY = 48
+reversed = false
+
+[[presetRooms.assets]]
+name = "ChairBack"
+relativeX = 96
+relativeY = 80
+reversed = true
+
+[[presetRooms.assets]]
+name = "ChairBack"
+relativeX = 32
+relativeY = 96
+reversed = true
+
+
+[presetRooms.exitsPos]
+up = [ 7, 0,]
+down = [ 7, 8,]
+left = [ 0, 1,]
+right = [ 11, 6,]

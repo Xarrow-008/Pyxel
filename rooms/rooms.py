@@ -20,6 +20,7 @@ class App:
     def __init__(self):
         pyxel.init(CAM_WIDTH, CAM_HEIGHT, fps=120)
         pyxel.load('../rooms.pyxres')
+        pyxel.colors[1] = get_color('232A4F')
         pyxel.colors[2] = get_color('740152')
         pyxel.colors[14] = get_color('C97777')
 
@@ -670,11 +671,6 @@ class Roombuild:
         else:
             if self.isBuilding:
                 self.buildContinue()
-
-
-                if self.nbRooms >= 60 or len(self.rooms) >= 60:
-                    self.isBuilding = False
-                    print(self.nbRooms, len(self.rooms))
             else:
                 print('cant build there // rooms already here')
 
@@ -695,6 +691,10 @@ class Roombuild:
                 self.isBuilding = False
         else:
             self.buildLoops = 0
+        
+        if self.nbRooms >= 60 or len(self.rooms) >= 60:
+            self.isBuilding = False
+            print(self.nbRooms, len(self.rooms))
 
         
 
@@ -1069,7 +1069,7 @@ class Animation:
 
 class Asset:
     name = 'N/A'
-    def __init__(self,x,y, reversed=False):
+    def __init__(self,x,y, reversed=False, interactable=False):
         self.x = x
         self.y = y
         self.img = (0,0)
@@ -1077,6 +1077,12 @@ class Asset:
         self.height = 2*TILE_SIZE
         self.reversed = reversed
         self.removeSelf = False
+        self.interactable = interactable
+
+        if self.name in ['ClosetFront', 'ClosetBack']:
+            if random.randint(0,1) == 0:
+                self.interactable = True # TODO remove this paragraph when interactables implemented
+                 
 
 
     def update(self):
@@ -1088,7 +1094,11 @@ class Asset:
                 self.reversed = not self.reversed
 
     def draw(self):
+        if not self.interactable:
+            pyxel.pal(7,0)
+        
         pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
+        pyxel.pal()
 
     def convertDic(self,pos):
         dic = {'name':self.name,'relativeX':self.x-pos[0],'relativeY':self.y-pos[1], 'reversed':self.reversed}
@@ -1310,6 +1320,22 @@ class FloorLamp(Asset):
         self.img = (4,2)
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
+        
+class BarrelFront(Asset):
+    name = 'BarrelFront'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (0,10)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+        
+class BarrelSide(Asset):
+    name = 'BarrelSide'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (1,10)
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
 
 
 
@@ -1319,12 +1345,12 @@ class Menu:
         self.allAssets = [DoorHorizontal, DoorVertical, CouchFront, CouchBack, TableVertical, TableHorizontal, 
                         ClosetFront, Dressing, WallTelevision, WallShelf, BedVertical, ClosetBack,
                         WallHorizontalInside,  WallHorizontalStart, WallHorizontalEnd,
-                        WallVerticalInside, WallVerticalStart, WallVerticalEnd,
+                        WallVerticalInside, WallVerticalStart, WallVerticalEnd, BarrelFront, BarrelSide,
                         FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp]
 
-        self.assetsList = [DoorHorizontal, ChairFront, ChairBack, CouchFront, CouchBack, TableVertical, ClosetFront, TableHorizontal, BedVertical, ClosetBack,
+        self.assetsList = [DoorHorizontal, ChairFront, ChairBack, BarrelFront, BarrelSide, TableVertical, ClosetFront, TableHorizontal, BedVertical, ClosetBack,
                         WallHorizontalInside, FloorLamp, 
-                        WallVerticalInside, DoorVertical, WallShelf, FridgeFront, ShelfStorage, CounterTopDrawer, CounterTop, CounterTopSide]
+                        WallVerticalInside, DoorVertical, WallShelf, ShelfStorage, CounterTopDrawer, CounterTop, CounterTopSide]
 
         self.allAssetsNames = [asset.name for asset in self.allAssets]
         self.assetsNames = [asset.name for asset in self.assetsList]
