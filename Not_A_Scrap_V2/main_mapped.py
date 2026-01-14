@@ -123,7 +123,7 @@ class Game:
             self.worldDraw()
             self.place.draw()
             pyxel.dither(1)
-            self.player.drawInventory(self.camera)
+            self.player.drawInventory()
         else:
             self.world.draw()
         
@@ -140,7 +140,6 @@ class inMission:
         self.pickups = []
         self.interactables = []
         self.player = player
-
         self.infoText = ("","","")
 
     def update(self):
@@ -286,8 +285,8 @@ class inMission:
         self.player.draw() 
         self.player.drawOver()
 
-        sized_text(x=2, y=239, s=self.infoText[0], col=7, size=6, background=True)
-        sized_text(x=2, y=248, s=self.infoText[1], col=7, size=6, background=True)
+        sized_text(x=2+camera[0], y=CAM_HEIGHT-17+camera[1], s=self.infoText[0], col=7, size=6, background=True)
+        sized_text(x=2+camera[0], y=CAM_HEIGHT-8+camera[1], s=self.infoText[1], col=7, size=6, background=True)
         if self.infoText != ("", "", ""):
             sized_text(x=self.player.x-29, y=self.player.y-9, s=f"{self.infoText[2][0]} [F] to {self.infoText[2][1]}", col=7, size=6, background=True)
 
@@ -927,7 +926,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.step_frame = 0
 
         self.inInventory = False
-        self.inventoryPosition = 2*WID
+        self.inventoryPosition = 2*CAM_WIDTH
         self.inventoryIsMoving = False
         self.inventoryStartFrame = 0
         self.inventoryDirection = 0
@@ -974,20 +973,20 @@ class Player(Entity): #Creates an entity that's controlled by the player
             sized_text(x=camera[0]+12, y=camera[1]+3, s=str(self.health+self.tempHealth)+"/"+str(self.maxHealth),col=7,size=7)
 
             #Weapons
-            pyxel.rectb(x=camera[0]+CAM_WIDTH-19, y=camera[1]+218, w=18, h=18, col=0)
-            pyxel.rect(x=camera[0]+CAM_WIDTH-18, y=camera[1]+219, w=16, h=16, col=13)
-            draw(x=camera[0]+CAM_WIDTH-18, y=camera[1]+219, img=0, u=self.inventory.leftHand.image[0], v=self.inventory.leftHand.image[1], w=self.inventory.leftHand.width, h=self.inventory.leftHand.height, colkey=11)
+            pyxel.rectb(x=camera[0]+CAM_WIDTH-19, y=camera[1]+CAM_HEIGHT-38, w=18, h=18, col=0)
+            pyxel.rect(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-37, w=16, h=16, col=13)
+            draw(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-37, img=0, u=self.inventory.leftHand.image[0], v=self.inventory.leftHand.image[1], w=self.inventory.leftHand.width, h=self.inventory.leftHand.height, colkey=11)
             if type(self.inventory.leftHand) == RangedWeapon:
-                sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+224, s=str(self.inventory.leftHand.magAmmo)+"/"+str(self.inventory.leftHand.maxAmmo)+"("+str(self.inventory.leftHand.reserveAmmo)+")", col=7)
+                sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+CAM_HEIGHT-32, s=str(self.inventory.leftHand.magAmmo)+"/"+str(self.inventory.leftHand.maxAmmo)+"("+str(self.inventory.leftHand.reserveAmmo)+")", col=7)
             else:
                 pass #TODO : melee weapon info
 
 
-            pyxel.rectb(x=camera[0]+CAM_WIDTH-19, y=camera[1]+237, w=18, h=18, col=0)
-            pyxel.rect(x=camera[0]+CAM_WIDTH-18, y=camera[1]+238, w=16, h=16, col=13)
-            draw(x=camera[0]+CAM_WIDTH-18, y=camera[1]+238, img=0, u=self.inventory.rightHand.image[0], v=self.inventory.rightHand.image[1], w=self.inventory.rightHand.width, h=self.inventory.rightHand.height, colkey=11)
+            pyxel.rectb(x=camera[0]+CAM_WIDTH-19, y=camera[1]+CAM_HEIGHT-19, w=18, h=18, col=0)
+            pyxel.rect(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-18, w=16, h=16, col=13)
+            draw(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-18, img=0, u=self.inventory.rightHand.image[0], v=self.inventory.rightHand.image[1], w=self.inventory.rightHand.width, h=self.inventory.rightHand.height, colkey=11)
             if type(self.inventory.rightHand) == RangedWeapon:
-                sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+243, s=str(self.inventory.rightHand.magAmmo)+"/"+str(self.inventory.rightHand.maxAmmo)+"("+str(self.inventory.rightHand.reserveAmmo)+")", col=7)
+                sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+CAM_HEIGHT-13, s=str(self.inventory.rightHand.magAmmo)+"/"+str(self.inventory.rightHand.maxAmmo)+"("+str(self.inventory.rightHand.reserveAmmo)+")", col=7)
             else:
                 pass #TODO : melee weapon info
 
@@ -1039,45 +1038,45 @@ class Player(Entity): #Creates an entity that's controlled by the player
         inventoryFrame = pyxel.frame_count - self.inventoryStartFrame
 
         if inventoryFrame == 1:
-            self.inventoryPosition += 6*self.inventoryDirection
+            self.inventoryPosition += 8*self.inventoryDirection
 
         elif inventoryFrame in [x for x in range(2,16)]:
-            self.inventoryPosition += 12*self.inventoryDirection
+            self.inventoryPosition += 16*self.inventoryDirection
 
         elif inventoryFrame in [x for x in range(16,21)]:
-            self.inventoryPosition += 6*self.inventoryDirection
+            self.inventoryPosition += 8*self.inventoryDirection
 
         elif inventoryFrame in [x for x in range(21,27)]:
             self.inventoryPosition += 4*self.inventoryDirection
 
-        elif inventoryFrame in [x for x in range(27,41)]:
+        elif inventoryFrame in [x for x in range(27,39)]:
             self.inventoryPosition += 2*self.inventoryDirection
 
         else:
             self.inventoryIsMoving = False
 
-    def drawInventory(self, camera):
-        if self.inventoryPosition < WID:
-            self.drawInventoryCharacterScreen(-self.inventoryPosition, camera)
-        if self.inventoryPosition != 0 and self.inventoryPosition != 2*WID:
-            self.drawInventoryWeaponScreen(WID-self.inventoryPosition, camera)
-        if self.inventoryPosition > WID:
-            self.drawInventoryItemScreen(2*WID-self.inventoryPosition, camera)
+    def drawInventory(self):
+        if self.inventoryPosition < CAM_WIDTH:
+            self.drawInventoryCharacterScreen(-self.inventoryPosition)
+        if self.inventoryPosition != 0 and self.inventoryPosition != 2*CAM_WIDTH:
+            self.drawInventoryWeaponScreen(CAM_WIDTH-self.inventoryPosition)
+        if self.inventoryPosition > CAM_WIDTH:
+            self.drawInventoryItemScreen(2*CAM_WIDTH-self.inventoryPosition)
 
-        if self.inventoryPosition == WID or self.inventoryPosition == 2*WID:
+        if self.inventoryPosition == CAM_WIDTH or self.inventoryPosition == 2*CAM_WIDTH:
             pyxel.rectb(x=-1+camera[0], y=121+camera[1], w=11, h=11, col=7)
             pyxel.rect(x=0+camera[0], y=122+camera[1], w=9, h=9, col=0)
             draw(x=1+camera[0], y=123+camera[1], img=0, u=0, v=208, w=7, h=7, colkey=11)
-        if self.inventoryPosition == 0 or self.inventoryPosition == WID:
-            pyxel.rectb(x=WID-10+camera[0], y=121+camera[1], w=11, h=11, col=7)
-            pyxel.rect(x=WID-9+camera[0], y=122+camera[1], w=9, h=9, col=0)
-            draw(x=WID-8+camera[0], y=123+camera[1], img=0, u=8, v=208, w=7, h=7, colkey=11)   
+        if self.inventoryPosition == 0 or self.inventoryPosition == CAM_WIDTH:
+            pyxel.rectb(x=CAM_WIDTH-10+camera[0], y=121+camera[1], w=11, h=11, col=7)
+            pyxel.rect(x=CAM_WIDTH-9+camera[0], y=122+camera[1], w=9, h=9, col=0)
+            draw(x=CAM_WIDTH-8+camera[0], y=123+camera[1], img=0, u=8, v=208, w=7, h=7, colkey=11)   
 
-    def drawInventoryCharacterScreen(self, x, camera):
+    def drawInventoryCharacterScreen(self, x):
 
         #Character information frame
-        pyxel.rectb(x=x+5+camera[0], y=5+camera[1], w=246, h=90, col=7)
-        pyxel.rect(x=x+6+camera[0], y=6+camera[1], w=244, h=88, col=0)
+        pyxel.rectb(x=x+5+camera[0], y=5+camera[1], w=CAM_WIDTH-10, h=90, col=7)
+        pyxel.rect(x=x+6+camera[0], y=6+camera[1], w=CAM_WIDTH-12, h=88, col=0)
 
         #Character image
         pyxel.rectb(x=x+10+camera[0], y=10+camera[1], w=36, h=36, col=7)
@@ -1091,37 +1090,40 @@ class Player(Entity): #Creates an entity that's controlled by the player
         sized_text(x=x+10+camera[0], y=50+camera[1], s=f"Health : {self.health}/{self.maxHealth}", col=7, size=6)
         sized_text(x=x+10+camera[0], y=57+camera[1], s=f"Speed : {round(self.maxSpeed*FPS/TILE_SIZE, 2)} T/s", col=7, size=6)
         sized_text(x=x+10+camera[0], y=64+camera[1], s=f"Dash cooldown : {round(self.dashCooldown/FPS,2)}s", col=7, size=6)
+        sized_text(x=x+10+camera[0], y=71+camera[1], s=f"Critical hit chance : {self.inventory.critChance}%", col=7, size=6)
+        sized_text(x=x+10+camera[0], y=78+camera[1], s=f"Fuel : {self.fuel}", col=7, size=6)
+        
 
         #Character upsides and downsides
-        pyxel.rectb(x=x+10+camera[0], y=97+camera[1], w=117, h=45, col=7)
-        pyxel.rect(x=x+11+camera[0], y=98+camera[1], w=115, h=43, col=0)
+        pyxel.rectb(x=x+10+camera[0], y=97+camera[1], w=148, h=45, col=7)
+        pyxel.rect(x=x+11+camera[0], y=98+camera[1], w=146, h=43, col=0)
         sized_text(x=x+14+camera[0], y=101+camera[1], s="Upside 1", col=7, size=6)
-        sized_text(x=x+14+camera[0], y=110+camera[1], s=self.characterUpside1, col=7, size=6, limit=x+127)
+        sized_text(x=x+14+camera[0], y=110+camera[1], s=self.characterUpside1, col=7, size=6, limit=x+CAM_WIDTH/2+1+camera[0])
 
-        pyxel.rectb(x=x+128+camera[0], y=97+camera[1], w=118, h=45, col=7)
-        pyxel.rect(x=x+129+camera[0], y=98+camera[1], w=116, h=43, col=0)
-        sized_text(x=x+132+camera[0], y=101+camera[1], s="Downside 1", col=7, size=6)
-        sized_text(x=x+132+camera[0], y=110+camera[1], s=self.characterDownside1, col=7, size=6, limit=x+246)
+        pyxel.rectb(x=x+159+camera[0], y=97+camera[1], w=148, h=45, col=7)
+        pyxel.rect(x=x+160+camera[0], y=98+camera[1], w=146, h=43, col=0)
+        sized_text(x=x+163+camera[0], y=101+camera[1], s="Downside 1", col=7, size=6)
+        sized_text(x=x+163+camera[0], y=110+camera[1], s=self.characterDownside1, col=7, size=6, limit=x+CAM_WIDTH-10+camera[0])
 
-        pyxel.rectb(x=x+10+camera[0], y=144+camera[1], w=117, h=45, col=7)
-        pyxel.rect(x=x+11+camera[0], y=145+camera[1], w=115, h=43, col=0)
+        pyxel.rectb(x=x+10+camera[0], y=144+camera[1], w=148, h=45, col=7)
+        pyxel.rect(x=x+11+camera[0], y=145+camera[1], w=146, h=43, col=0)
         sized_text(x=x+14+camera[0], y=146+camera[1], s="Upside 2", col=7, size=6)
-        sized_text(x=x+14+camera[0], y=155+camera[0], s=self.characterUpside2, col=7, size=6, limit=x+127)
+        sized_text(x=x+14+camera[0], y=155+camera[0], s=self.characterUpside2, col=7, size=6, limit=x+CAM_WIDTH/2+1+camera[0])
 
-        pyxel.rectb(x=x+128+camera[0], y=144+camera[1], w=118, h=45, col=7)
-        pyxel.rect(x=x+129+camera[0], y=145+camera[1], w=116, h=43, col=0)
-        sized_text(x=x+132+camera[0], y=146+camera[1], s="Downside 2", col=7, size=6)
-        sized_text(x=x+132+camera[0], y=155+camera[1], s=self.characterDownside2, col=7, size=6, limit=x+246)
+        pyxel.rectb(x=x+159+camera[0], y=144+camera[1], w=148, h=45, col=7)
+        pyxel.rect(x=x+160+camera[0], y=145+camera[1], w=146, h=43, col=0)
+        sized_text(x=x+163+camera[0], y=146+camera[1], s="Downside 2", col=7, size=6)
+        sized_text(x=x+163+camera[0], y=155+camera[1], s=self.characterDownside2, col=7, size=6, limit=x+CAM_WIDTH-10+camera[0])
 
-    def drawInventoryWeaponScreen(self, x, camera):
+    def drawInventoryWeaponScreen(self, x):
         self.drawSlot(x+10+camera[0], 5+camera[1], "leftHand")
-        self.drawSlot(x+129+camera[0], 5+camera[1], "rightHand")
+        self.drawSlot(x+160+camera[0], 5+camera[1], "rightHand")
         
         if self.inventory.canHaveTwoWeaponsInBackPack:
             self.drawSlot(x+10+camera[0], 98+camera[1], "backpack1")
-            self.drawSlot(x+129+camera[0], 98+camera[1], "backpack2")
+            self.drawSlot(x+160+camera[0], 98+camera[1], "backpack2")
         else:
-            self.drawSlot(x+69+camera[0], 98+camera[1], "backpack1")
+            self.drawSlot(x+79+camera[0], 98+camera[1], "backpack1")
 
     def drawWeaponSlot(self, x, y, hand):
         weapon = getattr(self.inventory, hand)
@@ -1170,8 +1172,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
             sized_text(x=x+25, y=y+18, s=f"{weapon.name}", col=7)
 
     def drawOccupiedSlot(self, x, y):
-        w = 122
-        h = 91
+        w = 147
+        h = 90
 
         pyxel.line(x1=x, y1=y, x2=x+w,y2=y+h, col=7)
         pyxel.line(x1=x, y1=y+h, x2=x+w, y2=y, col=7)
@@ -1183,20 +1185,19 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         pyxel.rectb(x=inner_rect_x, y=inner_rect_y, w=inner_rect_width, h=inner_rect_height, col=7)
         pyxel.rect(x=inner_rect_x+1, y=inner_rect_y+1, w=inner_rect_width-2, h=inner_rect_height-2, col=0)
-
-        sized_text(x=inner_rect_x+2, y=inner_rect_y+8, s="This slot is occupied by a two-handed weapon in another slot", col=7, limit=inner_rect_x+inner_rect_width-1)
+        sized_text(x=inner_rect_x+2, y=inner_rect_y+7, s="This slot is occupied by a two-handed weapon in another slot", col=7, limit=inner_rect_x+inner_rect_width-1, camInLimit=True)
 
     def drawSlot(self, x, y, hand):
-        pyxel.rectb(x=x, y=y, w=117, h=91, col=7)
-        pyxel.rect(x=x+1, y=y+1, w=115, h=89, col=0)
+        pyxel.rectb(x=x, y=y, w=148, h=91, col=7)
+        pyxel.rect(x=x+1, y=y+1, w=146, h=89, col=0)
         if getattr(self.inventory, hand+"Occupied"):
             self.drawOccupiedSlot(x,y)
         else:
             self.drawWeaponSlot(x,y,hand)
 
-    def drawInventoryItemScreen(self, x, camera):
-        pyxel.rectb(x=x+25+camera[0], y=200+camera[1], w=205, h=50, col=7)
-        pyxel.rect(x=x+26+camera[0], y=201+camera[1], w=203, h=48, col=0)
+    def drawInventoryItemScreen(self, x):
+        pyxel.rectb(x=x+25+camera[0], y=CAM_HEIGHT-56+camera[1], w=CAM_WIDTH-50, h=50, col=7)
+        pyxel.rect(x=x+26+camera[0], y=CAM_HEIGHT-55+camera[1], w=CAM_WIDTH-52, h=48, col=0)
 
         item_x = 12+camera[0]
         item_y = 5+camera[1]
@@ -1212,17 +1213,17 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
                 if pyxel.mouse_x+camera[0] >= x+item_x and pyxel.mouse_x+camera[0] <= x+item_x+18 and pyxel.mouse_y+camera[1] >= item_y and pyxel.mouse_y+camera[1] <= item_y+18:
                     hoveringOverAnItem = True
-                    sized_text(x=x+27+camera[0], y=202+camera[1], s=item[0], col=7, limit=x+230)
-                    sized_text(x=x+27+camera[0], y=212+camera[1], s=item_object.longDescription, col=7, limit=x+230)
+                    sized_text(x=x+27+camera[0], y=CAM_HEIGHT-54+camera[1], s=item[0], col=7, limit=x+CAM_WIDTH-26)
+                    sized_text(x=x+27+camera[0], y=CAM_HEIGHT-46+camera[1], s=item_object.longDescription, col=7, limit=x+CAM_WIDTH-26)
 
                 item_x += 32
-                if item_x >= 208+camera[0]:
+                if item_x >= CAM_WIDTH-48+camera[0]:
                     item_x = 12+camera[0]
                     item_y += 20
         
         if not hoveringOverAnItem:
-            sized_text(x=x+27+camera[0], y=202+camera[1], s="Description", col=7, limit=x+230)
-            sized_text(x=x+27+camera[0], y=212+camera[1], s="Hover over an item to see its description", col=7, limit=x+230)
+            sized_text(x=x+27+camera[0], y=CAM_HEIGHT-54+camera[1], s="Description", col=7, limit=x+CAM_WIDTH-26)
+            sized_text(x=x+27+camera[0], y=CAM_HEIGHT-46+camera[1], s="Hover over an item to see its description", col=7, limit=x+CAM_WIDTH-26)
                 
 
 
@@ -2022,7 +2023,7 @@ def is_inside_map(pos,map):
         return False
     return True
 
-def sized_text(x, y, s, col=7, size=6, limit=CAM_WIDTH, background=False): #Like pyxel.text, but you can modify the size of the text
+def sized_text(x, y, s, col=7, size=6, limit=2*CAM_WIDTH, camInLimit=False, background=False): #Like pyxel.text, but you can modify the size of the text
     x = math.ceil(x)
     y = math.ceil(y)
     if s != "":
@@ -2030,7 +2031,8 @@ def sized_text(x, y, s, col=7, size=6, limit=CAM_WIDTH, background=False): #Like
         other_characters = ["0","1","2","3","4","5","6","7","8","9",",","?",";",".",":","/","!","'","(",")","[","]","{","}","-","_","°","*","+","%"]
 
         current_x = x
-        limit += camera[0]
+        if not camInLimit:
+            limit += camera[0]
 
         scale = size/6
 
@@ -2067,6 +2069,7 @@ def sized_text(x, y, s, col=7, size=6, limit=CAM_WIDTH, background=False): #Like
                 current_x += int(4*scale)
 
             if current_x + 2*int(4*scale) >= limit: #Make the text wrap around if it goes past the limit
+                print("a")
                 if chr != " " and not (i<len(s)-1 and s[i+1]==" "):
                     if background :
                         pyxel.rect(x=current_x-1, y=y-1, w=int(5*scale), h=int(8*scale), col=0)
