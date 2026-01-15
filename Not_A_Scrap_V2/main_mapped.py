@@ -697,6 +697,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.dashStartFrame = game_frame
             self.isDashing = True
             self.dashVector = copy(vector)
+            self.addAnimation(pos=[self.x,self.y,False],settings={'u':0,'v':3,'length':6,'duration':10,'colkey':3},lifetime='1 cycle') #dashCoolDown
 
     def canStartDash(self):
         return timer(self.dashStartFrame, self.dashCooldown, game_frame) and self.currentActionPriority <= self.dashPriority
@@ -708,7 +709,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         else :
             self.currentActionPriority = 0
             if type(self) == Player:
-                self.addAnimation(pos=[0,-TILE_SIZE],settings={'u':0,'v':2,'length':10,'duration':self.dashCooldown//5,'colkey':3},lifetime='1 cycle')
+                self.addAnimation(pos=[0,-TILE_SIZE],settings={'u':0,'v':2,'length':10,'duration':self.dashCooldown//5,'colkey':3, 'overPlayer':True},lifetime='1 cycle') #dash dust
             self.isDashing = False
             self.dashStartFrame = game_frame
             self.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
@@ -936,6 +937,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.level = 0 #TODO : Make this increase everytime the player escapes a bunker
 
     def draw(self):
+        self.drawAnims()
+
         step_y = self.y
         second_step_y = self.y
         if self.step:
@@ -996,6 +999,14 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
             #Fuel
             sized_text(x=camera[0]+CAM_WIDTH-46, y=camera[1]+3, s="Fuel : "+str(self.fuel), col=7, size=7, background=True)
+
+    def drawOver(self):
+        self.drawAnimsOverPlayer()
+
+    def drawAnimsOverPlayer(self):
+        for anim in self.anims:
+            if anim.settings['overPlayer']:
+                anim.draw(self.x,self.y)
 
     def baseUpdate(self):
         self.controlInventory()
@@ -1351,6 +1362,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
     def death(self):
         pass
+
+
 
 class Enemy(Entity): #Creates an entity that fights the player
     def __init__(self, x, y, template, level):
@@ -1895,7 +1908,7 @@ class Animation:
         self.pos = pos
         self.posRelative = True
         self.colkey = 11
-        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7,False), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0)}
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7,False), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0),'overPlayer':False}
 
         self.apply_settings()
 
