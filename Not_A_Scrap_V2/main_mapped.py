@@ -562,7 +562,11 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
     def getNewStats(self):
+        
+        oldMaxHealth = self.maxHealth
         self.maxHealth = self.baseHealth + self.inventory.flatMaxHealth
+        if oldMaxHealth < self.maxHealth:
+            self.heal += self.maxHealth-oldMaxHealth
 
         if hasattr(self, "maxSpeed"):
             if self.lowHealth :
@@ -1119,7 +1123,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         pyxel.rectb(x=x+10+camera[0], y=144+camera[1], w=148, h=45, col=7)
         pyxel.rect(x=x+11+camera[0], y=145+camera[1], w=146, h=43, col=0)
         sized_text(x=x+14+camera[0], y=146+camera[1], s="Upside 2", col=7, size=6)
-        sized_text(x=x+14+camera[0], y=155+camera[0], s=self.characterUpside2, col=7, size=6, limit=x+CAM_WIDTH/2+1+camera[0])
+        sized_text(x=x+14+camera[0], y=155+camera[1], s=self.characterUpside2, col=7, size=6, limit=x+CAM_WIDTH/2+1+camera[0])
 
         pyxel.rectb(x=x+159+camera[0], y=144+camera[1], w=148, h=45, col=7)
         pyxel.rect(x=x+160+camera[0], y=145+camera[1], w=146, h=43, col=0)
@@ -2082,7 +2086,6 @@ def sized_text(x, y, s, col=7, size=6, limit=2*CAM_WIDTH, camInLimit=False, back
                 current_x += int(4*scale)
 
             if current_x + 2*int(4*scale) >= limit: #Make the text wrap around if it goes past the limit
-                print("a")
                 if chr != " " and not (i<len(s)-1 and s[i+1]==" "):
                     if background :
                         pyxel.rect(x=current_x-1, y=y-1, w=int(5*scale), h=int(8*scale), col=0)

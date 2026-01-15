@@ -1,3 +1,6 @@
+TILE_SIZE = 16
+FPS = 120
+
 #Damage : Anything that increases DPS
 #Healing : Anything that increases survivability
 #Support : Everything else
@@ -268,12 +271,122 @@ class GLASSES(Item):
         self.shortDescription = "Increased precision"
         self.longDescription = "Increases precision on ranged weapons by 5° (+5° per stack). Decreases by 10° the precision loss while moving."
 
+
+
+#Rare items are meant to be things that were made afted the bombs dropped.
+#As such, their aesthetic depends a lot on which group made it, it could be :
+# Biological (living beings who evolved to better survive the new environment / mutations) -> mainly the Hunter and Mutant enemy groups
+# Artisanal (making stuff out of scrap metal based on their old technology) -> mainly the Basics and Legion enemy groups
+# Primitive (stuff made by people who've lost their access to pre-war knowledge, and as such are using older techniques (medieval era technology basically)) -> mainly the Celestials enemy group
+
+class GLAND(Item): #Meant to be some sort of organ that evolved to better digest stuff by using the ambiant radiation
+    def __init__(self):
+        self.name = "Glowing Gland"
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "healing"
+        self.effects = [
+            {"stat":"healAfter10EnemiesKilled","scaling":"arithmetic", "initial_term":15, "reason":10}]
+        self.shortDescription = "Heal after killing a few enemies"
+        self.longDescription = "Heal for 15%(+10% per stack) of your max health every 10 enemy kills."
+
+class CLAW(Item): #Meant to be hunters/aliens reinforcing their claws by using discarded steel scrap from inside the bunkers
+    def __init__(self):
+        self.name = "Steel Claw"
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "healing"
+        self.effects = [
+            {"stat":"healCriticalHit","scaling":"arithmetic", "initial_term":10, "reason":10}]
+        self.shortDescription = "Critical hits heal you"
+        self.longDescription = "Dealing a critical hit heals you for 10%(+10% per stack) of its damage"
+
+class BOOTS(Item): #Basically just heavily reinforced boots meant to be able to traverse the wasteland safely
+    def __init__(self):
+        self.name = "Wastelander's Boots"
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "healing"
+        self.effects = [
+            {"stat":"ignoreStatusCooldown","scaling":"constant", "value":15*FPS},
+            {"stat":"healInsteadOfStatus", "scaling":"geometric", "initial_term":10, "reason":0.6}]
+        self.shortDescription = "Ignore status effects and heal instead"
+        self.longDescription = "If you would be affected by a status effect, don't, and heal instead for 10% of your max health. Has a 15s cooldown. Every stack gives 3/5th of the last ones effect."
+
+
+class LEECHES(Item): #Leeches were heavily used during the medieval era to cure the "imbalance in humors" causing diseases (it worked more often than one would expect even though they were completely wrong about why it worked)
+    def __init__(self):
+        self.name = "Jar of Leeches"
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "healing"
+        self.effects = [
+            {"stat":"healOnHitChance","scaling":"constant", "value":5},
+            {"stat":"healOnHitAmount","scaling":"arithmetic", "initial_term":5, "reason":5}]
+        self.shortDescription = "Random chance to heal on hit"
+        self.longDescription = "Every time you land a hit on an enemy, you have a 5% chance to heal for 5HP(+5 per stack)."
+
+class CLOAK(Item): #This is just a cloak that regular members of the Celestials wear
+    def __init__(self):
+        self.name = "Acolyte's Cloak"
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "support"
+        self.effects = [
+            {"stat":"extraDash","scaling":"arithmetic", "initial_term":1, "reason":1}]
+        self.shortDescription = "Get an additional dash"
+        self.longDescription = "You can dash 1(+1 per stack) additional time before having to wait for the cooldown."
+
+class METAL_DETECTOR(Item): #Metal detector made out of magnets or something. Usually used to detect mines and other remnants of the war
+    def __init__(self):
+        self.name = "Metal Detector"
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "support"
+        self.effects = [
+            {"stat":"increasedRarity","scaling":"incremental", "value":2}]
+        self.shortDescription = "The next two items you find will be rare or rarer"
+        self.longDescription = "The next two items you find will be either rare or legendary."
+
+class SACK(Item): #Something that was evolved by prey animals to project hot air at predators in order to escape (kind of like squids do it)
+    def __init__(self):
+        self.name = "Air Sack"
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "support"
+        self.effects = [
+            {"stat":"dashKnockbackStrength","scaling":"arithmetic", "initial_term":15, "reason":15}]
+        self.shortDescription = "Pushback enemies while dashing"
+        self.longDescription = "Enemies which you enter in contact with, or are near you when finish dashing are knockbacked. The strength of the knockback increases linearly with every stack."
+
+class BANDOLIER(Item):
+    def __init__(self):
+        self.name = "Bandolier"
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "support"
+        self.effects = [
+            {"stat":"dashKnockbackStrength","scaling":"arithmetic", "initial_term":15, "reason":15}]
+        self.shortDescription = "Increased durability, ammo capacity and reload speed"
+        self.longDescription = "Increases the ammount of ammo in clips and in the reserve by 15%(+15% per stack). Increases reload speed by 10(+5% per stack). Increases the durability of melee weapons by 35%(+35% per stack)"
+
+
+class IDOL(Item): #A glass figurine used by the Celestials for prayer. #Because they're obsessed with light, they use mirrors to trap sunlight inside the idols
+    def __init__(self):
+        self.name = "Bright Idol"
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "damage"
+        self.effects = [
+            {"stat":"onKillFireEnemyNumber","scaling":"arithmetic", "initial_term":2, "reason":1},
+            {"stat":"onKillFireRadius", "scaling":"arithmetic", "initial_term":3*TILE_SIZE, "reason":1.5*TILE_SIZE}]
+        self.shortDescription = "Set enemies on fire on kill"
+        self.longDescription = "Every time you kill an enemy, 2(+1 per stack) enemies in a 3T(+1.5 per stack) gets set on fire."
+
+
+
+
+
 ITEM_LIST = [x() for x in Item.__subclasses__()]
     
-    
- #Overall i mainly think we need to change the item names, but it shouldnt be a problem, and other than that we shouldnt get stuck with 1 idea (I can only think of 1 item in Hollow knight that works when low health)
- #Yeah but there are like 5 items that trigger when you heal
- #I think having a few items that trigger at the same time isn't really a problem, the important part is that they feel different
 
- #At the suggestion of Louis, it might be a good idea to move these into a csv file once we've finished (since its not really a program)
- #Actually, no, because some of these items will have effects too complex to be able to describe with just a csv file (or if we do, it'll be impossible to understand what's going on)
