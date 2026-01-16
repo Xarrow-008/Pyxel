@@ -756,6 +756,15 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.isShooting = True
             self.lastShotFrame = 0
 
+
+            if type(self) == Player:
+                firePos = getPlayerFirePos(self.facing)
+                gunShotImage = getPlayerBulletImage(self.facing)
+
+                self.addAnimation(pos=[self.x+firePos[0],self.y+firePos[1],False],settings={'u':gunShotImage[0],'v':gunShotImage[1],'length':5,'duration':10,'colkey':3, 'overPlayer':True},lifetime='1 cycle')
+
+
+
             for i in range(weapon.bulletCount):
                 horizontal = x - (self.x + self.width/2)
                 vertical = y - (self.y + self.height/2)
@@ -774,7 +783,10 @@ class Entity: #General Entity class with all the methods describing what entitie
                     cos = 0
                     sin = 0
 
-                bullet_shot = Projectile(weapon, self.x, self.y, [cos,sin], self, self.shotsFired)
+
+                bulletPos = getPlayerBulletPos(self.facing)
+
+                bullet_shot = Projectile(weapon, self.x+bulletPos[0], self.y+bulletPos[1], [cos,sin], self, self.shotsFired)
 
                 self.bulletList.append(bullet_shot)
 
@@ -2197,6 +2209,35 @@ def getItemFromName(name):
         if item.name==name:
             return item
 
+def getPlayerFirePos(facing): #might hange this to be a function inside player so that every entity can have theirs too
+    if facing == [1,0]:
+        return (16,0)
+    if facing == [0,0]:
+        return (-16,0)
+    if facing == [0,1]:
+        return (2,-16)
+    if facing == [1,1]:
+        return (-6,3)
+
+def getPlayerBulletPos(facing): #might hange this to be a function inside player so that every entity can have theirs too
+    if facing == [1,0]:
+        return (16,2)
+    if facing == [0,0]:
+        return (-4,2)
+    if facing == [0,1]:
+        return (12,-3)
+    if facing == [1,1]:
+        return (0,6)
+
+def getPlayerBulletImage(facing):
+    if facing == [1,0]:
+        return (11,0)
+    if facing == [0,0]:
+        return (11,1)
+    if facing == [0,1]:
+        return (11,3)
+    if facing == [1,1]:
+        return (11,2)
 
 def getColor(hex):
     return int(hex, 16)
