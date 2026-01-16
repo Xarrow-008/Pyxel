@@ -461,7 +461,7 @@ class inMission:
         return collisionObjects(self.player, entity) and not self.player.isHitStun
 
 
-class Entity: #General Entity class with all the methods describing what entities can do
+class Entity: #General Entity class with all the methods describing what entities can do²
     def __init__(self, x, y, width, height):
         self.x = x
         self.y = y
@@ -734,6 +734,9 @@ class Entity: #General Entity class with all the methods describing what entitie
     def initRangedAttack(self, priority):
         self.rangedAttackPriority = priority
         self.shotsFired = 0
+        self.isShooting = False
+        self.lastShotFrame = 0
+        self.shootDuration = 25
 
         self.bulletList = []
 
@@ -749,6 +752,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             weapon.magAmmo -= 1
             self.shotsFired += 1
+
+            self.isShooting = True
+            self.lastShotFrame = 0
 
             for i in range(weapon.bulletCount):
                 horizontal = x - (self.x + self.width/2)
@@ -895,11 +901,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self, playerPos):
         super().__init__(x=playerPos[0], y=playerPos[1], width=TILE_SIZE, height=TILE_SIZE)
 
-        self.characterName = "Scrapper"
-        self.characterUpside1 = "This character has no upsides"
-        self.characterUpside2 = "This character has no upsides"
-        self.characterDownside1 = "This character has no downsides"
-        self.characterDownside2 = "This character has no downsides"
+        self.initCharacter()
 
         self.keyboard = 'zqsd'
 
@@ -925,7 +927,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.direction = [1,0]
         self.last_direction = [1,0]
 
-        self.walking = False
+        self.isWalking = False
         self.step = False
         self.second_step = False
         self.step_frame = 0
@@ -940,23 +942,30 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         self.level = 0 #TODO : Make this increase everytime the player escapes a bunker
 
+    def initCharacter(self):
+        self.characterName = "Scrapper"
+        self.characterUpside1 = "This character has no upsides"
+        self.characterUpside2 = "This character has no upsides"
+        self.characterDownside1 = "This character has no downsides"
+        self.characterDownside2 = "This character has no downsides"
+
     def draw(self):
         self.drawAnims()
 
-        step_y = self.y
-        second_step_y = self.y
-        if self.step:
-            step_y += -1
-        if self.second_step:
-            second_step_y += -1
+        playerDraw = self.idleDraw
+
+        if self.isWalking:
+            playerDraw = self.walkDraw
+
+        if self.isShooting:
+            playerDraw = self.shootDraw
 
 
-        show(self.x, second_step_y,  (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
-        show(self.x, step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
-        show(self.x, second_step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
+        playerDraw()
 
+        self.drawHUD()
 
-        
+    def drawHUD(self):
         if not self.inInventory: #The player info isn't shown while the player is in the inventory, since that justs makes it look weird (and also they have that info on the inventory)
 
             #Health bar
@@ -1003,6 +1012,28 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
             #Fuel
             sized_text(x=camera[0]+CAM_WIDTH-46, y=camera[1]+3, s="Fuel : "+str(self.fuel), col=7, size=7, background=True)
+
+    def walkDraw(self):
+        step_y = self.y
+        second_step_y = self.y
+        if self.step:
+            step_y += -1
+        if self.second_step:
+            second_step_y += -1
+
+
+        show(self.x, second_step_y,  (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
+        show(self.x, step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
+        show(self.x, second_step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
+
+    def shootDraw(self):
+        show(self.x, self.y, (self.image[0] + self.facing[0] + self.lastShotFrame//self.shootDuration*2+2, self.image[1] + self.facing[1]))
+        
+
+    def idleDraw(self):
+        show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
+        show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
+        show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
 
     def drawOver(self):
         self.drawAnimsOverPlayer()
@@ -1336,21 +1367,21 @@ class Player(Entity): #Creates an entity that's controlled by the player
             self.reloadWeapon("rightHand")
 
     def imageGestion(self):
-        self.walking = False
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
+        self.isWalking = False
+        if keyPress('UP','btn'):
             self.facing = [0,1]
-            self.walking = True
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
+            self.isWalking = True
+        if keyPress('LEFT','btn'):
             self.facing = [0,0]
-            self.walking = True
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
+            self.isWalking = True
+        if keyPress('DOWN','btn'):
             self.facing = [1,1]
-            self.walking = True
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
+            self.isWalking = True
+        if keyPress('RIGHT','btn'):
             self.facing = [1,0]
-            self.walking = True
+            self.isWalking = True
         
-        if self.walking:
+        if self.isWalking:
             if on_tick(120):
                 self.step = not self.step
                 self.step_frame = 0
@@ -1360,6 +1391,13 @@ class Player(Entity): #Creates an entity that's controlled by the player
             if self.step_frame >= 40:
                 self.second_step = self.step
                 self.step_frame = 0
+
+        if self.isShooting:
+            self.lastShotFrame += 1
+        if self.lastShotFrame >= self.shootDuration*3:
+            self.lastShotFrame = 0
+            self.isShooting = False
+
 
     def collision(self):
         pass
@@ -1917,7 +1955,7 @@ class Animation:
         self.apply_settings()
 
 
-        self.img = (self.settings['u'],self.settings['v'])
+        self.image = (self.settings['u'],self.settings['v'])
         self.kill = False
 
     def update(self):
@@ -1928,17 +1966,17 @@ class Animation:
             
     def draw(self,x,y):
         if self.posRelative:
-            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.img[0]*self.settings["width"], v=self.img[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.image[0]*self.settings["width"], v=self.image[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
             sized_text(x + self.pos[0], y + self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         else:
-            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.img[0]*self.settings["width"], v=self.img[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.image[0]*self.settings["width"], v=self.image[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
             sized_text(self.pos[0], self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         
     def get_img(self):
         frame_anim = (self.frame() // self.settings['duration']) % self.settings['length']
         x = self.settings['u'] + self.settings['imageVector'][0]*frame_anim
         y = self.settings['v'] + self.settings['imageVector'][1]*frame_anim
-        self.img = (x,y)
+        self.image = (x,y)
 
         #print(x,y,flush=True)
 

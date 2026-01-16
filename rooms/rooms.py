@@ -1,4 +1,5 @@
 from utility import *
+import csv
 import toml
 
 TILE_SIZE = 16
@@ -19,7 +20,7 @@ camera = [0,0]
 class App:
     def __init__(self):
         pyxel.init(CAM_WIDTH, CAM_HEIGHT, fps=120)
-        pyxel.load('../rooms.pyxres')
+        pyxel.load('../notAscrap.pyxres')
         pyxel.colors[1] = get_color('232A4F')
         pyxel.colors[2] = get_color('740152')
         pyxel.colors[14] = get_color('C97777')
@@ -330,40 +331,87 @@ class Player(Entity):
     def __init__(self,x,y):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
 
-        self.img = (14,1)
+        self.img = (6,3)
 
         self.keyboard = 'zqsd'
         self.direction = [0,0]
         
         self.initWalk(priority=1,maxSpeed=2,speedChangeRate=20,knockbackCoef=1)
+        self.initRangedAttack(priority=0)
+        self.initImage()
 
         self.constructorHat = False
 
-    def movement(self):
-        #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
-            if self.momentum[1] > -self.maxSpeed:
-                self.momentum[1] -= self.maxSpeed/self.speedChangeRate
-            self.direction[1] = -1
+    def initImage(self):
+        self.walking = False
+        self.facing = [0,0]
+        self.step = False
+        self.secondStep = False
+        self.stepFrame = 0
 
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
-            if self.momentum[0] > -self.maxSpeed:
-                self.momentum[0] -= self.maxSpeed/self.speedChangeRate
-            self.direction[0] = -1
 
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
-            if self.momentum[1] < self.maxSpeed:
-                self.momentum[1] += self.maxSpeed/self.speedChangeRate
-            self.direction[1] = 1
+    def draw(self):
+        if self.walking:
+            self.walkDraw()
+        else:
+            self.idleDraw()
 
-        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
-            if self.momentum[0] < self.maxSpeed:
-                self.momentum[0] += self.maxSpeed/self.speedChangeRate
-            self.direction[0] = 1
+        if self.constructorHat:
+            show(self.x,self.y-8,(2,10), TILE_SIZE=TILE_SIZE)
+
+    def walkDraw(self):
+        step_y = self.y
+        second_step_y = self.y
+        if self.step:
+            step_y += -1
+        if self.secondStep:
+            second_step_y += -1
+
+
+        show(self.x, second_step_y,  (self.img[0] + self.facing[0], self.img[1] + self.facing[1] - 2))
+        show(self.x, step_y, (self.img[0] + self.facing[0], self.img[1] + self.facing[1]))
+        show(self.x, second_step_y, (self.img[0] + self.facing[0], self.img[1] + self.facing[1] + 2))
+
+    def idleDraw(self):
+        show(self.x, self.y, (self.img[0] + self.facing[0], self.img[1] + self.facing[1] - 2))
+        show(self.x, self.y, (self.img[0] + self.facing[0], self.img[1] + self.facing[1]))
+        show(self.x, self.y, (self.img[0] + self.facing[0], self.img[1] + self.facing[1] + 2))
+
+
         
-        self.speedDecrease()
+    def attack(self):
+        if type(self.inventory.leftHand) == RangedWeapon:
 
-        self.walk(self.momentum)
+            if keyPress("ATTACK_LEFT", "btn"):
+                self.rangedAttack("leftHand", camera[0]+pyxel.mouse_x, camera[1]+pyxel.mouse_y)
+
+            if keyPress("LEFT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
+                self.inventory.leftHand.magAmmo = 0
+                self.inventory.leftHandStartFrame = game_frame
+                self.inventory.leftHandIsReloading = True
+
+            if self.inventory.leftHand.magAmmo == 0 and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
+                self.inventory.leftHandStartFrame = game_frame
+                self.inventory.leftHandIsReloading = True
+
+            self.reloadWeapon("leftHand")
+
+        if type(self.inventory.rightHand) == RangedWeapon:
+
+            if keyPress("ATTACK_RIGHT", "btn"):
+                self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y)
+
+            if keyPress("RIGHT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
+                self.inventory.rightHand.magAmmo = 0
+                self.inventory.rightHandStartFrame = game_frame
+                self.inventory.rightHandIsReloading = True
+
+            if self.inventory.rightHand.magAmmo == 0 and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
+                self.inventory.rightHandStartFrame = game_frame
+                self.inventory.rightHandIsReloading = True
+
+            self.reloadWeapon("rightHand")
+
 
     def speedDecrease(self):
         #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
@@ -393,10 +441,134 @@ class Player(Entity):
         if abs(self.momentum[1]) > self.maxSpeed:
             self.momentum[1] -= self.momentum[1]/self.speedChangeRate 
 
+    def movement(self):
+        #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
+            if self.momentum[1] > -self.maxSpeed:
+                self.momentum[1] -= self.maxSpeed/self.speedChangeRate
+            self.direction[1] = -1
+
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
+            if self.momentum[0] > -self.maxSpeed:
+                self.momentum[0] -= self.maxSpeed/self.speedChangeRate
+            self.direction[0] = -1
+
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
+            if self.momentum[1] < self.maxSpeed:
+                self.momentum[1] += self.maxSpeed/self.speedChangeRate
+            self.direction[1] = 1
+
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
+            if self.momentum[0] < self.maxSpeed:
+                self.momentum[0] += self.maxSpeed/self.speedChangeRate
+            self.direction[0] = 1
+        
+        self.speedDecrease()
+
+        self.walk(self.momentum)
+
+    
+    def imageGestion(self):
+        self.walking = False
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][0].upper())):
+            self.facing = [0,1]
+            self.walking = True
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][1].upper())):
+            self.facing = [0,0]
+            self.walking = True
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][2].upper())):
+            self.facing = [1,1]
+            self.walking = True
+        if pyxel.btn(getattr(pyxel,'KEY_'+KEYBINDS[self.keyboard][3].upper())):
+            self.facing = [1,0]
+            self.walking = True
+        
+        if self.walking:
+            if onTick(120):
+                self.step = not self.step
+                self.stepFrame = 0
+
+        if self.secondStep != self.step:
+            self.stepFrame += 1
+            if self.stepFrame >= 40:
+                self.secondStep = self.step
+                self.stepFrame = 0
+
+
+class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
+    def __init__(self, weapon, x, y, vector, owner, shot):
+        super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
+
+        self.momentum = vector
+
+        self.image = weapon.bulletImage
+
+        
+        if owner is Enemy:
+            self.baseDamage = weapon.damage*owner.scale
+            self.damage = weapon.damage*owner.scale
+        else:
+            self.baseDamage = weapon.damage
+            self.damage = weapon.damage
+
+        self.piercing = weapon.piercing
+
+        self.baseRange = weapon.range
+        self.range = weapon.range
+
+        self.fallOffCoef = weapon.fallOffCoef
+        self.noFallOffArea = weapon.noFallOffArea
+
+        self.owner = owner
+
+        self.shot = shot
+
+        if hasattr(owner, "inventory"):
+            self.damageKnockbackCoef = weapon.knockbackCoef*(1+owner.inventory.rangedKnockback/100)
+        else:
+            self.damageKnockbackCoef = weapon.knockbackCoef
+
+        self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0)
+        self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
+        self.initialiseNewCollisions()
+        
+
     def draw(self):
-        show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
-        if self.constructorHat:
-            show(self.x,self.y,(15,1), TILE_SIZE=TILE_SIZE)
+        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
+
+    def movement(self):
+        self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
+        self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
+
+        if self.range != 0 and self.range < (self.baseRange*self.noFallOffArea):
+            if self.fallOffCoef >= 0 :
+                self.damage = self.baseDamage*self.fallOffCoef*(self.range/(self.baseRange*self.noFallOffArea))
+            else:
+                self.damage = -self.baseDamage*self.fallOffCoef*(2 - self.range/(self.baseRange*self.noFallOffArea))
+            self.initialiseNewCollisions()
+
+
+    def dash(self):
+        pass
+
+    def collision(self):
+        self.wallCollision()
+
+    def attack(self):
+        pass
+
+    def imageGestion(self):
+        pass
+
+    def death(self):
+        if self.range <= 0:
+            self.dead = True
+
+    def initialiseNewCollisions(self):
+        if type(self.owner)==Player:
+            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing], [0, 0, 0, -1])
+        elif type(self.owner)==Enemy:
+            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing])
 
 
 
@@ -1097,7 +1269,7 @@ class Asset:
         if not self.interactable:
             pyxel.pal(7,0)
         
-        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
+        pyxel.blt(self.x,self.y,2,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
         pyxel.pal()
 
     def convertDic(self,pos):
@@ -1498,7 +1670,66 @@ def findNextRoom(side, roomName):
         else:
             roomsList.remove(nextRoom)
     return nextRoom
-        
+
+def import_csv(file):
+    tab = []
+    with open(file) as csvfile:
+        reader = csv.DictReader(csvfile)
+        for line in reader:
+            tab.append(line)
+    return tab
+
+    
+keybinds = import_csv("Not_A_Scrap_V2/keybinds.csv")
+
+def keyPress(action, method):
+    for dic in keybinds:
+        if dic["action"]==action:
+            if "MOUSE" in dic["key"]:
+                key = dic["key"]
+            else:
+                key = "KEY_"+dic["key"]
+    
+    if method=="btn":
+        return pyxel.btn(getattr(pyxel, key))
+    elif method=="btnp":
+        return pyxel.btnp(getattr(pyxel, key))
+
+heldKeyStartFrame = 0
+holdingKey = False
+keyBeingHeld = None
+
+def holdKey(action, duration, counter):
+    global heldKeyStartFrame, holdingKey, keyBeingHeld
+    for dic in keybinds:
+        if dic["action"]==action:
+            if "MOUSE" in dic["key"]:
+                key = dic["key"]
+            else:
+                key = "KEY_"+dic["key"]
+    if holdingKey and key==keyBeingHeld and pyxel.btn(getattr(pyxel,key)):
+        if timer(heldKeyStartFrame, duration, counter):
+            holdingKey = False
+        return timer(heldKeyStartFrame, duration, counter)
+    elif pyxel.btn(getattr(pyxel,key)):
+        heldKeyStartFrame = counter
+        holdingKey = True
+        keyBeingHeld = key
+    else:
+        pressingAKey = False
+        for dic in keybinds:
+            if "MOUSE" in dic["key"]:
+                if pyxel.btn(getattr(pyxel,dic["key"])):
+                    pressingAKey = True
+            else:
+                if pyxel.btn(getattr(pyxel,"KEY_"+dic["key"])):
+                    pressingAKey = True
+        if not pressingAKey:
+            holdingKey = False
+            keyBeingHeld = None
+            heldKeyStartFrame = counter
+
+    return False
 
     
 
