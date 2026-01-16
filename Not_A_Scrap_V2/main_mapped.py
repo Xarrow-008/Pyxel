@@ -531,7 +531,6 @@ class Entity: #General Entity class with all the methods describing what entitie
     def draw(self):
         pass
 
-
     def drawOver(self):
         self.drawAnims()
 
@@ -541,7 +540,6 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def baseUpdate(self):
         pass
-
 
     def getConditions(self): #Basically just a bunch of booleans used to check whether or not an item's effect has to be triggered
 
@@ -558,8 +556,6 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             if hasattr(self, "inventory") and  statusLastFrame is (not self.lowHealth): #Triggers if you enter or leave low health status
                 self.inventory.recalculateStats = True
-
-
 
     def getNewStats(self):
         
@@ -581,15 +577,12 @@ class Entity: #General Entity class with all the methods describing what entitie
         if self.inventory.critChance > 50 :
             self.inventory.critChance = 50
 
-
     def canDoActions(self):
         return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun")
-
 
     def tempHealthDecay(self):
         if on_tick(FPS):
             self.tempHealth -= math.ceil(self.tempHealth/10)
-
 
     def movement(self):
         pass
@@ -618,7 +611,6 @@ class Entity: #General Entity class with all the methods describing what entitie
     def death(self):
         pass
 
-
     def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
         X = int(self.x//TILE_SIZE)
         Y = int(self.y//TILE_SIZE)
@@ -639,10 +631,10 @@ class Entity: #General Entity class with all the methods describing what entitie
             else:
                 next_X_2 = 0
             #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 != 1 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 != 1 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+            if (next_X_1 == 0 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 == 0 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
                 self.x = new_x
             #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
-            elif (next_X_1 == 1 or next_X_2 == 1) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+            elif (next_X_1 != 0 or next_X_2 != 0) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
                 self.collidedWithWall = True
                 self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
         
@@ -664,12 +656,11 @@ class Entity: #General Entity class with all the methods describing what entitie
             else:
                 next_Y_2 = 0
             
-            if (next_Y_1 != 1 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 != 1 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+            if (next_Y_1 == 0 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 == 0 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
                 self.y = new_y
-            elif (next_Y_1 == 1 or next_Y_2 == 1) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+            elif (next_Y_1 != 0 or next_Y_2 != 0) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
                 self.collidedWithWall = True
                 self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
-
 
     def initWalk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
         self.walkPriority = priority
@@ -682,7 +673,6 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.currentActionPriority = self.walkPriority
 
             self.applyVector(vector)
-
 
     def initDash(self, priority, cooldown, speed, duration): #Gets the parameters of the "dash" action, and initialises the related variables
         self.dashPriority = priority
@@ -722,14 +712,12 @@ class Entity: #General Entity class with all the methods describing what entitie
     def dashOngoing(self):
         return not timer(self.dashStartFrame, self.dashDuration, game_frame)  
 
-
     def initDeath(self, spawnItem, spawnFuel, spawnWeapon):
         self.deathItemSpawn = spawnItem
         self.deathFuelSpawn = spawnFuel
         self.deathWeaponSpawn = spawnWeapon
 
         self.dead = False
-
 
     def initRangedAttack(self, priority):
         self.rangedAttackPriority = priority
@@ -808,13 +796,10 @@ class Entity: #General Entity class with all the methods describing what entitie
                 setattr(self.inventory, hand+"CanNoLongerReload", True)
             self.reloadedThisFrame = True
             
-
     def canReloadWeapon(self, hand):
         weapon = getattr(self.inventory, hand)
         startFrame = getattr(self.inventory, hand+"StartFrame")
         return timer(startFrame, weapon.reloadTime, game_frame) and weapon.magAmmo==0 and weapon.name != "None"
-
-
 
     def initCollision(self, wall, enemy, player):
         self.wallCollisionEffect = wall
@@ -839,7 +824,6 @@ class Entity: #General Entity class with all the methods describing what entitie
     def collidingWithEnemy(self, entity):
         return type(entity) == Enemy and collisionObjects(self, entity) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
 
-
     def addAnimationHit(self,pos):
         self.addAnimation(pos=[pos[0],pos[1],False],settings={'u':0,'v':1,'length':5},lifetime='1 cycle')
 
@@ -852,10 +836,8 @@ class Entity: #General Entity class with all the methods describing what entitie
     def addIgnoreDamageMarker(self, pos):
         self.addAnimation(pos=[pos[0], pos[1], False], settings={"width":0, "height":0, "text":("Blocked", 7, 7, True)}, lifetime=24)
 
-
     def addAnimation(self,pos=[0,0],settings=0,lifetime='1 cycle'):
         self.anims.append(Animation(pos,settings,lifetime))
-
 
     def sufferDamage(self, value):
         if self.tempHealth >= value:
@@ -864,7 +846,6 @@ class Entity: #General Entity class with all the methods describing what entitie
             value -= self.tempHealth
             self.tempHealth = 0
             self.health -= value
-
 
     def initHitstun(self, duration, freezeFrame, invincibility):
         self.hitFreezeFrame = freezeFrame
@@ -892,7 +873,6 @@ class Entity: #General Entity class with all the methods describing what entitie
             if timer(self.hitStunStartFrame, self.hitStunDuration, game_frame):
                 self.isHitStun = False
 
-
     def triggerOnKillEffects(self):
         self.tempHealth += self.inventory.onKillTempHealth
         if self.tempHealth > self.maxHealth:
@@ -908,6 +888,7 @@ class Entity: #General Entity class with all the methods describing what entitie
                 pass #TODO : Implement this once we implement melee weapons
             else:
                 self.inventory.rightHand.reserveAmmo = math.ceil(self.inventory.rightHand.reserveAmmoffffffffffffffffffff*(1+self.inventory.ressourceKillEffect/100))
+
 
 class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self, playerPos):
@@ -1871,6 +1852,59 @@ class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
             self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing], [0, 0, 0, -1])
         elif type(self.owner)==Enemy:
             self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing])
+
+    def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
+        X = int(self.x//TILE_SIZE)
+        Y = int(self.y//TILE_SIZE)
+
+        #We handle horizontal and vertical movement separatly to make problem solving easier
+
+        #Calculate the new position
+        new_x = self.x + vector[0]
+        new_X = X+pyxel.sgn(vector[0])
+
+        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
+            new_x = new_X*TILE_SIZE
+
+        if vector[0]!=0:
+            next_X_1 = wallsMap[Y][new_X]
+            if self.y != Y*TILE_SIZE:
+                next_X_2 = wallsMap[Y+1][new_X]
+            else:
+                next_X_2 = 0
+            #If there's enough space for the entity to move, it moves unimpeded
+            if (next_X_1 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+                self.x = new_x
+            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
+            elif (next_X_1 == 2 or next_X_2 == 2) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+                self.collidedWithWall = True
+                self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
+        
+        X = int(self.x//TILE_SIZE)
+
+        #We calculate vertical movement in the same way we do horizontal movement
+
+        new_y = self.y + vector[1]
+        new_Y = Y+pyxel.sgn(vector[1])
+        
+        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
+            new_y = new_Y*TILE_SIZE
+
+        
+        if vector[1]!=0:
+            next_Y_1 = wallsMap[new_Y][X]
+            if self.x != X*TILE_SIZE:
+                next_Y_2 = wallsMap[new_Y][X+1]
+            else:
+                next_Y_2 = 0
+            
+            if (next_Y_1 != 2 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 != 2 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+                self.y = new_y
+            elif (next_Y_1 == 2 or next_Y_2 == 2) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+                self.collidedWithWall = True
+                self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
+
+
 
 class Pickup:
     def __init__(self, x, y, pickup):

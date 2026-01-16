@@ -254,13 +254,16 @@ class Room:
 
     def getWallsIn(self):
         global wallsMap
-        wallsIn = []
+        wallsIn = {'highWalls':[],'lowWalls':[]}
         startX = self.x//TILE_SIZE-1
         startY = self.y//TILE_SIZE-2
         for y in range(self.height//TILE_SIZE+3):
             for x in range(self.width//TILE_SIZE+2):
                 if wallsMap[startY + y][startX + x] == 1:
-                    wallsIn.append((x-1, y-2))
+                    wallsIn['lowWalls'].append((x-1, y-2))
+
+                if wallsMap[startY + y][startX + x] == 2:
+                    wallsIn['highWalls'].append((x-1, y-2))
 
         return wallsIn
 
@@ -332,7 +335,7 @@ class LoadRoom(Room):
         self.loaded = True
         self.settings = settings
         self.defaultSettings = {'name':'room_48','width':15*TILE_SIZE,'height':15*TILE_SIZE,
-        'walls':[], 'exitsPos':{'up':[],'down':[],'left':[],'right':[]},'assets':[{'name':'tableVertical','relativeX':48,'relativeY':48, 'reversed':False}]}
+        'walls':{'highWalls':[],'lowWalls':[]}, 'exitsPos':{'up':[],'down':[],'left':[],'right':[]},'assets':[{'name':'tableVertical','relativeX':48,'relativeY':48, 'reversed':False}]}
         self.assets = []
 
         self.initSettings()
@@ -364,8 +367,11 @@ class LoadRoom(Room):
         global wallsMap
         x = self.x//TILE_SIZE
         y = self.y//TILE_SIZE
-        for pos in self.walls:
+        for pos in self.walls['lowWalls']:
             wallsMap[y + pos[1]][x + pos[0]] = 1
+
+        for pos in self.walls['highWalls']:
+            wallsMap[y + pos[1]][x + pos[0]] = 2
 
 class Exit:
     def __init__(self,x,y):
