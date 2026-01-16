@@ -679,6 +679,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.dashCooldown = cooldown
         self.dashSpeed = speed
         self.dashDuration = duration
+        self.lastDashFrame = 0
 
         self.isDashing = False
         self.dashStartFrame = 0
@@ -690,6 +691,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             self.dashStartFrame = game_frame
             self.isDashing = True
+            self.lastDashFrame = 0
             self.dashVector = copy(vector)
             self.addAnimation(pos=[self.x,self.y,False],settings={'u':0,'v':3,'length':6,'duration':10,'colkey':3},lifetime='1 cycle') #dashCoolDown
 
@@ -705,6 +707,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             if type(self) == Player:
                 self.addAnimation(pos=[0,-TILE_SIZE],settings={'u':0,'v':2,'length':10,'duration':self.dashCooldown//5,'colkey':3, 'overPlayer':True},lifetime='1 cycle') #dash dust
             self.isDashing = False
+            self.lastDashFrame = 0
             self.dashStartFrame = game_frame
             self.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
             self.dashVector = [0,0]
@@ -724,7 +727,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.shotsFired = 0
         self.isShooting = False
         self.lastShotFrame = 0
-        self.shootDuration = 25
+        self.shootFrameDuration = 25
 
         self.bulletList = []
 
@@ -906,7 +909,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.baseDashCooldown = 40
 
         self.initWalk(priority=0, maxSpeed=self.baseSpeed, speedChangeRate=20, knockbackCoef=1)
-        self.initDash(priority=1, cooldown=self.baseDashCooldown, speed=1.5, duration=20)
+        self.initDash(priority=1, cooldown=self.baseDashCooldown, speed=1.5, duration=60)
         self.initRangedAttack(priority=0)
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
@@ -952,6 +955,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         if self.isShooting:
             playerDraw = self.shootDraw
+
+        if self.isDashing:
+            playerDraw = self.dashDraw
 
 
         playerDraw()
@@ -1020,8 +1026,10 @@ class Player(Entity): #Creates an entity that's controlled by the player
         show(self.x, second_step_y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
 
     def shootDraw(self):
-        show(self.x, self.y, (self.image[0] + self.facing[0] + self.lastShotFrame//self.shootDuration*2+2, self.image[1] + self.facing[1]))
+        show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.lastShotFrame//self.shootFrameDuration*2, self.image[1] + self.facing[1]))
         
+    def dashDraw(self):
+        show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.lastDashFrame//(self.dashDuration/3+1)*2, self.image[1] + self.facing[1] + 2))
 
     def idleDraw(self):
         show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
@@ -1387,9 +1395,13 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         if self.isShooting:
             self.lastShotFrame += 1
-        if self.lastShotFrame >= self.shootDuration*3:
+        if self.lastShotFrame >= self.shootFrameDuration*3:
             self.lastShotFrame = 0
             self.isShooting = False
+            
+        if self.isDashing:
+            self.lastDashFrame += 1
+            print(self.lastDashFrame)
 
 
     def collision(self):
