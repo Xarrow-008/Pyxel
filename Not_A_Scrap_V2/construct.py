@@ -125,7 +125,6 @@ class Roombuild:
         
         if self.nbRooms >= 60 or len(self.rooms) >= 60:
             self.isBuilding = False
-            print(self.nbRooms, len(self.rooms))
             self.wallsMap = wallsMap
 
         

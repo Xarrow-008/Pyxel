@@ -693,7 +693,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.isDashing = True
             self.lastDashFrame = 0
             self.dashVector = copy(vector)
-            self.addAnimation(pos=[self.x,self.y,False],settings={'u':0,'v':3,'length':6,'duration':10,'colkey':3},lifetime='1 cycle') #dashCoolDown
+            self.anims.append(AnimDust(pos=[self.x,self.y,False])) #dashDust
 
     def canStartDash(self):
         return timer(self.dashStartFrame, self.dashCooldown, game_frame) and self.currentActionPriority <= self.dashPriority
@@ -705,7 +705,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         else :
             self.currentActionPriority = 0
             if type(self) == Player:
-                self.addAnimation(pos=[0,-TILE_SIZE],settings={'u':0,'v':2,'length':10,'duration':self.dashCooldown//5,'colkey':3, 'overPlayer':True},lifetime='1 cycle') #dash dust
+                self.addAnimation(pos=[0,-TILE_SIZE],settings={'u':0,'v':2,'length':10,'duration':self.dashCooldown//5,'colkey':3, 'overPlayer':True},lifetime='1 cycle') #dashCoolDown
             self.isDashing = False
             self.lastDashFrame = 0
             self.dashStartFrame = game_frame
@@ -728,6 +728,8 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.isShooting = False
         self.lastShotFrame = 0
         self.shootFrameDuration = 25
+
+        self.reloadImage = 0
 
         self.bulletList = []
 
@@ -956,6 +958,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
         if self.isShooting:
             playerDraw = self.shootDraw
 
+        if self.isReloading():
+            playerDraw = self.reloadDraw
+
         if self.isDashing:
             playerDraw = self.dashDraw
 
@@ -1028,6 +1033,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
     def shootDraw(self):
         show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.lastShotFrame//self.shootFrameDuration*2, self.image[1] + self.facing[1]))
         
+    def reloadDraw(self):
+        show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.reloadImage*2, self.image[1] + self.facing[1] - 2)) #TODO LEO backtrack, delete LastreloadFrame, make it so it works with the weapon reload time, in imageGestion, make anims at like 1/2 of reload time n everything
+
     def dashDraw(self):
         show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.lastDashFrame//(self.dashDuration/3+1)*2, self.image[1] + self.facing[1] + 2))
 
@@ -1367,6 +1375,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
             self.reloadWeapon("rightHand")
 
+
     def imageGestion(self):
         self.isWalking = False
         if keyPress('UP','btn'):
@@ -1398,11 +1407,71 @@ class Player(Entity): #Creates an entity that's controlled by the player
         if self.lastShotFrame >= self.shootFrameDuration*3:
             self.lastShotFrame = 0
             self.isShooting = False
+
+        if self.isReloading():
+            if self.reloadFrame() == 0:
+                self.reloadImage = 0
+                self.reloadThump()
+            elif self.reloadFrame() > 0 and self.reloadFrame() <= self.reloadStartPhase():
+                if onTick(30):
+                    self.reloadSmoke()
+
+
+            elif self.reloadFrame() > self.reloadStartPhase():
+                interval = self.reloadTime() - self.reloadStartPhase()
+                if self.reloadFrame() == self.reloadStartPhase() + interval*1/3:
+                    self.reloadImage = 1
+                elif self.reloadFrame() == self.reloadStartPhase() + interval*2/3:
+                    self.reloadImage = 2
+                    
+
+
             
         if self.isDashing:
             self.lastDashFrame += 1
-            print(self.lastDashFrame)
 
+    def isReloading(self):
+        return self.inventory.rightHandIsReloading or self.inventory.leftHandIsReloading
+
+    def reloadFrame(self):
+        if self.inventory.rightHandIsReloading:
+            return game_frame - self.inventory.rightHandStartFrame
+        elif self.inventory.leftHandIsReloading:
+            return game_frame - self.inventory.leftHandStartFrame
+        else:
+            raise TypeError('not reloading')
+
+    def reloadTime(self):
+        if self.inventory.rightHandIsReloading:
+            return self.inventory.rightHand.reloadTime
+        elif self.inventory.leftHandIsReloading:
+            return self.inventory.leftHand.reloadTime
+        else:
+            raise TypeError('not reloading')
+
+    def reloadStartPhase(self):
+        return self.reloadTime()*9/10
+
+    def reloadSmoke(self):
+        if self.facing == [0,0]:
+            self.anims.append(AnimSmokeLeft(pos=[14,-2+random.randint(0,2)]))
+            self.anims.append(AnimSmokeRight(pos=[-12,-4+random.randint(0,2)]))
+        if self.facing == [1,0]:
+            self.anims.append(AnimSmokeLeft(pos=[12,-4+random.randint(0,2)]))
+            self.anims.append(AnimSmokeRight(pos=[-14,-2+random.randint(0,2)]))
+
+        if self.facing == [1,1] or self.facing == [0,1]:
+            self.anims.append(AnimSmokeLeft(pos=[16,-4+random.randint(0,2)]))
+            self.anims.append(AnimSmokeRight(pos=[-16,-4+random.randint(0,2)]))
+
+    def reloadThump(self):
+        if self.facing == [0,0] or self.facing == [1,0]:
+            self.anims.append(AnimDust(pos=[self.x-3,self.y+6,False]))
+            self.anims.append(AnimDust(pos=[self.x+3,self.y+6,False]))
+
+        if self.facing == [1,1] or self.facing == [0,1]:
+            self.anims.append(AnimDust(pos=[self.x-6,self.y+6,False]))
+            self.anims.append(AnimDust(pos=[self.x+6,self.y+6,False]))
 
     def collision(self):
         pass
@@ -1964,22 +2033,31 @@ class World:
     def __init__(self, playerPos):
         global wallsMap
 
+        self.playerPos = playerPos
         self.rooms = []
         self.exits = []
         self.showWalls = False
         self.constructor = Roombuild(playerPos)
         self.doneBuilding = False
+        self.minRooms = 20
 
         self.initBuild()
 
     def update(self):
         self.constructor.update()
         if not self.constructor.isBuilding and not self.doneBuilding:
-            global wallsMap
-            self.rooms = self.constructor.rooms
-            self.exits = self.constructor.exits
-            self.doneBuilding = True
-            wallsMap = copy(self.constructor.wallsMap)
+            if len(self.constructor.rooms) >= self.minRooms:
+                global wallsMap
+                self.rooms = self.constructor.rooms
+                self.exits = self.constructor.exits
+                self.doneBuilding = True
+                wallsMap = copy(self.constructor.wallsMap)
+            else:
+                print('rooms got stuck below minimum, retrying')
+                self.constructor = Roombuild(self.playerPos)
+                self.doneBuilding = False
+                self.initBuild()
+
       
     def initBuild(self):
         self.isBuilding = False
@@ -2074,6 +2152,29 @@ class Animation:
     def frame(self):
         return pyxel.frame_count - self.start
       
+class AnimDust(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':0,'v':3,'length':6,'duration':10,'colkey':3},
+                        lifetime=lifetime)
+
+class AnimSmokeLeft(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':11,'v':4,'length':5,'duration':10,'colkey':3},
+                        lifetime=lifetime)
+
+class AnimSmokeRight(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':11,'v':5,'length':5,'duration':10,'colkey':3},
+                        lifetime=lifetime)
+
+
+
+
+
+
 
 def distance(x1, y1, x2, y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
