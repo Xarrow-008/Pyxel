@@ -52,26 +52,43 @@ game_frame = 0
 class Game:
     def __init__(self):
         self.playerPos = (512,512)
-
-
-        self.world = World(self.playerPos)
         self.player = Player(self.playerPos)
+
         self.camera = [0,0]
         self.margin = 1/4
+
+        self.initWorldBuild()
         
-        self.place = inMission(self.player)
+    def initWorldBuild(self):
+        self.place = World(self.playerPos)
+
+    def initMission(self, rooms, exits):
+        self.place = inMission(self.player, rooms, exits)
+
 
     def update(self):
-        if self.canPlay():
-            self.inGameUpdate()
-        
-        elif self.player.inInventory:
-            self.player.updateInventory()
+        self.updatePlace()
 
-        self.cameraUpdate()
-        if self.world.constructor.isBuilding:
-            self.world.update()
-        
+        self.actions()
+
+    def updatePlace(self):
+        if self.place.isPlayable:
+
+            if not self.player.inInventory:
+                self.inGameUpdate()
+                self.cameraUpdate()
+            else:
+                self.player.updateInventory()
+        else:
+            self.place.update()
+
+    def inGameUpdate(self):
+        global game_frame
+        if not self.isFrozen():
+            self.place.update()
+            game_frame += 1
+        else:
+            self.place.updateAllEntityAnims()
 
     def cameraUpdate(self):
         global camera
@@ -99,48 +116,47 @@ class Game:
         camera = copy(self.camera)
 
 
-    def inGameUpdate(self):
-        global game_frame
-        if not self.isFrozen():
-            self.place.update()
-            game_frame += 1
-        else:
-            self.place.updateAllEntityAnims()
-
     def draw(self):
         self.drawGame()
+
+    def drawGame(self):
+        if not self.player.inInventory:
+            self.place.draw()
+        else:
+            pyxel.dither(0.25)
+            self.place.draw()
+            pyxel.dither(1)
+            self.player.drawInventory()
+
 
     def isFrozen(self):
         global freeze_start, freeze_duration
         return not timer(freeze_start, freeze_duration, pyxel.frame_count)
 
-    def drawGame(self):
-        if self.canPlay():
-            self.worldDraw()
-            self.place.draw()
-        elif self.player.inInventory:
-            pyxel.dither(0.25)
-            self.worldDraw()
-            self.place.draw()
-            pyxel.dither(1)
-            self.player.drawInventory()
-        else:
-            self.world.draw()
-        
-    def worldDraw(self):
-        self.world.draw()
+    def actions(self):
+        if self.place.exitCondition():
+            if type(self.place) is World:
+                rooms = copy(self.place.rooms)
+                exits = copy(self.place.exits)
+                self.initMission(rooms,exits)
+            else:
+                print('caca, pas encore de sortie')
 
-    def canPlay(self):
-        return not self.player.inInventory and self.world.doneBuilding
 
 
 class inMission:
-    def __init__(self, player):
+    def __init__(self, player, rooms, exits):
         self.entities = []
         self.pickups = []
         self.interactables = []
         self.player = player
+        self.rooms = rooms
+        self.exits = exits
         self.infoText = ("","","")
+        self.isPlayable = True
+
+    def exitCondition(self): #for when we come back
+        return False
 
     def update(self):
 
@@ -265,6 +281,7 @@ class inMission:
 
 
     def draw(self):
+        self.drawWorld()
         
         for interactable in self.interactables:
             interactable.draw()
@@ -290,6 +307,12 @@ class inMission:
         if self.infoText != ("", "", ""):
             sized_text(x=self.player.x-29, y=self.player.y-9, s=f"{self.infoText[2][0]} [F] to {self.infoText[2][1]}", col=7, size=6, background=True)
 
+    def drawWorld(self):
+        for room in self.rooms:
+            room.draw()
+        
+        for exit in self.exits:
+            exit.draw()
 
     def heal(self, value, healer, target):
         target.health += value
@@ -1581,9 +1604,6 @@ class Enemy(Entity): #Creates an entity that fights the player
                 pickup = WEAPON_TABLE.pickRandom(0)
                 self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
-            
-
-            
 
 
 class Inventory:
@@ -1871,7 +1891,6 @@ class Inventory:
         self.recalculateStats = True
 
 
-
 class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
     def __init__(self, weapon, x, y, vector, owner, shot):
         super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
@@ -2053,8 +2072,12 @@ class World:
         self.constructor = Roombuild(playerPos)
         self.doneBuilding = False
         self.minRooms = 20
+        self.isPlayable = False
 
         self.initBuild()
+
+    def exitCondition(self):
+        return self.doneBuilding
 
     def update(self):
         self.constructor.update()
