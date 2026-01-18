@@ -37,6 +37,7 @@ class TestAnim:
     
     def draw(self):
         self.anim.draw(0,0)
+        pyxel.text(0,0,str(1/math.sqrt(2)),7)
 
 
 def get_color(hex):

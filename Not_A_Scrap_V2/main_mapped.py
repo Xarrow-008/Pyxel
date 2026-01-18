@@ -1378,18 +1378,31 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
     def imageGestion(self):
         self.isWalking = False
-        if keyPress('UP','btn'):
-            self.facing = [0,1]
+        if keyPress('UP','btn') or keyPress('LEFT','btn') or keyPress('DOWN','btn') or keyPress('RIGHT','btn'):
             self.isWalking = True
-        if keyPress('LEFT','btn'):
-            self.facing = [0,0]
-            self.isWalking = True
-        if keyPress('DOWN','btn'):
-            self.facing = [1,1]
-            self.isWalking = True
-        if keyPress('RIGHT','btn'):
-            self.facing = [1,0]
-            self.isWalking = True
+
+        
+        horizontal = camera[0]+pyxel.mouse_x - (self.x + self.width/2)
+        vertical = camera[1]+pyxel.mouse_y - (self.y + self.height/2)
+        norm = math.sqrt(horizontal**2 + vertical**2)
+
+        if norm != 0:
+            cos = horizontal/norm
+            sin = vertical/norm
+        else:
+            cos = 0
+            sin = 1
+
+        if -0.7 < cos and cos < 0.7:
+            if sin >= 0:
+                self.facing = [1,1]
+            else:
+                self.facing = [0,1]
+        else:
+            if cos >= 0:
+                self.facing = [1,0]
+            else:
+                self.facing = [0,0]
         
         if self.isWalking:
             if on_tick(120):
