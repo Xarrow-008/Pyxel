@@ -1,6 +1,8 @@
 import pyxel
+from lootTables import *
 
 TILE_SIZE = 16
+FPS = 120
 
 
 class Asset:
@@ -12,19 +14,32 @@ class Asset:
         self.width = 2*TILE_SIZE
         self.height = 2*TILE_SIZE
         self.reversed = reversed
-        self.removeSelf = False
+
+
+        self.interactable = False
+        self.interactTime = 0
+        self.interactProgress = 0
+        self.anim = [0,0]
+        self.function = []
+        self.description = 'N/A'
+        self.dropPos = (0,0)
+        self.imgUsed = [0,0]
+        self.used = False
 
 
     def update(self):
-        global camera
-        if mouseInside(self.x,self.y,self.width,self.height,camera):
-            if pyxel.btnp(pyxel.KEY_X):
-                self.removeSelf = True
-            if pyxel.btnp(pyxel.KEY_E):
-                self.reversed = not self.reversed
+        pass
 
     def draw(self):
-        pyxel.blt(self.x,self.y,2,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
+        if not self.interactable:
+            pyxel.pal(7,0)
+
+        if not self.used:
+            pyxel.blt(self.x,self.y,2, self.img[0]*TILE_SIZE + self.anim[0]*self.width, self.img[1]*TILE_SIZE + self.anim[1]*self.height, self.width * self.coeff(),self.height,11)
+        else:
+            pyxel.blt(self.x,self.y,2, self.imgUsed[0]*TILE_SIZE, self.imgUsed[1]*TILE_SIZE, self.width * self.coeff(),self.height,11)
+
+        pyxel.pal()
 
     def convertDic(self,pos):
         dic = {'name':self.name,'relativeX':self.x-pos[0],'relativeY':self.y-pos[1], 'reversed':self.reversed}
@@ -126,20 +141,30 @@ class ClosetFront(Asset):
         self.img = (6,3)
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
+        self.function = ["drop", GENERAL_TABLE]
+        self.interactTime = 2*FPS
+        self.description = "Contains either fuel, an item, or a weapon"
+        self.dropPos = (0,3*TILE_SIZE)
+        self.imgUsed = (6,12)
 
 class ClosetBack(Asset):
     name = 'ClosetBack'
     def __init__(self,x,y,reversed=False):
         super().__init__(x,y,reversed=reversed)
-        self.img = (6,6)
+        self.img = (8,3)
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
+        self.function = ["drop", GENERAL_TABLE]
+        self.interactTime = 2*FPS
+        self.description = "Contains either fuel, an item, or a weapon"
+        self.dropPos = (0,-TILE_SIZE)
+        self.imgUsed = (8,12)
 
 class Dressing(Asset):
     name = 'Dressing'
     def __init__(self,x,y,reversed=False):
         super().__init__(x,y,reversed=reversed)
-        self.img = (8,3)
+        self.img = (11,3)
         self.width = 3*TILE_SIZE
         self.height = 2*TILE_SIZE
 

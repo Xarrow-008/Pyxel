@@ -112,6 +112,48 @@ class RUSTY_PISTOL(RangedWeapon):
         rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
 
+
+class SNIPER(RangedWeapon): #just a test, you can erase it if you want
+    def __init__(self):
+        name = "Sniper"
+        shortDescription = "Long-range precision weapon"
+        handNumber = 2
+        image = (80,112)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
+
+        mode = "manual"
+
+        bulletImage = (32,64)
+        bulletWidth = 4
+        bulletHeight = 4
+
+        spread = 2
+        movingSpreadIncrease = 50
+        bulletCount = 1
+
+        bulletSpeed = 3
+
+        range = 12*TILE_SIZE
+        damage = 100
+        piercing = 4
+        knockbackCoef = 1
+        fallOffCoef = -1 #Positive = damage decreases with distance / Negative = damage increases with distance
+        noFallOffArea = 1-0.4 #This means that there won't be damage fallOff for the first 40% of the projectile's trajectory
+
+        reloadTime = 5*FPS
+        attackCooldown = 1*FPS
+
+        magAmmo = 10
+        maxAmmo = 10
+        reserveAmmo = 50
+
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+        super().__init__(baseWeaponInfo, rangedWeaponInfo)
+
+
 class TEST_2_HANDS(RangedWeapon):
     def __init__(self):
         name = "2HANDS"

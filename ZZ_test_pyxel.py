@@ -15,6 +15,7 @@ class App:
         pyxel.load('rooms.pyxres')
         pyxel.colors[2] = get_color('740152')
         pyxel.colors[14] = get_color('C97777')
+        pyxel.pal(7,10)
 
         self.show = TestAnim()
 
@@ -37,11 +38,9 @@ class TestAnim:
     
     def draw(self):
         self.anim.draw(0,0)
-        pyxel.text(0,0,str(1/math.sqrt(2)),7)
 
 
 def get_color(hex):
     return int(hex, 16)
-
 
 App()

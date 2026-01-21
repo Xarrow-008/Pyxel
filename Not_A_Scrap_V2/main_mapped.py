@@ -154,6 +154,16 @@ class inMission:
         self.exits = exits
         self.infoText = ("","","")
         self.isPlayable = True
+        self.activeAsset = 'N/A'
+
+        self.createInteractables()
+
+    def createInteractables(self):
+        for room in self.rooms:
+            for asset in room.assets:
+                if asset.name in ['ClosetFront', 'ClosetBack']:
+                    if random.randint(0,1) == 0:
+                        asset.interactable = True
 
     def exitCondition(self): #for when we come back
         return False
@@ -167,6 +177,8 @@ class inMission:
 
         self.collisionGestion()
 
+        self.roomsUpdate()
+
         if pyxel.btnp(pyxel.KEY_M):
             self.entities.append(Enemy(self.player.x, self.player.y, EnemyTemplate.DUMMY, 0))
             
@@ -179,6 +191,61 @@ class inMission:
 
         if pyxel.btnp(pyxel.KEY_L):
             self.interactables.append(Interactable(self.player.x, self.player.y, InteractableTemplate.CHEST))
+
+    def roomsUpdate(self):
+        for room in self.rooms:
+            if pointInside(self.player.x, self.player.y, room.x-TILE_SIZE, room.y-TILE_SIZE, room.width+2*TILE_SIZE, room.height+2*TILE_SIZE):
+                self.furnitureUpdate(room)
+                break
+
+    def furnitureUpdate(self, room):
+        if self.activeAsset == 'N/A':
+            for asset in room.assets:
+                if asset.interactable:
+                    if collision(asset.x-TILE_SIZE,asset.y-TILE_SIZE,self.player.x,self.player.y,(asset.width+2*TILE_SIZE,asset.height+2*TILE_SIZE),(TILE_SIZE,TILE_SIZE)):
+                        self.activeAsset = asset
+                        break
+                    else:
+                        asset.anim = [0,0]
+        else:
+            asset = self.activeAsset
+            if collision(asset.x-TILE_SIZE,asset.y-TILE_SIZE,self.player.x,self.player.y,(asset.width+2*TILE_SIZE,asset.height+2*TILE_SIZE),(TILE_SIZE,TILE_SIZE)):
+                self.playerInteract()
+            else:
+                self.activeAsset.interactProgress = 0
+                self.activeAsset = 'N/A'
+
+
+    def playerInteract(self):
+        asset = self.activeAsset
+        self.infoText = (asset.name, asset.description, ("Hold","interact"))
+        holdDuration = asset.interactTime*(1-self.player.inventory.interactableSpeed/100)
+
+        if keyPress('INTERACT','btn'):
+            asset.interactProgress += 1
+        else:
+            asset.interactProgress = 0
+            asset.anim = [0,0]
+
+        if asset.interactProgress >= holdDuration*1/3:
+            asset.anim[1] = 1 
+        if asset.interactProgress >= holdDuration*2/3:
+            asset.anim[1] = 2
+
+        if asset.interactProgress >= holdDuration:
+
+            asset.used = True
+            asset.interactable = False
+            self.activeAsset = 'N/A'
+
+            pickup = asset.function[1].pickRandom(0)
+            pickupObject = Pickup(asset.x + asset.dropPos[0], asset.y + asset.dropPos[1], pickup)
+            if pickup is None:
+                print("Its meant to drop a rare/legendary item, but I haven't actually implemented those yet")
+            else:
+                self.pickups.append(pickupObject)
+
+            
 
 
     def updateAllEntityAnims(self):
@@ -604,7 +671,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun")
 
     def tempHealthDecay(self):
-        if on_tick(FPS):
+        if onTick(FPS):
             self.tempHealth -= math.ceil(self.tempHealth/10)
 
     def movement(self):
@@ -943,10 +1010,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
         
         self.image = (6,3)
         self.facing = [1,0]
-        self.last_facing = [1,0]
         #We should probably make it so that "facing" and "direction" work the same way (because facing doesn't have diagonals)
         self.direction = [1,0]
-        self.last_direction = [1,0]
 
         self.isWalking = False
         self.step = False
@@ -958,10 +1023,11 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.inventoryIsMoving = False
         self.inventoryStartFrame = 0
         self.inventoryDirection = 0
+        self.activeInteractable = 'N/A'
 
         self.fuel = 0
 
-        self.level = 0 #TODO : Make this increase everytime the player escapes a bunker
+        self.level = 0 #TODO : Make this increase everytime the player escapes a bunker/ LEO: maybe put this variable in game or sum
 
     def initCharacter(self):
         self.characterName = "Scrapper"
@@ -1093,7 +1159,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         if not self.inventoryIsMoving:
 
-            if self.moveInventoryLeft():
+            if self.moveInventoryLeft(): #TODO might wanna change this misleading name
                 self.inventoryStartFrame = pyxel.frame_count
                 self.inventoryIsMoving = True
                 self.inventoryDirection = -1
@@ -1110,7 +1176,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         return self.inventoryPosition != 0 and (keyPress("LEFT","btnp") or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=1 and pyxel.mouse_x<=7 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
 
     def moveInventoryRight(self):
-        return self.inventoryPosition != 2*WID and (keyPress("RIGHT", "btnp") or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=WID-8 and pyxel.mouse_x<=WID-2 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
+        return self.inventoryPosition != 2*CAM_WIDTH and (keyPress("RIGHT", "btnp") or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=WID-8 and pyxel.mouse_x<=WID-2 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
 
     def moveInventory(self):
         inventoryFrame = pyxel.frame_count - self.inventoryStartFrame
@@ -1118,7 +1184,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         if inventoryFrame == 1:
             self.inventoryPosition += 8*self.inventoryDirection
 
-        elif inventoryFrame in [x for x in range(2,16)]:
+        elif inventoryFrame in [x for x in range(2,16)]: #TODO Holy shit what is that pls use 2 < frame < 16
             self.inventoryPosition += 16*self.inventoryDirection
 
         elif inventoryFrame in [x for x in range(16,21)]:
@@ -1428,7 +1494,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
                 self.facing = [0,0]
         
         if self.isWalking:
-            if on_tick(120):
+            if onTick(120):
                 self.step = not self.step
                 self.step_frame = 0
 
@@ -1891,7 +1957,7 @@ class Inventory:
         self.recalculateStats = True
 
 
-class Projectile(Entity) : #Creates a projectile that can hit other entitiesz
+class Projectile(Entity) : #Creates a projectile that can hit other entities
     def __init__(self, weapon, x, y, vector, owner, shot):
         super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
 
@@ -2218,9 +2284,6 @@ def distance(x1, y1, x2, y2):
 def distanceObjects(object1, object2):
     return math.sqrt((object1.x+object1.width - object2.x-object2.width)**2 + (object1.y+object1.height - object2.y-object2.height)**2)
 
-def on_tick(tickrate=60):
-    return pyxel.frame_count % tickrate == 0
-
 def timer(start_frame, duration, counter):
     return counter - start_frame >= duration
 
@@ -2364,13 +2427,13 @@ def holdKey(action, duration, counter):
             else:
                 key = "KEY_"+dic["key"]
     if holdingKey and key==keyBeingHeld and pyxel.btn(getattr(pyxel,key)):
-        if timer(heldKeyStartFrame, duration, counter):
-            holdingKey = False
         return timer(heldKeyStartFrame, duration, counter)
+
     elif pyxel.btn(getattr(pyxel,key)):
         heldKeyStartFrame = counter
         holdingKey = True
         keyBeingHeld = key
+
     else:
         pressingAKey = False
         for dic in keybinds:

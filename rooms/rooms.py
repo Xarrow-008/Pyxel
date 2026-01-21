@@ -698,8 +698,6 @@ class Roombuild:
             self.isBuilding = False
             print(self.nbRooms, len(self.rooms))
 
-        
-
 
 
     def goBack(self):
@@ -812,6 +810,7 @@ class Room:
         self.height = height*TILE_SIZE
         self.exitsPos = {'up':[],'down':[],'left':[],'right':[]}
         self.exitsFree = {'up':True,'down':True,'left':True,'right':True}
+        self.floorTiles = []
 
         self.index = 0
         self.previousRoom = 0
@@ -837,9 +836,17 @@ class Room:
                     wallsIn['lowWalls'].append((x-1, y-2))
 
                 if wallsMap[startY + y][startX + x] == 2:
-                    wallsIn['highWalls'].append((x-1, y-2))
+                    wallsIn['highWalls'].append((x-1, y-2))                
 
         return wallsIn
+
+    def getFloorTiles(self):
+        startX = self.x//TILE_SIZE
+        startY = self.y//TILE_SIZE
+        for x in range(self.width//TILE_SIZE):
+            for y in range(self.height//TILE_SIZE):
+                if wallsMap[startY + y][startX + x] == 0:
+                    self.floorTiles.append((x,y))
 
     def __str__(self):
         string = ''
@@ -867,9 +874,7 @@ class Room:
         self.assetDraw()
 
     def floorPatternDraw(self):
-        for y in range(self.height//TILE_SIZE):
-            for x in range(self.width//TILE_SIZE):
-                pass
+        pass
 
     def assetAppend(self, assetClass, pos, reversed=False):
         index = 0
@@ -936,6 +941,7 @@ class LoadRoom(Room):
                     self.assetAppend(classAsset,(self.x + asset['relativeX'],self.y + asset['relativeY']),asset['reversed'])
 
         self.buildWalls()
+        self.getFloorTiles()
 
     def buildWalls(self):
         global wallsMap
