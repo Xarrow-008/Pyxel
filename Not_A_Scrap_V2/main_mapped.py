@@ -171,7 +171,7 @@ class inMission:
     def update(self):
 
         self.entity_gestion()
-        self.interactable_gestion()
+        self.pickup_gestion()
 
         self.player.update()
 
@@ -180,7 +180,7 @@ class inMission:
         self.roomsUpdate()
 
         if pyxel.btnp(pyxel.KEY_M):
-            self.entities.append(Enemy(self.player.x, self.player.y, EnemyTemplate.DUMMY, 0))
+            self.entities.append(Dummy(self.player.x, self.player.y, 0))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(5, [0,0], 1, 0, self.player, self.player)
@@ -244,8 +244,6 @@ class inMission:
                 print("Its meant to drop a rare/legendary item, but I haven't actually implemented those yet")
             else:
                 self.pickups.append(pickupObject)
-
-            
 
 
     def updateAllEntityAnims(self):
@@ -328,24 +326,6 @@ class inMission:
         for pickup in self.pickups:
             if pickup.pickedUp:
                 self.pickups.remove(pickup)
-
-    def interactable_gestion(self):
-        self.pickup_gestion()
-
-        for interactable in self.interactables:
-            if collisionObjects(interactable, self.player) and not interactable.interactedWith:
-
-                self.infoText = (interactable.template["name"], interactable.template["description"], ("Hold","interact"))
-
-                if holdKey("INTERACT", interactable.template["duration"]*(1-self.player.inventory.interactableSpeed/100), game_frame):
-                    interactable.interactedWith = True
-                    pickup = interactable.template["function"][1].pickRandom(0)
-                    pickupObject = Pickup(interactable.x, interactable.y, pickup)
-                    if pickup is None:
-                        print("Its meant to drop a rare/legendary item, but I haven't actually implemented those yet")
-                    else:
-                        self.pickups.append(pickupObject)
-
 
     def draw(self):
         self.drawWorld()
@@ -550,7 +530,6 @@ class inMission:
     def entityCollidingWithPlayer(self, entity):
         return collisionObjects(self.player, entity) and not self.player.isHitStun
 
-
 class Entity: #General Entity class with all the methods describing what entities can do²
     def __init__(self, x, y, width, height):
         self.x = x
@@ -568,6 +547,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.anims = []
 
         self.heal = 0
+        self.dead = False
 
         self.tempHealth = 0
 
@@ -983,6 +963,7 @@ class Entity: #General Entity class with all the methods describing what entitie
                 pass #TODO : Implement this once we implement melee weapons
             else:
                 self.inventory.rightHand.reserveAmmo = math.ceil(self.inventory.rightHand.reserveAmmoffffffffffffffffffff*(1+self.inventory.ressourceKillEffect/100))
+
 
 
 class Player(Entity): #Creates an entity that's controlled by the player
@@ -1671,6 +1652,219 @@ class Enemy(Entity): #Creates an entity that fights the player
                 self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
 
+class Projectile(Entity) : #Creates a projectile that can hit other entities
+    def __init__(self, weapon, x, y, vector, owner, shot):
+        super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
+
+        self.momentum = vector
+
+        self.image = weapon.bulletImage
+
+        
+        if owner is Enemy:
+            self.baseDamage = weapon.damage*owner.scale
+            self.damage = weapon.damage*owner.scale
+        else:
+            self.baseDamage = weapon.damage
+            self.damage = weapon.damage
+
+        self.piercing = weapon.piercing
+
+        self.baseRange = weapon.range
+        self.range = weapon.range
+
+        self.fallOffCoef = weapon.fallOffCoef
+        self.noFallOffArea = weapon.noFallOffArea
+
+        self.owner = owner
+
+        self.shot = shot
+
+        if hasattr(owner, "inventory"):
+            self.damageKnockbackCoef = weapon.knockbackCoef*(1+owner.inventory.rangedKnockback/100)
+        else:
+            self.damageKnockbackCoef = weapon.knockbackCoef
+
+        self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0)
+        self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
+        self.initialiseNewCollisions()
+        
+
+    def draw(self):
+        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
+
+    def movement(self):
+        self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
+        self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
+
+        if self.range != 0 and self.range < (self.baseRange*self.noFallOffArea):
+            if self.fallOffCoef >= 0 :
+                self.damage = self.baseDamage*self.fallOffCoef*(self.range/(self.baseRange*self.noFallOffArea))
+            else:
+                self.damage = -self.baseDamage*self.fallOffCoef*(2 - self.range/(self.baseRange*self.noFallOffArea))
+            self.initialiseNewCollisions()
+
+
+    def dash(self):
+        pass
+
+    def collision(self):
+        self.wallCollision()
+
+    def attack(self):
+        pass
+
+    def imageGestion(self):
+        pass
+
+    def death(self):
+        if self.range <= 0:
+            self.dead = True
+
+    def initialiseNewCollisions(self):
+        if type(self.owner)==Player:
+            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing], [0, 0, 0, -1])
+        elif type(self.owner)==Enemy:
+            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing])
+
+    def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
+        X = int(self.x//TILE_SIZE)
+        Y = int(self.y//TILE_SIZE)
+
+        #We handle horizontal and vertical movement separatly to make problem solving easier
+
+        #Calculate the new position
+        new_x = self.x + vector[0]
+        new_X = X+pyxel.sgn(vector[0])
+
+        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
+            new_x = new_X*TILE_SIZE
+
+        if vector[0]!=0:
+            next_X_1 = wallsMap[Y][new_X]
+            if self.y != Y*TILE_SIZE:
+                next_X_2 = wallsMap[Y+1][new_X]
+            else:
+                next_X_2 = 0
+            #If there's enough space for the entity to move, it moves unimpeded
+            if (next_X_1 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+                self.x = new_x
+            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
+            elif (next_X_1 == 2 or next_X_2 == 2) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+                self.collidedWithWall = True
+                self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
+        
+        X = int(self.x//TILE_SIZE)
+
+        #We calculate vertical movement in the same way we do horizontal movement
+
+        new_y = self.y + vector[1]
+        new_Y = Y+pyxel.sgn(vector[1])
+        
+        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
+            new_y = new_Y*TILE_SIZE
+
+        
+        if vector[1]!=0:
+            next_Y_1 = wallsMap[new_Y][X]
+            if self.x != X*TILE_SIZE:
+                next_Y_2 = wallsMap[new_Y][X+1]
+            else:
+                next_Y_2 = 0
+            
+            if (next_Y_1 != 2 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 != 2 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+                self.y = new_y
+            elif (next_Y_1 == 2 or next_Y_2 == 2) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+                self.collidedWithWall = True
+                self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
+
+
+
+class Pickup:
+    def __init__(self, x, y, pickup):
+        self.x = x
+        self.y = y
+
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
+
+        self.pickup = pickup
+
+        self.pickedUp = False
+
+    def draw(self):
+        draw(x=self.x, y=self.y, img=0, u=self.pickup.image[0], v=self.pickup.image[1], w=self.width, h=self.height, colkey=11)
+
+class Interactable:
+    def __init__(self, x, y, template):
+        self.x = x
+        self.y = y
+
+        self.width = TILE_SIZE
+        self.height = TILE_SIZE
+
+        self.template = template
+
+        self.interactedWith = False
+
+    def draw(self):
+        if self.interactedWith :
+            pyxel.rect(x=self.x, y=self.y, w=self.width, h=self.height, col=0)
+        else:
+            draw(x=self.x, y=self.y, img=0, u=self.template["image"][0], v=self.template["image"][1], w=self.width, h=self.height, colkey=11)
+
+
+class World:
+    def __init__(self, playerPos):
+        global wallsMap
+
+        self.playerPos = playerPos
+        self.rooms = []
+        self.exits = []
+        self.showWalls = False
+        self.constructor = Roombuild(playerPos)
+        self.doneBuilding = False
+        self.minRooms = 20
+        self.isPlayable = False
+
+        self.initBuild()
+
+    def exitCondition(self):
+        return self.doneBuilding
+
+    def update(self):
+        self.constructor.update()
+        if not self.constructor.isBuilding and not self.doneBuilding:
+            if len(self.constructor.rooms) >= self.minRooms:
+                global wallsMap
+                self.rooms = self.constructor.rooms
+                self.exits = self.constructor.exits
+                self.doneBuilding = True
+                wallsMap = copy(self.constructor.wallsMap)
+            else:
+                print('rooms got stuck below minimum, retrying')
+                self.constructor = Roombuild(self.playerPos)
+                self.doneBuilding = False
+                self.initBuild()
+
+      
+    def initBuild(self):
+        self.isBuilding = False
+        self.buildLoops = 0
+
+    def draw(self):
+        self.drawMap()
+        if self.constructor.isBuilding:
+            self.constructor.anim.draw(*camera)
+    
+    def drawMap(self):
+        for room in self.rooms:
+            room.draw()
+            
+        for exit in self.exits:
+            exit.draw()
+
+        
 
 class Inventory:
     def __init__(self):
@@ -1957,227 +2151,96 @@ class Inventory:
         self.recalculateStats = True
 
 
-class Projectile(Entity) : #Creates a projectile that can hit other entities
-    def __init__(self, weapon, x, y, vector, owner, shot):
-        super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
 
-        self.momentum = vector
+class Enemy(Entity): #Creates an entity that fights the player
+    def __init__(self, x, y, width, height, level=0):
+        super().__init__(x=x, y=y, width=width, height=height)
 
-        self.image = weapon.bulletImage
+        self.originalImage = (32,80)
+        self.image = (32,80)
 
-        
-        if owner is Enemy:
-            self.baseDamage = weapon.damage*owner.scale
-            self.damage = weapon.damage*owner.scale
-        else:
-            self.baseDamage = weapon.damage
-            self.damage = weapon.damage
+        self.level = level
 
-        self.piercing = weapon.piercing
+        self.health = 100
+        self.baseHealth = 100
+        self.maxHealth = 100
 
-        self.baseRange = weapon.range
-        self.range = weapon.range
+        self.inventory = Inventory()
 
-        self.fallOffCoef = weapon.fallOffCoef
-        self.noFallOffArea = weapon.noFallOffArea
-
-        self.owner = owner
-
-        self.shot = shot
-
-        if hasattr(owner, "inventory"):
-            self.damageKnockbackCoef = weapon.knockbackCoef*(1+owner.inventory.rangedKnockback/100)
-        else:
-            self.damageKnockbackCoef = weapon.knockbackCoef
-
-        self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0)
-        self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
-        self.initialiseNewCollisions()
-        
+        self.spawnedPickups = []
 
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
-        self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
-        self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
 
-        if self.range != 0 and self.range < (self.baseRange*self.noFallOffArea):
-            if self.fallOffCoef >= 0 :
-                self.damage = self.baseDamage*self.fallOffCoef*(self.range/(self.baseRange*self.noFallOffArea))
-            else:
-                self.damage = -self.baseDamage*self.fallOffCoef*(2 - self.range/(self.baseRange*self.noFallOffArea))
-            self.initialiseNewCollisions()
+        self.speedDecrease()
 
+        self.walk(self.momentum)
+
+    def speedDecrease(self):
+        #These two lines are temporary and will be removed once we have pathing. They're just there to make sure the speed decreases
+        self.momentum[0] -= self.momentum[0]/self.speedChangeRate
+        self.momentum[1] -= self.momentum[1]/self.speedChangeRate
+
+        if abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = 0
+        if abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = 0
 
     def dash(self):
         pass
 
     def collision(self):
-        self.wallCollision()
+        pass
 
     def attack(self):
         pass
 
     def imageGestion(self):
-        pass
+        if self.canDoActions():
+            self.image = self.originalImage
+        else:
+            self.image = [self.originalImage[0]+TILE_SIZE, self.originalImage[1]]
 
     def death(self):
-        if self.range <= 0:
+        if self.health <= 0 and not self.dead:
             self.dead = True
 
-    def initialiseNewCollisions(self):
-        if type(self.owner)==Player:
-            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing], [0, 0, 0, -1])
-        elif type(self.owner)==Enemy:
-            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing])
+            if random.randint(1,100) <= self.deathItemSpawn:
+                pickup = RARITY_TABLE.pickRandom(0)
+                if pickup is not None:
+                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
-    def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
-        X = int(self.x//TILE_SIZE)
-        Y = int(self.y//TILE_SIZE)
-
-        #We handle horizontal and vertical movement separatly to make problem solving easier
-
-        #Calculate the new position
-        new_x = self.x + vector[0]
-        new_X = X+pyxel.sgn(vector[0])
-
-        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
-            new_x = new_X*TILE_SIZE
-
-        if vector[0]!=0:
-            next_X_1 = wallsMap[Y][new_X]
-            if self.y != Y*TILE_SIZE:
-                next_X_2 = wallsMap[Y+1][new_X]
+            if hasattr(self.lastHitBy, "inventory"):
+                if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChance:
+                    pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance)
+                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
             else:
-                next_X_2 = 0
-            #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
-                self.x = new_x
-            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
-            elif (next_X_1 == 2 or next_X_2 == 2) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
-                self.collidedWithWall = True
-                self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
-        
-        X = int(self.x//TILE_SIZE)
+                if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChancce:
+                    pickup = FUEL_TABLE.pickRandom(0)
+                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
-        #We calculate vertical movement in the same way we do horizontal movement
-
-        new_y = self.y + vector[1]
-        new_Y = Y+pyxel.sgn(vector[1])
-        
-        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
-            new_y = new_Y*TILE_SIZE
-
-        
-        if vector[1]!=0:
-            next_Y_1 = wallsMap[new_Y][X]
-            if self.x != X*TILE_SIZE:
-                next_Y_2 = wallsMap[new_Y][X+1]
-            else:
-                next_Y_2 = 0
-            
-            if (next_Y_1 != 2 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 != 2 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
-                self.y = new_y
-            elif (next_Y_1 == 2 or next_Y_2 == 2) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
-                self.collidedWithWall = True
-                self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
+            if random.randint(1,100) <= self.deathWeaponSpawn:
+                pickup = WEAPON_TABLE.pickRandom(0)
+                self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
 
+class Dummy(Enemy):
+    def __init__(self, x ,y, level=0):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
+        self.name = 'Dummy'
+        self.image = (32,48)
 
-class Pickup:
-    def __init__(self, x, y, pickup):
-        self.x = x
-        self.y = y
+        self.health = 100
+        self.maxHealth = 100
 
-        self.width = TILE_SIZE
-        self.height = TILE_SIZE
+        self.scaling = 1.5
 
-        self.pickup = pickup
+        self.initWalk(priority=0, maxSpeed=1, speedChangeRate=10, knockbackCoef=1)
+        self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
+        self.initHitstun(duration=0.75*FPS, freezeFrame=0, invincibility=0)
 
-        self.pickedUp = False
-
-    def draw(self):
-        draw(x=self.x, y=self.y, img=0, u=self.pickup.image[0], v=self.pickup.image[1], w=self.width, h=self.height, colkey=11)
-
-class Interactable:
-    def __init__(self, x, y, template):
-        self.x = x
-        self.y = y
-
-        self.width = TILE_SIZE
-        self.height = TILE_SIZE
-
-        self.template = template
-
-        self.interactedWith = False
-
-    def draw(self):
-        if self.interactedWith :
-            pyxel.rect(x=self.x, y=self.y, w=self.width, h=self.height, col=0)
-        else:
-            draw(x=self.x, y=self.y, img=0, u=self.template["image"][0], v=self.template["image"][1], w=self.width, h=self.height, colkey=11)
-
-
-class Blocks:
-    WALLS = [(0,0),(1,0),(2,0),(3,0)]
-    WALLS_DOWN = [(0,0),(1,0)]
-    WALLS_UP = [(2,0),(3,0)]
-
-    GROUND = [(0,1)]
-
-
-class World:
-    def __init__(self, playerPos):
-        global wallsMap
-
-        self.playerPos = playerPos
-        self.rooms = []
-        self.exits = []
-        self.showWalls = False
-        self.constructor = Roombuild(playerPos)
-        self.doneBuilding = False
-        self.minRooms = 20
-        self.isPlayable = False
-
-        self.initBuild()
-
-    def exitCondition(self):
-        return self.doneBuilding
-
-    def update(self):
-        self.constructor.update()
-        if not self.constructor.isBuilding and not self.doneBuilding:
-            if len(self.constructor.rooms) >= self.minRooms:
-                global wallsMap
-                self.rooms = self.constructor.rooms
-                self.exits = self.constructor.exits
-                self.doneBuilding = True
-                wallsMap = copy(self.constructor.wallsMap)
-            else:
-                print('rooms got stuck below minimum, retrying')
-                self.constructor = Roombuild(self.playerPos)
-                self.doneBuilding = False
-                self.initBuild()
-
-      
-    def initBuild(self):
-        self.isBuilding = False
-        self.buildLoops = 0
-
-    def draw(self):
-        self.drawMap()
-        if self.constructor.isBuilding:
-            self.constructor.anim.draw(*camera)
-    
-    def drawMap(self):
-        for room in self.rooms:
-            room.draw()
-            
-        for exit in self.exits:
-            exit.draw()
-
-        
 
 
 class Animation:
@@ -2275,9 +2338,6 @@ class AnimSmokeRight(Animation):
 
 
 
-
-
-
 def distance(x1, y1, x2, y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
 
@@ -2317,17 +2377,6 @@ def collisionObjects(object1, object2):
 
 def show(x,y,img,colkey=11,save=0):
     pyxel.blt(x,y,save,img[0]*16,img[1]*16,16,16,colkey=colkey)
-
-def free_space(map):
-    new_map = map
-    for y in range(len(map)):
-        for x in range(len(map[y])):
-            block = map[y][x]
-            if block in Blocks.GROUND:
-                new_map[y][x] = 0
-            else:
-                new_map[y][x] = 1
-    return new_map
    
 def is_inside_map(pos,map):
     if pos[0] >= len(map[0]) or pos[1] >= len(map):
