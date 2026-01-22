@@ -155,8 +155,21 @@ class inMission:
         self.infoText = ("","","")
         self.isPlayable = True
         self.activeAsset = 'N/A'
+        self.currentRoom = self.rooms[0]
+        self.roomFocus = False #if we want other rooms than the one the player is in be darkened
+        self.roomShadow = 0.2
 
         self.createInteractables()
+        #self.fillBasicEnemies()
+
+
+    def fillBasicEnemies(self):
+        for room in self.rooms:
+            if room.depth >= 2:
+                nbEnemies = random.randint(1,3)
+                for enemy in range(nbEnemies):
+                    pos = random.choice(room.floorTiles)
+                    self.entities.append(EarthLing(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE))
 
     def createInteractables(self):
         for room in self.rooms:
@@ -193,12 +206,37 @@ class inMission:
             self.interactables.append(Interactable(self.player.x, self.player.y, InteractableTemplate.CHEST))
 
     def roomsUpdate(self):
-        for room in self.rooms:
-            if pointInside(self.player.x, self.player.y, room.x-TILE_SIZE, room.y-TILE_SIZE, room.width+2*TILE_SIZE, room.height+2*TILE_SIZE):
-                self.furnitureUpdate(room)
-                break
+        room = self.findRoom(self.player.x,self.player.y)
+        self.furnitureUpdate()
+        if not room is None:
+            self.currentRoom = room
 
-    def furnitureUpdate(self, room):
+        self.addEnemiesGradually()
+
+    def addEnemiesGradually(self):
+        for room in self.rooms:
+            if not room.hasSpawnedEnemies and room.index >= 2 and self.rooms[room.previousRoom].previousRoom <= self.currentRoom.index:
+                room.hasSpawnedEnemies = True
+                nbEnemies = random.randint(1,3)
+                for enemy in range(nbEnemies):
+                    pos = random.choice(room.floorTiles)
+                    self.entities.append(EarthLing(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE))
+
+
+    def findRoom(self,x,y):
+        for room in self.rooms:
+            if pointInside(x, y, room.x-TILE_SIZE+1, room.y-TILE_SIZE, room.width+2*TILE_SIZE-2, room.height+2*TILE_SIZE):
+                return room
+
+        for exit in self.exits:
+            if pointInside(x, y, exit.x, exit.y, exit.width, exit.height):
+                return self.rooms[exit.origin]
+
+        print('no room')
+
+
+    def furnitureUpdate(self):
+        room = self.currentRoom
         if self.activeAsset == 'N/A':
             for asset in room.assets:
                 if asset.interactable:
@@ -294,8 +332,26 @@ class inMission:
             if entity.heal > 0:
                 self.heal(entity.heal, entity, entity)
                 entity.heal = 0
-            
-            entity.update()
+
+            room = self.findRoom(entity.x,entity.y)
+            conditionUpdate = type(entity) == Projectile
+
+            if room is None:
+                if distance(self.player.x,self.player.y,entity.x,entity.y) < CAM_WIDTH:
+                    conditionUpdate = True
+            elif self.isRoomNearby(room):
+                conditionUpdate = True
+
+            if conditionUpdate:
+                entity.target = (self.player.x,self.player.y)
+                entity.update()
+
+                if not type(entity) == Projectile and True and collision(self.player.x,self.player.y,entity.x,entity.y,(self.player.width,self.player.height),(entity.width,entity.height)):
+                    self.hurt(5, [0,0], 1, 0, entity, self.player) #TODO CHANGE WHEN BULLETS CAN HIT PLAYER
+
+
+    def isRoomNearby(self,room):
+        return room.index == self.currentRoom.previousRoom or room.previousRoom == self.currentRoom.index or room.index == self.currentRoom.index
 
     def pickup_gestion(self):
         self.infoText = ("", "", "")
@@ -356,10 +412,25 @@ class inMission:
 
     def drawWorld(self):
         for room in self.rooms:
+            shadeCondition = room != self.currentRoom and self.roomFocus
+            if shadeCondition:
+                pyxel.dither(self.roomShadow)
+
             room.draw()
+
+            if shadeCondition:
+                pyxel.dither(1)
+
         
         for exit in self.exits:
+            shadeCondition = self.currentRoom.index not in [exit.origin, exit.destination] and self.roomFocus
+            if shadeCondition:
+                pyxel.dither(self.roomShadow)
+
             exit.draw()
+
+            if shadeCondition:
+                pyxel.dither(1)
 
     def heal(self, value, healer, target):
         target.health += value
@@ -429,6 +500,8 @@ class inMission:
                     knockback_value = len(str(value))*knockback_coef*target.knockbackCoef
                     target.momentum[0] += vector[0]*knockback_value
                     target.momentum[1] += vector[1]*knockback_value
+                    
+                target.addAnimationHit((damager.x-4,damager.y-4))
 
 
         else:
@@ -448,8 +521,7 @@ class inMission:
                 knockback_value = len(str(value))*knockback_coef*target.knockbackCoef
                 target.momentum[0] += vector[0]*knockback_value
                 target.momentum[1] += vector[1]*knockback_value
-                
-        target.addAnimationHit((damager.x-4,damager.y-4))
+        
 
         if target.health <= 0:
             if damagerIsOwned:
@@ -489,13 +561,13 @@ class inMission:
             for j in range(i+1, len(self.entities)):
                 entity2 = self.entities[j]
 
-                if not ((type(entity1)==Enemy and entity1.health<=0) or (type(entity1)==Projectile and entity1.range<=0) or (type(entity2)==Enemy and entity2.health<=0) or (type(entity2)==Projectile and entity2.range<=0)):
+                if not ((issubclass(type(entity1),Enemy) and entity1.health<=0) or (type(entity1)==Projectile and entity1.range<=0) or (type(entity2)==Enemy and entity2.health<=0) or (type(entity2)==Projectile and entity2.range<=0)):
 
                     if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2):
                         
                         self.hurt(entity1.enemyCollisionEffect[0], entity1.enemyCollisionEffect[1], entity1.enemyCollisionEffect[2], entity1.shot, entity1, entity2)
                         if entity1.enemyCollisionEffect[3] == 0:
-                            if type(entity1) == Enemy:
+                            if issubclass(type(entity1),Enemy):
                                 entity1.health = 0
                             elif type(entity1) == Projectile:
                                 entity1.range = 0
@@ -506,7 +578,7 @@ class inMission:
     
                         self.hurt(entity2.enemyCollisionEffect[0], entity2.enemyCollisionEffect[1], entity2.enemyCollisionEffect[2], entity2.shot, entity2, entity1)
                         if entity2.enemyCollisionEffect[3] == 0:
-                            if type(entity2) == Enemy:
+                            if issubclass(type(entity2),Enemy):
                                 entity2.health = 0
                             elif type(entity2) == Projectile:
                                 entity2.range = 0
@@ -530,7 +602,8 @@ class inMission:
     def entityCollidingWithPlayer(self, entity):
         return collisionObjects(self.player, entity) and not self.player.isHitStun
 
-class Entity: #General Entity class with all the methods describing what entities can do²
+
+class Entity: #General Entity class with all the methods describing what entities can do
     def __init__(self, x, y, width, height):
         self.x = x
         self.y = y
@@ -792,6 +865,12 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.dead = False
 
+    def initMeleeAttack(self, priority):
+        self.meleeAttackPriority = priority
+        self.isSlashing = False
+        self.lastSlashFrame = 0
+        self.slashFrameDuration = 25
+
     def initRangedAttack(self, priority):
         self.rangedAttackPriority = priority
         self.shotsFired = 0
@@ -828,9 +907,10 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
 
+            bulletPos = getPlayerBulletPos(self.facing)
             for i in range(weapon.bulletCount):
-                horizontal = x - (self.x + self.width/2)
-                vertical = y - (self.y + self.height/2)
+                horizontal = x - (self.x + bulletPos[0])
+                vertical = y - (self.y + bulletPos[1])
                 norm = math.sqrt(horizontal**2 + vertical**2)
 
                 if norm != 0:
@@ -847,7 +927,6 @@ class Entity: #General Entity class with all the methods describing what entitie
                     sin = 0
 
 
-                bulletPos = getPlayerBulletPos(self.facing)
 
                 bullet_shot = Projectile(weapon, self.x+bulletPos[0], self.y+bulletPos[1], [cos,sin], self, self.shotsFired)
 
@@ -897,7 +976,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         return hasattr(self, "playerCollisionEffect") and self.playerCollisionEffect[3] != -1
 
     def collidingWithEnemy(self, entity):
-        return type(entity) == Enemy and collisionObjects(self, entity) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
+        return issubclass(type(entity),Enemy) and collisionObjects(self, entity) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
 
     def addAnimationHit(self,pos):
         self.addAnimation(pos=[pos[0],pos[1],False],settings={'u':0,'v':1,'length':5},lifetime='1 cycle')
@@ -1110,9 +1189,12 @@ class Player(Entity): #Creates an entity that's controlled by the player
         show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.lastDashFrame//(self.dashDuration/3+1)*2, self.image[1] + self.facing[1] + 2))
 
     def idleDraw(self):
-        show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
-        show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
-        show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
+        if not self.isHitStun and not self.isInvincible():
+            show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
+            show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
+            show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
+        else:
+            show(self.x, self.y, (self.image[0] + self.facing[0] - 2, self.image[1] + self.facing[1]))
 
     def drawOver(self):
         self.drawAnimsOverPlayer()
@@ -1563,95 +1645,6 @@ class Player(Entity): #Creates an entity that's controlled by the player
         pass
 
 
-
-class Enemy(Entity): #Creates an entity that fights the player
-    def __init__(self, x, y, template, level):
-        super().__init__(x=x, y=y, width=template["width"], height=template["height"])
-
-        self.originalImage = template["image"]
-        self.image = template["image"]
-
-        self.scale = template["scaling"]**level
-        self.level = level
-
-        self.health = math.ceil(template["health"]*self.scale)
-        self.baseHealth = math.ceil(template["maxHealth"]*self.scale)
-        self.maxHealth = math.ceil(template["maxHealth"]*self.scale)
-
-        #We initialise all of the enemies abilities
-        for ability in template["abilities"].items():
-            
-            initialiser = getattr(self, "init"+ability[0])
-            parameters = ability[1].values()
-            initialiser(*parameters)
-
-            if ability[0] == "Walk":
-                self.baseSpeed = ability[1]["maxSpeed"]
-            elif ability[0] == "Dash":
-                self.baseDashCooldown = ability[1]["cooldown"]
-
-
-        self.inventory = Inventory()
-
-        self.spawnedPickups = []
-
-    def draw(self):
-        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
-
-    def movement(self):
-
-        self.speedDecrease
-
-        self.walk(self.momentum)
-
-    def speedDecrease(self):
-        #These two lines are temporary and will be removed once we have pathing. They're just there to make sure the speed decreases
-        self.momentum[0] -= self.momentum[0]/self.speedChangeRate
-        self.momentum[1] -= self.momentum[1]/self.speedChangeRate
-
-        if abs(self.momentum[0]) <= 0.01:
-            self.momentum[0] = 0
-        if abs(self.momentum[1]) <= 0.01:
-            self.momentum[1] = 0
-
-    def dash(self):
-        pass
-
-    def collision(self):
-        pass
-
-    def attack(self):
-        pass
-
-    def imageGestion(self):
-        if self.canDoActions():
-            self.image = self.originalImage
-        else:
-            self.image = [self.originalImage[0]+TILE_SIZE, self.originalImage[1]]
-
-    def death(self):
-        if self.health <= 0 and not self.dead:
-            self.dead = True
-
-            if random.randint(1,100) <= self.deathItemSpawn:
-                pickup = RARITY_TABLE.pickRandom(0)
-                if pickup is not None:
-                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
-
-            if hasattr(self.lastHitBy, "inventory"):
-                if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChance:
-                    pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance)
-                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
-            else:
-                if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChancce:
-                    pickup = FUEL_TABLE.pickRandom(0)
-                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
-
-            if random.randint(1,100) <= self.deathWeaponSpawn:
-                pickup = WEAPON_TABLE.pickRandom(0)
-                self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
-
-
 class Projectile(Entity) : #Creates a projectile that can hit other entities
     def __init__(self, weapon, x, y, vector, owner, shot):
         super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
@@ -1689,6 +1682,14 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         self.initialiseNewCollisions()
         
+
+    def update(self):
+
+        self.movement()
+
+        self.collision()
+        
+        self.death()
 
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
@@ -2167,16 +2168,162 @@ class Enemy(Entity): #Creates an entity that fights the player
 
         self.inventory = Inventory()
 
+        self.initWalk(priority=0, maxSpeed=1, speedChangeRate=10, knockbackCoef=1)
+        self.initPath()
+        self.target = (self.x,self.y)
+        self.baseSpeed = 1
+        
+        self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
+        self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+
         self.spawnedPickups = []
+
+    def initPath(self):
+        self.path = []
+        self.pathIndex = 0
+        
+        self.moveTo = [0,0]
+        self.moveDirection = [0,0]
+        self.direction = [0,0]
+
+        
+    def directPathBlocked(self):
+        myPos = blockPos(self.x,self.y)
+        targetPos = blockPos(*self.target)
+
+        self.blockBetweenPlayer = posLineFilled(*myPos, *targetPos)
+
+        for pos in self.blockBetweenPlayer:
+            if wallsMap[pos[1]][pos[0]] != 0:
+                return True
+
+        return False
+
+    def movePath(self):
+        if self.needsNewPath(self.target):
+            self.findNewPath(self.target)
+        
+        self.moveInsidePath()
+
+    def needsNewPath(self):
+        if len(self.path) == 0:
+            return True
+        elif distance(*blockPos(*self.target),*self.path[-1]) >= 1:
+            return True
+        return False
+
+    def moveInsidePath(self):
+        if not self.pathIndex >= len(self.path)-2:
+            self.moveTo[0] = self.path[self.pathIndex+1][0]*TILE_SIZE - self.x
+            self.moveTo[1] = self.path[self.pathIndex+1][1]*TILE_SIZE - self.y
+
+            distanceCurrent = distance(self.x,self.y,self.path[self.pathIndex][0]*TILE_SIZE,self.path[self.pathIndex][1]*TILE_SIZE)
+            distanceNext = distance(self.x,self.y,self.path[self.pathIndex+1][0]*TILE_SIZE,self.path[self.pathIndex+1][1]*TILE_SIZE)
+            if distanceNext < distanceCurrent:
+                self.pathIndex += 1
+
+    def findNewPath(self):
+        myPos = blockPos(self.x,self.y)
+        targetPos = blockPos(*self.target)
+
+        start = myPos
+        border = [copy(start)]
+        newBorder = []
+        checked = []
+        pathOrigin = copy(wallsMap)
+        cross = [(0,-1),(0,1),(-1,0),(1,0)]
+        while len(border) > 0 and targetPos not in checked:
+            cross.reverse()
+            for pos in border:
+                for addon in cross:
+                    newPos = (pos[0]+addon[0],pos[1]+addon[1])
+                    if newPos not in checked:
+                        if is_inside_map(newPos, wallsMap):
+                            if wallsMap[newPos[1]][newPos[0]] == 0:
+                                if newPos not in newBorder:
+                                    newBorder.append(newPos)
+                                    pathOrigin[newPos[1]][newPos[0]] = pos
+                checked.append(pos)
+            border = copy(newBorder)
+            newBorder = []
+
+        self.pathAt = copy(targetPos)
+        self.path = [copy(targetPos)]
+        if targetPos in checked:
+            while self.pathAt != start:
+
+                self.pathAt = copy(pathOrigin[self.pathAt[1]][self.pathAt[0]])
+                self.path.insert(0,copy(self.pathAt))
+
+        self.pathIndex = 0
+
+
 
     def draw(self):
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
+        self.moveTowardsTarget()
+        self.getMomentum()
+
+        self.walk(self.momentum)
 
         self.speedDecrease()
 
-        self.walk(self.momentum)
+    def moveTowardsTarget(self):
+        self.moveTo[0] = self.target[0] - self.x 
+        self.moveTo[1] = self.target[1] - self.y 
+
+    def getMomentum(self):
+        #If the player is trying to move, and they're not at max speed, we increase their speed  (and change direction)
+        if self.moveTo[1] < 0:
+            if self.momentum[1] > -self.maxSpeed:
+                self.momentum[1] -= self.maxSpeed/self.speedChangeRate
+            self.direction[1] = -1
+
+        if self.moveTo[0] < 0:
+            if self.momentum[0] > -self.maxSpeed:
+                self.momentum[0] -= self.maxSpeed/self.speedChangeRate
+            self.direction[0] = -1
+
+        if self.moveTo[1] > 0:
+            if self.momentum[1] < self.maxSpeed:
+                self.momentum[1] += self.maxSpeed/self.speedChangeRate
+            self.direction[1] = 1
+
+        if self.moveTo[0] > 0:
+            if self.momentum[0] < self.maxSpeed:
+                self.momentum[0] += self.maxSpeed/self.speedChangeRate
+            self.direction[0] = 1
+        
+        #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
+        if not (self.moveTo[1] < 0 or self.moveTo[1] > 0):
+            self.momentum[1] -= self.momentum[1]/self.speedChangeRate
+            self.direction[1] = 0
+
+        if not(self.moveTo[0] < 0 or self.moveTo[0] > 0):
+            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
+            self.direction[0] = 0
+        
+        #If the player is almost immobile in a specific direction, we snap their speed to 0
+        if abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = 0
+        if abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = 0
+
+        #If the player is almost at max speed in a specific direction, we snap their speed to max speed
+        if self.maxSpeed-abs(self.momentum[0]) <= 0.01:
+            self.momentum[0] = self.maxSpeed*pyxel.sgn(self.momentum[0])
+        if self.maxSpeed-abs(self.momentum[1]) <= 0.01:
+            self.momentum[1] = self.maxSpeed*pyxel.sgn(self.momentum[1])
+
+        #If the player is over max speed, we decrease their speed progressively
+        if abs(self.momentum[0]) > self.maxSpeed:
+            self.momentum[0] -= self.momentum[0]/self.speedChangeRate
+        if abs(self.momentum[1]) > self.maxSpeed:
+            self.momentum[1] -= self.momentum[1]/self.speedChangeRate 
+
+        
 
     def speedDecrease(self):
         #These two lines are temporary and will be removed once we have pathing. They're just there to make sure the speed decreases
@@ -2230,6 +2377,7 @@ class Dummy(Enemy):
     def __init__(self, x ,y, level=0):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
         self.name = 'Dummy'
+        self.originalImage = (32,48)
         self.image = (32,48)
 
         self.health = 100
@@ -2237,9 +2385,22 @@ class Dummy(Enemy):
 
         self.scaling = 1.5
 
-        self.initWalk(priority=0, maxSpeed=1, speedChangeRate=10, knockbackCoef=1)
-        self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
-        self.initHitstun(duration=0.75*FPS, freezeFrame=0, invincibility=0)
+class EarthLing(Enemy):
+    def __init__(self, x ,y, level=0):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
+        self.name = 'Earthling'
+        self.originalImage = (32,80)
+        self.image = (32,80)
+
+        self.health = 100
+        self.maxHealth = 100
+
+        self.scaling = 1.5
+        self.initWalk(priority=0, maxSpeed=0.8, speedChangeRate=10, knockbackCoef=1)
+        self.initMeleeAttack(priority=2)
+
+        #self.initAttack()
+
 
 
 
@@ -2377,7 +2538,36 @@ def collisionObjects(object1, object2):
 
 def show(x,y,img,colkey=11,save=0):
     pyxel.blt(x,y,save,img[0]*16,img[1]*16,16,16,colkey=colkey)
-   
+
+
+def blockPos(x,y,TILE_SIZE=10):
+    return (round(x/TILE_SIZE),round(y/TILE_SIZE))
+
+def posLineFilled(x0,y0,x1,y1): #not exactly bresenham's algorithm because i dont understand it all yet but ill change it when i do
+    positions = []
+    cos = x1 - x0
+    sin = y1 - y0
+    step_ref = max(abs(cos),abs(sin))
+    if step_ref != 0:
+        stepX = cos / step_ref #diviser toute la longueur par step pour creer chaque marche de l'escalier
+        stepY = sin / step_ref #l'autre cote de l'escalier
+        for i in range(step_ref+1): #+1 car on met un carre a 0 et a la fin
+            positions.append(   (round(x0 + i * stepX), #i fois le nombre de marche auquel on se trouve
+                                round(y0 + i * stepY))
+                            )
+            if i >= 1:
+                if positions[-1][0] != positions[-2][0]:
+                    positions.append((round(x0 + i * stepX), #i fois le nombre de marche auquel on se trouve
+                                    round(y0 + (i-1) * stepY))
+                                    )   
+
+                elif positions[-1][1] != positions[-2][1]:
+                    positions.append((round(x0 + (i-1) * stepX), #i fois le nombre de marche auquel on se trouve
+                                    round(y0 + i * stepY))
+                                    )   
+
+    return positions
+      
 def is_inside_map(pos,map):
     if pos[0] >= len(map[0]) or pos[1] >= len(map):
         return False

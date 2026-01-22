@@ -89,17 +89,17 @@ class RUSTY_PISTOL(RangedWeapon):
         bulletWidth = 4
         bulletHeight = 4
 
-        spread = 20
+        spread = 15
         movingSpreadIncrease = 10
         bulletCount = 1
 
-        bulletSpeed = 3
+        bulletSpeed = 2.5
 
         range = 6*TILE_SIZE
-        damage = 15
+        damage = 20
         piercing = 0
         knockbackCoef = 1
-        fallOffCoef = 1 #Positive = damage decreases with distance / Negative = damage increases with distance
+        fallOffCoef = 0.5 #Positive = damage decreases with distance / Negative = damage increases with distance
         noFallOffArea = 1-0.4 #This means that there won't be damage fallOff for the first 40% of the projectile's trajectory
 
         reloadTime = 3*FPS
@@ -137,8 +137,8 @@ class SNIPER(RangedWeapon): #just a test, you can erase it if you want
         bulletSpeed = 3
 
         range = 12*TILE_SIZE
-        damage = 100
-        piercing = 4
+        damage = 50
+        piercing = 1
         knockbackCoef = 1
         fallOffCoef = -1 #Positive = damage decreases with distance / Negative = damage increases with distance
         noFallOffArea = 1-0.4 #This means that there won't be damage fallOff for the first 40% of the projectile's trajectory

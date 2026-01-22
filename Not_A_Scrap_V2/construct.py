@@ -24,7 +24,7 @@ class Roombuild:
         self.wallsMap = wallsMap
         self.exitPos = (0,0)
         self.currentExitSide = 'N/A'
-        self.roomIndex = -1
+        self.roomIndex = 0
         self.playerPos = copy(playerPos)
 
         self.initBuild()
@@ -174,9 +174,11 @@ class Roombuild:
             if not self.isRoomColliding(x,y,15,13):
 
                 self.rooms.append(LoadRoom(nextRoom, x, y))
+                
                 self.rooms[-1].exitsFree[sideInverse(side)] = False
                 self.rooms[-1].previousRoom = self.roomIndex
                 self.rooms[-1].index = len(self.rooms)-1
+                self.rooms[-1].depth = self.rooms[self.roomIndex].depth + 1
 
                 self.addDoors(exitX,exitY,entryX,entryY, side)
                 
@@ -211,6 +213,9 @@ class Roombuild:
         if side == 'left' or side == 'right':
             self.exits.append(ExitBaseHorizontal(x,y))
 
+        self.exits[-1].origin = self.roomIndex
+        self.exits[-1].destination = len(self.rooms)-1
+
         addExitWalls(exitX, exitY, side)
             
     def isRoomColliding(self,x1,y1,w1,h1):
@@ -238,9 +243,12 @@ class Room:
         self.height = height*TILE_SIZE
         self.exitsPos = {'up':[],'down':[],'left':[],'right':[]}
         self.exitsFree = {'up':True,'down':True,'left':True,'right':True}
+        self.floorTiles = []
 
         self.index = 0
         self.previousRoom = 0
+        self.depth = 0 #distance to start
+        self.hasSpawnedEnemies = False
 
         self.isLeaf = False
         self.isBranch = False
@@ -265,6 +273,15 @@ class Room:
                     wallsIn['highWalls'].append((x-1, y-2))
 
         return wallsIn
+
+    def getFloorTiles(self):
+        startX = self.x//TILE_SIZE
+        startY = self.y//TILE_SIZE - 1
+        for x in range(self.width//TILE_SIZE):
+            for y in range(self.height//TILE_SIZE+1):
+                if wallsMap[startY + y][startX + x] == 0:
+                    self.floorTiles.append((x,y-1))
+        
 
     def __str__(self):
         string = ''
@@ -339,6 +356,8 @@ class LoadRoom(Room):
 
         self.initSettings()
 
+        self.getFloorTiles()
+
                 
 
     def initSettings(self):
@@ -376,26 +395,30 @@ class Exit:
     def __init__(self,x,y):
         self.x = x*TILE_SIZE
         self.y = y*TILE_SIZE
+        self.width = 1*TILE_SIZE
+        self.height = 1*TILE_SIZE
+
         self.direction = 'N/A'
+
+        self.origin = 0
+        self.destination = 0
     def draw(self):
-        pyxel.rect(self.x,self.y,2*TILE_SIZE,2*TILE_SIZE,2)
-        pyxel.rectb(self.x,self.y,2*TILE_SIZE,2*TILE_SIZE+1,6)
+        pyxel.rect(self.x,self.y,self.width,self.height,2)
+        pyxel.rectb(self.x,self.y,self.width,self.height+1,6)
 
 class ExitBaseHorizontal(Exit):
     def __init__(self,x,y):
         super().__init__(x=x,y=y)
         self.direction = 'Horizontal'
-    def draw(self):
-        pyxel.rect(self.x,self.y,4*TILE_SIZE,2*TILE_SIZE,2)
-        pyxel.rectb(self.x,self.y,4*TILE_SIZE,2*TILE_SIZE+1,6)
+        self.width = 4*TILE_SIZE
+        self.height = 2*TILE_SIZE
 
 class ExitBaseVertical(Exit):
     def __init__(self,x,y):
         super().__init__(x=x,y=y)
         self.direction = 'Vertical'
-    def draw(self):
-        pyxel.rect(self.x,self.y,2*TILE_SIZE,4*TILE_SIZE,2)
-        pyxel.rectb(self.x,self.y,2*TILE_SIZE,4*TILE_SIZE+1,6)
+        self.width = 2*TILE_SIZE
+        self.height = 4*TILE_SIZE
 
 
 class Animation:

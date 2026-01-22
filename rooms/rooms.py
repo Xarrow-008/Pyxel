@@ -745,10 +745,14 @@ class Roombuild:
 
             if not self.isRoomColliding(x,y,15,13):
 
+                depth = self.rooms[-1].depth + 1
+
                 self.rooms.append(LoadRoom(nextRoom, x, y))
+
                 self.rooms[-1].exitsFree[sideInverse(side)] = False
                 self.rooms[-1].previousRoom = self.roomIndex
                 self.rooms[-1].index = len(self.rooms)-1
+                self.rooms[-1].depth = depth
 
                 self.addDoors(exitX,exitY,entryX,entryY, side)
                 
@@ -814,6 +818,7 @@ class Room:
 
         self.index = 0
         self.previousRoom = 0
+        self.depth = 0 #distance to start
 
         self.isLeaf = False
         self.isBranch = False
