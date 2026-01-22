@@ -21,8 +21,8 @@ class Item:
         self.rarity = ""
         self.type = ""
         self.effects = []
-        self.short_description = ""
-        self.long_description = ""
+        self.shortDescription = ""
+        self.longDescription = ""
 
 class WAR_FIGURINE(Item):
     def __init__(self):
@@ -281,7 +281,7 @@ class GLASSES(Item):
 
 class GLAND(Item): #Meant to be some sort of organ that evolved to better digest stuff by using the ambiant radiation
     def __init__(self):
-        self.name = "Glowing Gland"
+        self.name = "Glowing Gland" #Biological
         self.image = (0,192)
         self.rarity = "rare"
         self.type = "healing"
@@ -292,7 +292,7 @@ class GLAND(Item): #Meant to be some sort of organ that evolved to better digest
 
 class CLAW(Item): #Meant to be hunters/aliens reinforcing their claws by using discarded steel scrap from inside the bunkers
     def __init__(self):
-        self.name = "Steel Claw"
+        self.name = "Steel Claw" #Biological/Artisanal
         self.image = (0,192)
         self.rarity = "rare"
         self.type = "healing"
@@ -303,7 +303,7 @@ class CLAW(Item): #Meant to be hunters/aliens reinforcing their claws by using d
 
 class BOOTS(Item): #Basically just heavily reinforced boots meant to be able to traverse the wasteland safely
     def __init__(self):
-        self.name = "Wastelander's Boots"
+        self.name = "Wastelander's Boots" #Artisanal
         self.image = (0,192)
         self.rarity = "rare"
         self.type = "healing"
@@ -316,7 +316,7 @@ class BOOTS(Item): #Basically just heavily reinforced boots meant to be able to 
 
 class LEECHES(Item): #Leeches were heavily used during the medieval era to cure the "imbalance in humors" causing diseases (it worked more often than one would expect even though they were completely wrong about why it worked)
     def __init__(self):
-        self.name = "Jar of Leeches"
+        self.name = "Jar of Leeches" #Primitive
         self.image = (0,192)
         self.rarity = "rare"
         self.type = "healing"
@@ -328,7 +328,7 @@ class LEECHES(Item): #Leeches were heavily used during the medieval era to cure 
 
 class CLOAK(Item): #This is just a cloak that regular members of the Celestials wear
     def __init__(self):
-        self.name = "Acolyte's Cloak"
+        self.name = "Acolyte's Cloak" #Primitive
         self.image = (0,192)
         self.rarity = "rare"
         self.type = "support"
@@ -339,7 +339,7 @@ class CLOAK(Item): #This is just a cloak that regular members of the Celestials 
 
 class METAL_DETECTOR(Item): #Metal detector made out of magnets or something. Usually used to detect mines and other remnants of the war
     def __init__(self):
-        self.name = "Metal Detector"
+        self.name = "Metal Detector" #Artisanal
         self.image = (0,192)
         self.rarity = "rare"
         self.type = "support"
@@ -350,7 +350,7 @@ class METAL_DETECTOR(Item): #Metal detector made out of magnets or something. Us
 
 class SACK(Item): #Something that was evolved by prey animals to project hot air at predators in order to escape (kind of like squids do it)
     def __init__(self):
-        self.name = "Air Sack"
+        self.name = "Air Sack" #Biological
         self.image = (0,192)
         self.rarity = "rare"
         self.type = "support"
@@ -361,7 +361,7 @@ class SACK(Item): #Something that was evolved by prey animals to project hot air
 
 class BANDOLIER(Item):
     def __init__(self):
-        self.name = "Bandolier"
+        self.name = "Bandolier" #Artisanal
         self.image = (0,192)
         self.rarity = "rare"
         self.type = "support"
@@ -373,7 +373,7 @@ class BANDOLIER(Item):
 
 class IDOL(Item): #A glass figurine used by the Celestials for prayer. #Because they're obsessed with light, they use mirrors to trap sunlight inside the idols
     def __init__(self):
-        self.name = "Bright Idol"
+        self.name = "Bright Idol" #Primitive
         self.image = (0,192)
         self.rarity = "rare"
         self.type = "damage"
@@ -382,6 +382,183 @@ class IDOL(Item): #A glass figurine used by the Celestials for prayer. #Because 
             {"stat":"onKillFireRadius", "scaling":"arithmetic", "initial_term":3*TILE_SIZE, "reason":1.5*TILE_SIZE}]
         self.shortDescription = "Set enemies on fire on kill"
         self.longDescription = "Every time you kill an enemy, 2(+1 per stack) enemies in a 3T(+1.5 per stack) gets set on fire."
+
+class SHRAPNEL(Item):
+    def __init__(self):
+        self.name = "Artisanal Shrapnel" #Artisanal
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "damage"
+        self.effects = [
+            {"stat":"piercingIncrease","scaling":"arithmetic", "initial_term":1, "reason":1}]
+        self.shortDescription = "Increases piercing"
+        self.longDescription = "Your attacks can go through 1 (+1 per stack) more enemy."
+
+class MAP(Item): #A map of the earth after the bombs
+    def __init__(self):
+        self.name = "Wasteland Map" #Artisanal
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "damage"
+        self.effects = [
+            {"stat":"exposedChance","scaling":"geometric", "initial_term":5, "reason":0.8}]
+        self.shortDescription = "Random chance to expose weaknesses in opponents."
+        self.longDescription = "On hit, you have a 5% chance to make enemies exposed for 5s, which doubles crit chance, and multiplies crit damage by another 50%. Every stack gives 4/5th of the last ones effect."
+
+class TRAP(Item): #Its the tail of a predator which evolved to look like the female of its preys
+    def __init__(self):
+        self.name = "Lover's Trap" #Biological
+        self.image = (0,192)
+        self.rarity = "rare"
+        self.type = "damage"
+        self.effects = [
+            {"stat":"linkedDamageShare","scaling":"arithmetic", "initial_term":40, "reason":10}]
+        self.shortDescription = "Enemies share damage"
+        self.longDescription = "Two random enemies on screen will be linked, which means that they will take 40%(+10% per stack) of the other's damage. Once a linked enemy dies, a new one is chosen randomly."
+
+
+#Legendary items are high-tech alien technology that survived the war
+
+class CHARGER(Item): #Its a device that capts extra neutrons in atoms, then charges them electrically into protons to make new atoms (in this case it makes carbon to heal you)
+    def __init__(self):
+        self.name = "Neutron Charger"
+        self.image = (0,192)
+        self.rarity = "legendary"
+        self.type = "healing"
+        self.effects = [
+            {"stat":"extraHealingCoef", "scaling":"arithmetic", "initial_term":2, "reason":1}]
+        self.shortDescription = "Greatly increases healing"
+        self.longDescription = "Increases all forms of healing by 100% (+100% per stack)."
+
+class GENERATOR(Item): #It generates energy (eg. temp health) out of unused potential (you healing at max health)
+    def __init__(self):
+        self.name = "Potential Generator"
+        self.image = (0,192)
+        self.rarity = "legendary"
+        self.type = "healing"
+        self.effects = [
+            {"stat":"overhealIntoTempHealthShare", "scaling":"arithmetic", "initial_term":50, "reason":50}]
+        self.shortDescription = "Healing at full health grants you temporary health"
+        self.longDescription = "50%(+50% per stack) of any heal you receive while at full health gets turned into temporary health."
+
+class NANOBOT(Item): #Its a whole network of nanobots that attach themselves to your nervous system. When you die, they go into overdrive to make your body continue to function, even though your biological nervous system isn't working anymore
+    def __init__(self):
+        self.name = "Nanobot Nervous System"
+        self.image = (0,192)
+        self.rarity = "legendary"
+        self.type = "healing"
+        self.effects = [
+            {"stat":"extraLife", "scaling":"incremental", "value":1}]
+        self.shortDescription = "You can come back from death once"
+        self.longDescription = "If your health reaches 0, instead of dying, come back to life with 100% of your health."
+
+class PREDICTOR(Item): #Its a hyper advanced system that can analyse random situations and find the best course of action possible (quantum because that linked to probabilities or something)
+    def __init__(self):
+        self.name = "Quantum Predictor"
+        self.image = (0,192)
+        self.rarity = "legendary"
+        self.type = "support"
+        self.effects = [
+            {"stat":"extraLuck", "scaling":"arithmetic", "initial_term":1, "reason":1}]
+        self.shortDescription = "Increased luck"
+        self.longDescription = "Increases luck by 1(+1 per stack), which rerolls random events for better outcomes."
+
+class CORE(Item): #Its a thing you implement in a weapon, which allows it to manipulate the mass of the bullets (which means you can make them heavier once you've fired them to make them deal more damage)
+    def __init__(self):
+        self.name = "Graviton Core"
+        self.image = (0,192)
+        self.rarity = "legendary"
+        self.type = "damage"
+        self.effects = [
+            {"stat":"extraWeaponScale", "scaling":"arithmetic", "initial_term":30, "reason":30}]
+        self.shortDescription = "Weapons scale faster"
+        self.longDescription = "Weapons increase in damage 30% (+30% per stack) faster as they gain levels."
+
+class DUPLICATOR(Item): #It uses small-scale time travel (I imagine large-scale time travel to be so energy consuming they literally can't do it) to get multiple copies of the same bullet
+    def __init__(self):
+        self.name = "Temporal Duplicator"
+        self.image = (0,192)
+        self.rarity = "legendary"
+        self.type = "damage"
+        self.effects = [
+            {"stat":"bulletCountCoef", "scaling":"arithmetic", "initial_term":100, "reason":100},
+            {"stat":"extraMeleeAttack", "scaling":"arithmetic", "initial_term":1, "reason":1}]
+        self.shortDescription = "Weapons attack more times"
+        self.longDescription = "Ranged weapons fire 100%(+100% per stack) more bullets. Melee weapons attack 1(+1 per stack) extra time."
+
+
+
+#Boss Item are meant to part of/personal belonging of Bosses, so there's not really a common theme between, it just depends on how you design the bosses themselves
+
+class FANG(Item): #Matriarch Boss Item, a fang from its mouth
+    def __init__(self):
+        self.name = "Monstrous Fang"
+        self.image = (0,192)
+        self.rarity = "boss"
+        self.type = "healing" #also damage, but doesn't matter for boss items
+        self.effects = [
+            {"stat":"healSharePoisonKill", "scaling":"arithmetic", "initial_term":50, "reason":50}]
+        self.shortDescription = "Poison enemies on critical hit, heal from poison."
+        self.longDescription = "Critical hits also inflict a poison status effect. If an enemy dies from poison damage, heal for 50% (+50% per stack) of the poison damage it suffered."
+
+class ERUDITE_TUMOR(Item): #Entropy Boss Item, one of the many tumors that compose its body
+    def __init__(self):
+        self.name = "Erudite Tumor"
+        self.image = (0,192)
+        self.rarity = "boss"
+        self.type = "damage"
+        self.effects = [
+            {"stat":"explosionImpactDamageShare", "scaling":"arithmetic", "initial_term":75, "reason":50},
+            {"stat":"explosionImpactRadius", "scaling":"arithmetic", "initial_term":2*TILE_SIZE, "reason":1*TILE_SIZE}]
+        self.shortDescription = "Attacks explode"
+        self.longDescription = "You attack create an explosion on impact, dealing 75%(+50%) damage in a 2T(+1T per stack radius)"
+
+class LOGS(Item): #Vanguard Boss Item, all of the logs from it being activated non-stop for decades
+    def __init__(self):
+        self.name = "Security Logs"
+        self.image = (0,192)
+        self.rarity = "boss"
+        self.type = "support"
+        self.effects = [
+            {"stat":"shipFuelCostDecrease", "scaling":"arithmetic", "initial_term":3, "reason":3},
+            {"stat":"freeInteractablesPerBunker", "scaling":"arithmetic", "initial_term":2, "reason":2}]
+        self.shortDescription = "Decreased fuel costs."
+        self.longDescription = "Decreases by 3(+3 per stack) the fuel costs of the ship. The first 2(+2 per stack) times you spend fuel on an interactable in a bunker are free."
+
+class TROPHIES(Item): #Apex Boss Item, heads of various creatures its killed
+    def __init__(self):
+        self.name = "Hunting Trophies"
+        self.image = (0,192)
+        self.rarity = "boss"
+        self.type = "damage"
+        self.effects = [
+            {"stat":"consecutiveKillsDamageIncrease", "scaling":"arithmetic", "initial_term":5, "reason":5}]
+        self.shortDescription = "Increases damage for consecutive kills."
+        self.longDescription = "Everytime you kill an enemy, increase your damage output by 5%(+5% per stack). Taking damage causes this bonus to go back to 0."
+
+class LANCE(Item): #Zenith Boss Item, one of its spears
+    def __init__(self):
+        self.name = "Lance of Hyperion" 
+        self.image = (0,192)
+        self.rarity = "boss"
+        self.type = "damage"
+        self.effects = [
+            {"stat":"spearBaseDamage", "scaling":"arithmetic", "initial_term":30, "reason":30}]
+        self.shortDescription = "Periodically send out a heavy-hitting spear."
+        self.longDescription = "Every 7s, spawn and throw out a spear with infinite piercing towards the nearest enemy. Its base damage is 50(+50 per stack) and scales with every bunker you've explored."
+
+class BOOK_BRASIER(Item): #Aegir Boss Item, basically the Celestial equivalent of the Bible
+    def __init__(self):
+        self.name = "Book of the Brasier" 
+        self.image = (0,192)
+        self.rarity = "boss"
+        self.type = "healing"
+        self.effects = [
+            {"stat":"fireRingEffect", "scaling":"arithmetic", "initial_term":1, "reason":1},
+            {"stat":"fireHeal", "scaling":"constant", "value":50}]
+        self.shortDescription = "Spawn rings of fire randomly and heal from fire."
+        self.longDescription = "Every 10s, randomly spawn a ring of fire on the screen, inflicting 1(+1 per stack) stack of the fire status effect to any one that stands in it. Fire now heals you for 50% of its original damage instead of damaging you."
+
 
 
 
