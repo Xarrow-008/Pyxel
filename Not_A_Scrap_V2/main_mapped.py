@@ -57,13 +57,15 @@ class Game:
         self.camera = [0,0]
         self.margin = 1/4
 
+        self.level = 0
+
         self.initWorldBuild()
         
     def initWorldBuild(self):
         self.place = World(self.playerPos)
 
     def initMission(self, rooms, exits):
-        self.place = inMission(self.player, rooms, exits)
+        self.place = InMission(self.player, rooms, exits, self.level)
 
 
     def update(self):
@@ -84,7 +86,7 @@ class Game:
 
     def inGameUpdate(self):
         global game_frame
-        if not self.isFrozen():
+        if not gameFrozen():
             self.place.update()
             game_frame += 1
         else:
@@ -128,10 +130,20 @@ class Game:
             pyxel.dither(1)
             self.player.drawInventory()
 
+    def restart(self):
+        self.player.__init__(self.playerPos)
+        self.level = 0
+        self.initWorldBuild()
 
-    def isFrozen(self):
-        global freeze_start, freeze_duration
-        return not timer(freeze_start, freeze_duration, pyxel.frame_count)
+    def nextLevel(self):   
+        self.place.player.fuel += -self.place.requieredFuel()
+        self.level += 1
+        self.player.x, self.player.y = self.playerPos
+        self.initWorldBuild()
+
+    def resetWallsMap(self):
+        global WallsMap
+        wallsMap = [[0 for x in range(WID)] for y in range(HEI)]
 
     def actions(self):
         if self.place.exitCondition():
@@ -139,13 +151,19 @@ class Game:
                 rooms = copy(self.place.rooms)
                 exits = copy(self.place.exits)
                 self.initMission(rooms,exits)
+            elif type(self.place) is InMission:
+                if self.place.hasWon():
+                    self.nextLevel()
+                else:
+                    print('lost')
+                    self.restart()
             else:
                 print('caca, pas encore de sortie')
 
 
 
-class inMission:
-    def __init__(self, player, rooms, exits):
+class InMission:
+    def __init__(self, player, rooms, exits, level):
         self.entities = []
         self.pickups = []
         self.interactables = []
@@ -158,10 +176,16 @@ class inMission:
         self.currentRoom = self.rooms[0]
         self.roomFocus = False #if we want other rooms than the one the player is in be darkened
         self.roomShadow = 0.2
+        self.level = level
 
         self.createInteractables()
         #self.fillBasicEnemies()
 
+    def requieredFuel(self):
+        return 5+3*self.level
+
+    def hasWon(self):
+        return self.player.fuel >= self.requieredFuel() and self.currentRoom.index == 0
 
     def fillBasicEnemies(self):
         for room in self.rooms:
@@ -169,7 +193,11 @@ class inMission:
                 nbEnemies = random.randint(1,3)
                 for enemy in range(nbEnemies):
                     pos = random.choice(room.floorTiles)
-                    self.entities.append(EarthLing(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE))
+                    self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
+
+    def spawnRandomEnemy(self,x,y):
+        EnemyClass = random.choice([EarthLing, HeavyHitter])
+        self.entities.append(EnemyClass(x=x,y=y,level=self.level))
 
     def createInteractables(self):
         for room in self.rooms:
@@ -179,7 +207,7 @@ class inMission:
                         asset.interactable = True
 
     def exitCondition(self): #for when we come back
-        return False
+        return self.hasWon() or self.player.health <= 0
 
     def update(self):
 
@@ -193,10 +221,13 @@ class inMission:
         self.roomsUpdate()
 
         if pyxel.btnp(pyxel.KEY_M):
-            self.entities.append(Dummy(self.player.x, self.player.y, 0))
+            self.entities.append(Dummy(camera[0] + pyxel.mouse_x,camera[1] + pyxel.mouse_y, 0))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(5, [0,0], 1, 0, self.player, self.player)
+
+        if pyxel.btnp(pyxel.KEY_N):
+            self.player.fuel += 1
 
         if pyxel.btnp(pyxel.KEY_P):
             item = random.choice(ITEM_LIST)
@@ -211,7 +242,7 @@ class inMission:
         if not room is None:
             self.currentRoom = room
 
-        self.addEnemiesGradually()
+        #self.addEnemiesGradually()
 
     def addEnemiesGradually(self):
         for room in self.rooms:
@@ -220,7 +251,7 @@ class inMission:
                 nbEnemies = random.randint(1,3)
                 for enemy in range(nbEnemies):
                     pos = random.choice(room.floorTiles)
-                    self.entities.append(EarthLing(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE))
+                    self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
 
     def findRoom(self,x,y):
@@ -346,8 +377,9 @@ class inMission:
                 entity.target = (self.player.x,self.player.y)
                 entity.update()
 
-                if not type(entity) == Projectile and True and collision(self.player.x,self.player.y,entity.x,entity.y,(self.player.width,self.player.height),(entity.width,entity.height)):
+                if not type(entity) == Projectile and not self.player.isInvincible() and collision(self.player.x,self.player.y,entity.x,entity.y,(self.player.width,self.player.height),(entity.width,entity.height)):
                     self.hurt(5, [0,0], 1, 0, entity, self.player) #TODO CHANGE WHEN BULLETS CAN HIT PLAYER
+                    self.player.isHitStun = True
 
 
     def isRoomNearby(self,room):
@@ -402,7 +434,7 @@ class inMission:
                 entity.drawOver()
         
 
-        self.player.draw() 
+        self.player.draw()
         self.player.drawOver()
 
         sized_text(x=2+camera[0], y=CAM_HEIGHT-17+camera[1], s=self.infoText[0], col=7, size=6, background=True)
@@ -530,6 +562,7 @@ class inMission:
             else:
                 if hasattr(damager, "inventory"):
                     damager.triggerOnKillEffects()
+
 
     def calculateNewDamageValue(self, value, damager, target):
 
@@ -699,6 +732,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             if hasattr(self, "inventory") and  statusLastFrame is (not self.lowHealth): #Triggers if you enter or leave low health status
                 self.inventory.recalculateStats = True
+
+        if hasattr(self, "hitCurrentFrame"):
+            self.hitCurrentFrame = False
 
     def getNewStats(self):
         
@@ -1001,6 +1037,8 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.tempHealth = 0
             self.health -= value
 
+        self.hitCurrentFrame = True
+
     def initHitstun(self, duration, freezeFrame, invincibility):
         self.hitFreezeFrame = freezeFrame
         self.frozen = 0
@@ -1008,6 +1046,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.hitStunDuration = duration
         self.hitStunStartFrame = 0
         self.isHitStun = False
+        self.hitCurrentFrame = False
 
         self.hitBy = 0
 
@@ -1113,6 +1152,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
         if self.isDashing:
             playerDraw = self.dashDraw
 
+        if gameFrozen():
+            playerDraw = self.hitDraw
+
 
         playerDraw()
 
@@ -1189,12 +1231,12 @@ class Player(Entity): #Creates an entity that's controlled by the player
         show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.lastDashFrame//(self.dashDuration/3+1)*2, self.image[1] + self.facing[1] + 2))
 
     def idleDraw(self):
-        if not self.isHitStun and not self.isInvincible():
-            show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
-            show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
-            show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
-        else:
-            show(self.x, self.y, (self.image[0] + self.facing[0] - 2, self.image[1] + self.facing[1]))
+        show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
+        show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1]))
+        show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] + 2))
+
+    def hitDraw(self):
+        show(self.x, self.y, (self.image[0] + self.facing[0] - 2, self.image[1] + self.facing[1]))
 
     def drawOver(self):
         self.drawAnimsOverPlayer()
@@ -1206,6 +1248,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
     def baseUpdate(self):
         self.controlInventory()
+
+        if self.isHitStun:
+            print('HitStun')
 
     def controlInventory(self):
         #Allows the player to switch weapons between backpack and handheld
@@ -1843,7 +1888,9 @@ class World:
                 self.doneBuilding = True
                 wallsMap = copy(self.constructor.wallsMap)
             else:
+                global WallsMap
                 print('rooms got stuck below minimum, retrying')
+                wallsMap = [[0 for x in range(WID)] for y in range(HEI)]
                 self.constructor = Roombuild(self.playerPos)
                 self.doneBuilding = False
                 self.initBuild()
@@ -2162,19 +2209,20 @@ class Enemy(Entity): #Creates an entity that fights the player
 
         self.level = level
 
-        self.health = 100
-        self.baseHealth = 100
-        self.maxHealth = 100
+        self.health = 100+10*level
+        self.baseHealth = 100+10*level
+        self.maxHealth = 100+10*level
 
         self.inventory = Inventory()
 
-        self.initWalk(priority=0, maxSpeed=1, speedChangeRate=10, knockbackCoef=1)
+        self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1)
         self.initPath()
         self.target = (self.x,self.y)
         self.baseSpeed = 1
         
         self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+        self.walkMode = 'direct'
 
         self.spawnedPickups = []
 
@@ -2200,8 +2248,9 @@ class Enemy(Entity): #Creates an entity that fights the player
         return False
 
     def movePath(self):
-        if self.needsNewPath(self.target):
-            self.findNewPath(self.target)
+        if self.needsNewPath():
+            print('trying ts')
+            self.findNewPath()
         
         self.moveInsidePath()
 
@@ -2232,7 +2281,7 @@ class Enemy(Entity): #Creates an entity that fights the player
         checked = []
         pathOrigin = copy(wallsMap)
         cross = [(0,-1),(0,1),(-1,0),(1,0)]
-        while len(border) > 0 and targetPos not in checked:
+        while len(border) > 0 and targetPos not in checked and len(checked) <= 60:
             cross.reverse()
             for pos in border:
                 for addon in cross:
@@ -2263,12 +2312,24 @@ class Enemy(Entity): #Creates an entity that fights the player
         draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
-        self.moveTowardsTarget()
+        if self.walkMode == 'direct':
+            self.movePath()
+        else:
+            self.moveTowardsTarget()
+
         self.getMomentum()
 
         self.walk(self.momentum)
 
         self.speedDecrease()
+
+        if onTick(120):
+            if self.walkMode == 'direct':
+                if self.directPathBlocked():
+                    self.walkMode = 'pathing'
+            else:
+                if not self.directPathBlocked():
+                    self.walkMode = 'direct'
 
     def moveTowardsTarget(self):
         self.moveTo[0] = self.target[0] - self.x 
@@ -2396,10 +2457,24 @@ class EarthLing(Enemy):
         self.maxHealth = 100
 
         self.scaling = 1.5
+        self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1)
+        self.initMeleeAttack(priority=2)
+
+
+class HeavyHitter(Enemy):
+    def __init__(self, x ,y, level=0):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
+        self.name = 'HeavyHitter'
+        self.originalImage = (64,80)
+        self.image = (64,80)
+
+        self.health = 120
+        self.maxHealth = 120
+
+        self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.8, speedChangeRate=10, knockbackCoef=1)
         self.initMeleeAttack(priority=2)
 
-        #self.initAttack()
 
 
 
@@ -2540,7 +2615,7 @@ def show(x,y,img,colkey=11,save=0):
     pyxel.blt(x,y,save,img[0]*16,img[1]*16,16,16,colkey=colkey)
 
 
-def blockPos(x,y,TILE_SIZE=10):
+def blockPos(x,y,TILE_SIZE=16):
     return (round(x/TILE_SIZE),round(y/TILE_SIZE))
 
 def posLineFilled(x0,y0,x1,y1): #not exactly bresenham's algorithm because i dont understand it all yet but ill change it when i do
@@ -2727,4 +2802,10 @@ def getPlayerBulletImage(facing):
 def getColor(hex):
     return int(hex, 16)
     
+
+def gameFrozen():
+    global freeze_start, freeze_duration
+    return not timer(freeze_start, freeze_duration, pyxel.frame_count)
+
+
 App()

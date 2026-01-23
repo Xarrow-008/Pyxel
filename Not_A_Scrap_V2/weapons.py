@@ -99,8 +99,8 @@ class RUSTY_PISTOL(RangedWeapon):
         damage = 20
         piercing = 0
         knockbackCoef = 1
-        fallOffCoef = 0.5 #Positive = damage decreases with distance / Negative = damage increases with distance
-        noFallOffArea = 1-0.4 #This means that there won't be damage fallOff for the first 40% of the projectile's trajectory
+        fallOffCoef = 1 #Positive = damage decreases with distance / Negative = damage increases with distance
+        noFallOffArea = 1-0.9 #This means that there won't be damage fallOff for the first 40% of the projectile's trajectory
 
         reloadTime = 3*FPS
         attackCooldown = 0.25*FPS
@@ -159,7 +159,7 @@ class TEST_2_HANDS(RangedWeapon):
         name = "2HANDS"
         shortDescription = "A basic weapon"
         handNumber = 2
-        image = (0,112)
+        image = (64,112)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -178,7 +178,7 @@ class TEST_2_HANDS(RangedWeapon):
         bulletSpeed = 0.5
 
         range = 6*TILE_SIZE
-        damage = 15
+        damage = 40
         piercing = 0
         knockbackCoef = 1
         fallOffCoef = 1
