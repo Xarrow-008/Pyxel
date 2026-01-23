@@ -1,5 +1,4 @@
 import pyxel,os,math,random, csv
-from enemies import*
 from weapons import*
 from items import*
 from interactables import*
