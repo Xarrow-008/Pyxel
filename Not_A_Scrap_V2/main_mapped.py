@@ -135,7 +135,7 @@ class Game:
         self.initWorldBuild()
 
     def nextLevel(self):
-        self.place.player.fuel += -self.place.requieredFuel()
+        self.place.player.fuel += -self.place.requiredFuel()
         self.level += 1
         self.player.x, self.player.y = self.playerPos
         self.initWorldBuild()
@@ -177,11 +177,11 @@ class InMission:
         self.createInteractables()
         #self.fillBasicEnemies()
 
-    def requieredFuel(self):
+    def requiredFuel(self):
         return 5+3*self.level
 
     def hasWon(self):
-        return self.player.fuel >= self.requieredFuel() and self.currentRoom.index == 0
+        return self.player.fuel >= self.requiredFuel() and self.currentRoom.index == 0
 
     def fillBasicEnemies(self):
         for room in self.rooms:
@@ -222,6 +222,9 @@ class InMission:
 
         if pyxel.btnp(pyxel.KEY_M):
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
+
+        if pyxel.btnp(pyxel.KEY_P):
+            self.pickups.append(Pickup(self.player.x, self.player.y, CLAW()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -432,7 +435,7 @@ class InMission:
         
 
         self.player.draw()
-        sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+10, s="Requiered : "+str(self.requieredFuel()), col=7, size=7, background=True)
+        sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+10, s="Required : "+str(self.requiredFuel()), col=7, size=7, background=True)
         self.player.drawOver()
 
 
@@ -494,8 +497,14 @@ class InMission:
 
         if damagerIsOwned :
             crit = damager.owner.inventory.critChance >= random.randint(1,100)
+            if crit and hasattr(damager.owner, "inventory"):
+                damager.owner.heal += value*2*(damager.owner.inventory.healCriticalHit)/100
         else :
             crit = hasattr(damager, "inventory") and damager.inventory.critChance >= random.randint(1,100)
+            if crit and hasattr(damager, "inventory"):
+                damager.heal += value*2*(damager.inventory.healCriticalHit)/100
+
+
 
         if damagerIsOwned :
             target.lastHitBy = damager.owner
@@ -556,9 +565,11 @@ class InMission:
 
         if target.health <= 0:
             if damagerIsOwned:
+                damager.owner.enemiesKilled += 1
                 if hasattr(damager.owner, "inventory"):
                     damager.owner.triggerOnKillEffects()
             else:
+                damager.enemiesKilled += 1  
                 if hasattr(damager, "inventory"):
                     damager.triggerOnKillEffects()
 
@@ -664,6 +675,8 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.lastHitBy = None
 
         self.level = 0
+
+        self.enemiesKilled = 0
 
     def __str__(self):
         if type(self) == Player:
@@ -1079,8 +1092,10 @@ class Entity: #General Entity class with all the methods describing what entitie
             if type(self.inventory.rightHand) == MeleeWeapon:
                 pass #TODO : Implement this once we implement melee weapons
             else:
-                self.inventory.rightHand.reserveAmmo = math.ceil(self.inventory.rightHand.reserveAmmoffffffffffffffffffff*(1+self.inventory.ressourceKillEffect/100))
+                self.inventory.rightHand.reserveAmmo = math.ceil(self.inventory.rightHand.reserveAmmo*(1+self.inventory.ressourceKillEffect/100))
 
+        if self.enemiesKilled%10 == 0:
+            self.heal += math.ceil(self.maxHealth*(self.inventory.healAfter10EnemiesKilled/100))
 
 
 class Player(Entity): #Creates an entity that's controlled by the player
