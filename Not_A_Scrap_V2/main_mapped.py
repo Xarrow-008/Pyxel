@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, CLAW()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, LEECHES()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -476,6 +476,10 @@ class InMission:
         global freeze_start, freeze_duration, game_frame
 
         damagerIsOwned = (type(damager)==Projectile)
+        if damagerIsOwned :
+            damagingEntity = damager.owner
+        else:
+            damagingEntity = damager
 
         target.combatStartFrame = game_frame
         target.inCombat = True
@@ -485,9 +489,8 @@ class InMission:
         if damagerIsOwned:
             damager.owner.combatStartFrame = game_frame
             damager.owner.inCombat = True
-            value = self.calculateNewDamageValue(value, damager.owner, target)
-        else:
-            value = self.calculateNewDamageValue(value, damager, target)
+        
+        value = self.calculateNewDamageValue(value, damagingEntity, target)
 
         if hasattr(target, "inventory") and target.inventory.ignoreHitChance >= random.randint(1,100):
             target.addIgnoreDamageMarker((damager.x-4, damager.y-4))
@@ -495,15 +498,11 @@ class InMission:
 
         
 
-        if damagerIsOwned :
-            crit = damager.owner.inventory.critChance >= random.randint(1,100)
-            if crit and hasattr(damager.owner, "inventory"):
-                damager.owner.heal += value*2*(damager.owner.inventory.healCriticalHit)/100
-        else :
-            crit = hasattr(damager, "inventory") and damager.inventory.critChance >= random.randint(1,100)
-            if crit and hasattr(damager, "inventory"):
-                damager.heal += value*2*(damager.inventory.healCriticalHit)/100
+        crit = hasattr(damagingEntity, "inventory") and damagingEntity.inventory.critChance >= random.randint(1,100)
 
+        if crit :
+            value *= 2
+                
 
 
         if damagerIsOwned :
@@ -511,67 +510,42 @@ class InMission:
         else:
             target.lastHitBy = damager
 
-        if hasattr(target, "isHitStun"):
-            if (not target.isHitStun or target.hitBy == shot) and not target.isInvincible():
-                
-                if crit:
-                    target.sufferDamage(value*2)
-                    if damagerIsOwned :
-                        damager.owner.addDamageNumber(target, value*2, 8)
-                    else:
-                        damager.addDamageNumber(target, value*2, 8)
-                else:
-                    target.sufferDamage(value)
-                    if damagerIsOwned :
-                        damager.owner.addDamageNumber(target, value, 7)
-                    else:
-                        damager.addDamageNumber(target, value, 7)
+        if (not hasattr(target, "isHitStun")) or ((not target.isHitStun or target.hitBy == shot) and not target.isInvincible()):
+            
+            target.sufferDamage(value)
 
-                target.isHitStun = True
-                target.hitStunStartFrame = game_frame
-
-                target.invincibilityStartFrame = game_frame
-
-                freeze_start = pyxel.frame_count
-                freeze_duration = target.hitFreezeFrame
-
-                target.hitBy = shot
-                if hasattr(target, "maxSpeed"):
-                    knockback_value = len(str(value))*knockback_coef*target.knockbackCoef
-                    target.momentum[0] += vector[0]*knockback_value
-                    target.momentum[1] += vector[1]*knockback_value
-                    
-                target.addAnimationHit((damager.x-4,damager.y-4))
-
-
-        else:
             if crit:
-                target.sufferDamage(value*2)
-                if damagerIsOwned :
-                    damager.owner.addDamageNumber(target, value*2, 8)
-                else:
-                    damager.addDamageNumber(target, value*2, 8)
+                damagingEntity.addDamageNumber(target, value, 8)
+                if hasattr(damagingEntity, "inventory"):
+                    damagingEntity.heal += math.ceil(value*(damagingEntity.inventory.healCriticalHit)/100)
             else:
-                target.sufferDamage(value)
-                if damagerIsOwned :
-                    damager.owner.addDamageNumber(target, value, 7)
-                else:
-                    damager.addDamageNumber(target, value, 7)
+                damagingEntity.addDamageNumber(target, value, 7)
+
+            if hasattr(damagingEntity, "inventory") and random.randint(1,100) <= damagingEntity.inventory.healOnHitChance:
+                damagingEntity.heal += damagingEntity.inventory.healOnHitAmount
+
+
+
+            target.isHitStun = True
+            target.hitStunStartFrame = game_frame
+
+            target.invincibilityStartFrame = game_frame
+
+            freeze_start = pyxel.frame_count
+            freeze_duration = target.hitFreezeFrame
+
+            target.hitBy = shot
             if hasattr(target, "maxSpeed"):
                 knockback_value = len(str(value))*knockback_coef*target.knockbackCoef
                 target.momentum[0] += vector[0]*knockback_value
                 target.momentum[1] += vector[1]*knockback_value
-        
+                
+            target.addAnimationHit((damager.x-4,damager.y-4))
 
         if target.health <= 0:
-            if damagerIsOwned:
-                damager.owner.enemiesKilled += 1
-                if hasattr(damager.owner, "inventory"):
-                    damager.owner.triggerOnKillEffects()
-            else:
-                damager.enemiesKilled += 1  
-                if hasattr(damager, "inventory"):
-                    damager.triggerOnKillEffects()
+            damagingEntity.enemiesKilled += 1
+            if hasattr(damagingEntity, "inventory"):
+                damagingEntity.triggerOnKillEffects()
 
 
     def calculateNewDamageValue(self, value, damager, target):
