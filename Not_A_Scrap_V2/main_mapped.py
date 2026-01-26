@@ -134,15 +134,11 @@ class Game:
         self.level = 0
         self.initWorldBuild()
 
-    def nextLevel(self):   
+    def nextLevel(self):
         self.place.player.fuel += -self.place.requieredFuel()
         self.level += 1
         self.player.x, self.player.y = self.playerPos
         self.initWorldBuild()
-
-    def resetWallsMap(self):
-        global WallsMap
-        wallsMap = [[0 for x in range(WID)] for y in range(HEI)]
 
     def actions(self):
         if self.place.exitCondition():
@@ -176,6 +172,7 @@ class InMission:
         self.roomFocus = False #if we want other rooms than the one the player is in be darkened
         self.roomShadow = 0.2
         self.level = level
+        self.nbEnemiesSpawned = 0
 
         self.createInteractables()
         #self.fillBasicEnemies()
@@ -196,7 +193,11 @@ class InMission:
 
     def spawnRandomEnemy(self,x,y):
         EnemyClass = random.choice([EarthLing, HeavyHitter])
-        self.entities.append(EnemyClass(x=x,y=y,level=self.level))
+        self.spawn(EnemyClass,x=x,y=y,level=self.level)
+
+    def spawn(self,EnemyClass, x, y, level=0):
+        self.entities.append(EnemyClass(x=x,y=y,level=level,id=self.nbEnemiesSpawned))
+        self.nbEnemiesSpawned += 1
 
     def createInteractables(self):
         for room in self.rooms:
@@ -220,17 +221,14 @@ class InMission:
         self.roomsUpdate()
 
         if pyxel.btnp(pyxel.KEY_M):
-            self.entities.append(Dummy(camera[0] + pyxel.mouse_x,camera[1] + pyxel.mouse_y, 0))
+            self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
             
         if pyxel.btnp(pyxel.KEY_O):
-            self.hurt(5, [0,0], 1, 0, self.player, self.player)
+            self.hurt(500, [0,0], 1, 0, self.player, self.player)
 
         if pyxel.btnp(pyxel.KEY_N):
             self.player.fuel += 1
 
-        if pyxel.btnp(pyxel.KEY_P):
-            item = random.choice(ITEM_LIST)
-            self.pickups.append(Pickup(self.player.x,self.player.y, item))
 
         if pyxel.btnp(pyxel.KEY_L):
             self.interactables.append(Interactable(self.player.x, self.player.y, InteractableTemplate.CHEST))
@@ -241,7 +239,7 @@ class InMission:
         if not room is None:
             self.currentRoom = room
 
-        #self.addEnemiesGradually()
+        self.addEnemiesGradually()
 
     def addEnemiesGradually(self):
         for room in self.rooms:
@@ -434,7 +432,9 @@ class InMission:
         
 
         self.player.draw()
+        sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+10, s="Requiered : "+str(self.requieredFuel()), col=7, size=7, background=True)
         self.player.drawOver()
+
 
         sized_text(x=2+camera[0], y=CAM_HEIGHT-17+camera[1], s=self.infoText[0], col=7, size=6, background=True)
         sized_text(x=2+camera[0], y=CAM_HEIGHT-8+camera[1], s=self.infoText[1], col=7, size=6, background=True)
@@ -1887,9 +1887,7 @@ class World:
                 self.doneBuilding = True
                 wallsMap = copy(self.constructor.wallsMap)
             else:
-                global WallsMap
                 print('rooms got stuck below minimum, retrying')
-                wallsMap = [[0 for x in range(WID)] for y in range(HEI)]
                 self.constructor = Roombuild(self.playerPos)
                 self.doneBuilding = False
                 self.initBuild()
@@ -2199,8 +2197,10 @@ class Inventory:
 
 
 
+
+
 class Enemy(Entity): #Creates an entity that fights the player
-    def __init__(self, x, y, width, height, level=0):
+    def __init__(self, x, y, width, height, level=0, id=0):
         super().__init__(x=x, y=y, width=width, height=height)
 
         self.originalImage = (32,80)
@@ -2216,63 +2216,64 @@ class Enemy(Entity): #Creates an entity that fights the player
 
         self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1)
         self.initPath()
+        self.id = id
         self.target = (self.x,self.y)
         self.baseSpeed = 1
         
         self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
-        self.walkMode = 'direct'
+        self.walkMode = 'None'
+        self.checked = []
 
         self.spawnedPickups = []
 
     def initPath(self):
-        self.path = []
-        self.pathIndex = 0
+        self.resetPath()
         
         self.moveTo = [0,0]
         self.moveDirection = [0,0]
         self.direction = [0,0]
 
         
+    def resetPath(self):
+        self.path = [blockPos(self.x,self.y)]
+
+        
     def directPathBlocked(self):
         myPos = blockPos(self.x,self.y)
         targetPos = blockPos(*self.target)
 
-        self.blockBetweenPlayer = posLineFilled(*myPos, *targetPos)
+        blockBetweenPlayer = posLineFilled(*myPos, *targetPos)
 
-        for pos in self.blockBetweenPlayer:
+        for pos in blockBetweenPlayer:
             if wallsMap[pos[1]][pos[0]] != 0:
                 return True
 
         return False
 
     def movePath(self):
-        if self.needsNewPath():
-            print('trying ts')
-            self.findNewPath()
-        
         self.moveInsidePath()
 
     def needsNewPath(self):
-        if len(self.path) == 0:
+        if len(self.path) <= 1:
             return True
-        elif distance(*blockPos(*self.target),*self.path[-1]) >= 1:
+        elif self.targetMovedBy(3):
             return True
         return False
 
     def moveInsidePath(self):
-        if not self.pathIndex >= len(self.path)-2:
-            self.moveTo[0] = self.path[self.pathIndex+1][0]*TILE_SIZE - self.x
-            self.moveTo[1] = self.path[self.pathIndex+1][1]*TILE_SIZE - self.y
+        if not len(self.path) <= 2:
+            self.moveTo[0] = self.path[1][0]*TILE_SIZE - self.x
+            self.moveTo[1] = self.path[1][1]*TILE_SIZE - self.y
 
-            distanceCurrent = distance(self.x,self.y,self.path[self.pathIndex][0]*TILE_SIZE,self.path[self.pathIndex][1]*TILE_SIZE)
-            distanceNext = distance(self.x,self.y,self.path[self.pathIndex+1][0]*TILE_SIZE,self.path[self.pathIndex+1][1]*TILE_SIZE)
+            distanceCurrent = distance(self.x,self.y,self.path[0][0]*TILE_SIZE,self.path[0][1]*TILE_SIZE)
+            distanceNext = distance(self.x,self.y,self.path[1][0]*TILE_SIZE,self.path[1][1]*TILE_SIZE)
             if distanceNext < distanceCurrent:
-                self.pathIndex += 1
+                self.path.pop(0)
 
-    def findNewPath(self):
-        myPos = blockPos(self.x,self.y)
-        targetPos = blockPos(*self.target)
+    def findNewPath(self,start,target):
+        myPos = blockPos(*start)
+        targetPos = blockPos(*target)
 
         start = myPos
         border = [copy(start)]
@@ -2280,7 +2281,7 @@ class Enemy(Entity): #Creates an entity that fights the player
         checked = []
         pathOrigin = copy(wallsMap)
         cross = [(0,-1),(0,1),(-1,0),(1,0)]
-        while len(border) > 0 and targetPos not in checked and len(checked) <= 60:
+        while len(border) > 0 and targetPos not in checked and len(checked) <= 200:
             cross.reverse()
             for pos in border:
                 for addon in cross:
@@ -2295,26 +2296,28 @@ class Enemy(Entity): #Creates an entity that fights the player
             border = copy(newBorder)
             newBorder = []
 
-        self.pathAt = copy(targetPos)
-        self.path = [copy(targetPos)]
+        pathAt = copy(targetPos)
+        path = [copy(targetPos)]
         if targetPos in checked:
-            while self.pathAt != start:
+            while pathAt != start:
 
-                self.pathAt = copy(pathOrigin[self.pathAt[1]][self.pathAt[0]])
-                self.path.insert(0,copy(self.pathAt))
+                pathAt = copy(pathOrigin[pathAt[1]][pathAt[0]])
+                path.insert(0,copy(pathAt))
+        else:
+            path = [copy(start)]
+            self.walkMode = 'None'
 
-        self.pathIndex = 0
+        return path
 
 
-
-    def draw(self):
-        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
-        if self.walkMode == 'direct':
+        if self.walkMode == 'pathing':
             self.movePath()
-        else:
+        elif self.walkMode == 'straight':
             self.moveTowardsTarget()
+        else:
+            self.moveTo = [0,0]
 
         self.getMomentum()
 
@@ -2322,13 +2325,41 @@ class Enemy(Entity): #Creates an entity that fights the player
 
         self.speedDecrease()
 
-        if onTick(120):
-            if self.walkMode == 'direct':
-                if self.directPathBlocked():
-                    self.walkMode = 'pathing'
+        if not self.directPathBlocked():
+            self.walkMode = 'straight'
+        else:
+            if onTick(120, delay=self.id*11):
+                self.refocus()
+
+    def refocus(self):
+        if self.walkMode == 'None':
+            self.resetPath()
+            self.extendPath()
+            if not self.needsNewPath():
+                self.walkMode = 'pathing'
+
+        elif self.walkMode == 'straight':
+            self.walkMode = 'None'
+
+        elif self.walkMode == 'pathing':
+            if len(self.path) <= 2:
+                self.resetPath()
+                self.extendPath()
+
+
+    def targetMovedBy(self,nbTiles):
+        return distance(*blockPos(*self.target),*self.path[-1]) >= nbTiles
+
+    
+    def extendPath(self):
+        endOfPath = (self.path[-1][0]*TILE_SIZE,self.path[-1][1]*TILE_SIZE)
+        pathExtension = self.findNewPath(endOfPath,self.target)
+        for pos in pathExtension:
+            if pos in self.path:
+                while pos != self.path[-1]:
+                    self.path.pop(-1)
             else:
-                if not self.directPathBlocked():
-                    self.walkMode = 'direct'
+                self.path.append(pos)
 
     def moveTowardsTarget(self):
         self.moveTo[0] = self.target[0] - self.x 
@@ -2383,7 +2414,9 @@ class Enemy(Entity): #Creates an entity that fights the player
         if abs(self.momentum[1]) > self.maxSpeed:
             self.momentum[1] -= self.momentum[1]/self.speedChangeRate 
 
-        
+    def draw(self):
+        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
+
 
     def speedDecrease(self):
         #These two lines are temporary and will be removed once we have pathing. They're just there to make sure the speed decreases
@@ -2434,8 +2467,8 @@ class Enemy(Entity): #Creates an entity that fights the player
 
 
 class Dummy(Enemy):
-    def __init__(self, x ,y, level=0):
-        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
+    def __init__(self, x ,y, level=0,id=0):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
         self.name = 'Dummy'
         self.originalImage = (32,48)
         self.image = (32,48)
@@ -2446,8 +2479,8 @@ class Dummy(Enemy):
         self.scaling = 1.5
 
 class EarthLing(Enemy):
-    def __init__(self, x ,y, level=0):
-        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
+    def __init__(self, x ,y, level=0, id=0):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
         self.name = 'Earthling'
         self.originalImage = (32,80)
         self.image = (32,80)
@@ -2461,8 +2494,8 @@ class EarthLing(Enemy):
 
 
 class HeavyHitter(Enemy):
-    def __init__(self, x ,y, level=0):
-        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
+    def __init__(self, x ,y, level=0,id=0):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
         self.name = 'HeavyHitter'
         self.originalImage = (64,80)
         self.image = (64,80)

@@ -423,8 +423,10 @@ class Pather(Entity):
         self.moveDirection = [0,0]
         self.direction = [0,0]
 
-        self.initWalk(priority=1,maxSpeed=0.9,speedChangeRate=20,knockbackCoef=1)
+        self.initWalk(priority=1,maxSpeed=0.7,speedChangeRate=20,knockbackCoef=1)
         self.initPath()
+        self.newPathsNeeded = 0
+        self.samplePath = []
 
         self.anims = []
     
@@ -440,6 +442,7 @@ class Pather(Entity):
         if not self.canWalkDirectlyToPlayer(target):
             self.movePath(target)
         else:
+            self.resetPath()
             self.moveTowardsTarget(target)
 
         self.getMomentum()
@@ -516,6 +519,7 @@ class Pather(Entity):
     def draw(self):
         for pos in self.path:
             show(pos[0]*10,pos[1]*10,(0,3),TILE_SIZE=TILE_SIZE)
+        pyxel.rect(self.path[-1][0]*10,self.path[-1][1]*10,5,5,8)
         show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
         pyxel.line(self.x,self.y,self.x + self.momentum[0]*10,self.y + self.momentum[1]*10,7)
 
@@ -523,14 +527,36 @@ class Pather(Entity):
         pass
 
     def initPath(self):
-        self.path = []
-        self.pathIndex = 0
+        self.resetPath()
+
+    def resetPath(self):
+        self.path = [blockPos(self.x,self.y)]
+
 
     def movePath(self,target):
         if self.needsNewPath(target):
-            self.findNewPath(target)
+            self.newPathsNeeded = 10
+            self.samplePath = copy(self.path)
+        
+        if self.newPathsNeeded > 0:
+            self.path = copy(self.samplePath)
+            self.extendPath(target)
+            self.newPathsNeeded += -1
+        else:
+            pass
+        
         
         self.moveInsidePath()
+
+    def extendPath(self,target):
+        endOfPath = (self.path[-1][0]*TILE_SIZE,self.path[-1][1]*TILE_SIZE)
+        pathExtension = self.findNewPath(endOfPath,target)
+        for pos in pathExtension:
+            if pos in self.path:
+                while pos != self.path[-1]:
+                    self.path.pop(-1)
+            else:
+                self.path.append(pos)
 
     def needsNewPath(self,target):
         if len(self.path) == 0:
@@ -540,17 +566,17 @@ class Pather(Entity):
         return False
 
     def moveInsidePath(self):
-        if not self.pathIndex >= len(self.path)-2:
-            self.moveTo[0] = self.path[self.pathIndex+1][0]*TILE_SIZE - self.x
-            self.moveTo[1] = self.path[self.pathIndex+1][1]*TILE_SIZE - self.y
+        if not len(self.path) <= 2:
+            self.moveTo[0] = self.path[1][0]*TILE_SIZE - self.x
+            self.moveTo[1] = self.path[1][1]*TILE_SIZE - self.y
 
-            distanceCurrent = distance(self.x,self.y,self.path[self.pathIndex][0]*TILE_SIZE,self.path[self.pathIndex][1]*TILE_SIZE)
-            distanceNext = distance(self.x,self.y,self.path[self.pathIndex+1][0]*TILE_SIZE,self.path[self.pathIndex+1][1]*TILE_SIZE)
+            distanceCurrent = distance(self.x,self.y,self.path[0][0]*TILE_SIZE,self.path[0][1]*TILE_SIZE)
+            distanceNext = distance(self.x,self.y,self.path[1][0]*TILE_SIZE,self.path[1][1]*TILE_SIZE)
             if distanceNext < distanceCurrent:
-                self.pathIndex += 1
+                self.path.pop(0)
 
-    def findNewPath(self,target):
-        myPos = blockPos(self.x,self.y)
+    def findNewPath(self,start,target):
+        myPos = blockPos(*start)
         targetPos = blockPos(*target)
 
         start = myPos
@@ -574,15 +600,18 @@ class Pather(Entity):
             border = copy(newBorder)
             newBorder = []
 
-        self.pathAt = copy(targetPos)
-        self.path = [copy(targetPos)]
+        pathAt = copy(targetPos)
+        path = [copy(targetPos)]
         if targetPos in checked:
-            while self.pathAt != start:
+            while pathAt != start:
 
-                self.pathAt = copy(pathOrigin[self.pathAt[1]][self.pathAt[0]])
-                self.path.insert(0,copy(self.pathAt))
+                pathAt = copy(pathOrigin[pathAt[1]][pathAt[0]])
+                path.insert(0,copy(pathAt))
+        else:
+            path = [copy(start)]
 
-        self.pathIndex = 0
+        return path
+
 
 class Player(Entity):
     def __init__(self, x, y):

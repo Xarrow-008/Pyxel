@@ -11,9 +11,6 @@ CAM_WIDTH = TILE_SIZE*20
 CAM_HEIGHT = TILE_SIZE*20
 
 
-
-wallsMap = [[0 for x in range(WID)] for y in range(HEI)]
-
 camera = [0,0]
 
 class Roombuild:
@@ -21,17 +18,23 @@ class Roombuild:
         self.camera = [0,0]
         self.rooms = []
         self.exits = []
-        self.wallsMap = wallsMap
         self.exitPos = (0,0)
         self.currentExitSide = 'N/A'
         self.roomIndex = 0
         self.playerPos = copy(playerPos)
 
+
+        self.resetWallsMap()
         self.initBuild()
         self.buildStart()
         self.anim = Animation([CAM_WIDTH//2-2.5*TILE_SIZE,CAM_HEIGHT//3],{'u':0,'v':4,'width':5*TILE_SIZE,'height':3*TILE_SIZE, 'duration':20}, lifetime='30 cycles')
 
         self.margin = 1/4
+
+
+    def resetWallsMap(self):
+        self.wallsMap = [[0 for x in range(WID)] for y in range(HEI)]
+
 
     def update(self):
         self.editorUpdate()
@@ -62,35 +65,14 @@ class Roombuild:
         settings = file['presetRooms'][random.randint(0,len(file['presetRooms'])-1)]
 
         self.rooms.append(LoadRoom(settings,x,y))
+        self.buildWalls()
+        self.getFloorTiles()
         self.roomIndex += 1
-
-    def extendRooms(self):
-        nb_rooms = len(self.rooms)
-
-        for i in range(3):
-            self.addNeighbor()
-            if nb_rooms != len(self.rooms):
-                break
-
-        loops = 0
-        while loops < 10:
-            
-            if nb_rooms == len(self.rooms):
-                self.goBack()
-                for i in range(3):
-                    self.addNeighbor()
-                    if nb_rooms != len(self.rooms):
-                        break
-            if nb_rooms != len(self.rooms):
-                break
-
-            loops += 1
-            if loops == 10:
-                print('gave up')
 
     def initBuild(self):
         self.isBuilding = False
         self.buildLoops = 0
+        self.resetWallsMap()
 
     def buildStart(self):
         if len(self.rooms) == 0:
@@ -98,7 +80,11 @@ class Roombuild:
             x = self.playerPos[0]//TILE_SIZE-1
             y = self.playerPos[1]//TILE_SIZE-1
 
+            self.resetWallsMap()
+
             self.rooms.append(LoadRoom(room, x, y))
+            self.buildWalls()
+            self.getFloorTiles()
             self.nbRooms = 1
             self.isBuilding = True
         else:
@@ -125,7 +111,6 @@ class Roombuild:
         
         if self.nbRooms >= 60 or len(self.rooms) >= 60:
             self.isBuilding = False
-            self.wallsMap = wallsMap
 
         
     def goBack(self):
@@ -174,6 +159,8 @@ class Roombuild:
             if not self.isRoomColliding(x,y,15,13):
 
                 self.rooms.append(LoadRoom(nextRoom, x, y))
+                self.buildWalls()
+                self.getFloorTiles()
                 
                 self.rooms[-1].exitsFree[sideInverse(side)] = False
                 self.rooms[-1].previousRoom = self.roomIndex
@@ -185,6 +172,30 @@ class Roombuild:
                 self.addExit(exitX, exitY, side)
 
                 self.roomIndex = len(self.rooms)-1
+
+    
+    def getFloorTiles(self):
+        room = self.rooms[-1]
+        floorTiles = []
+        startX = room.x//TILE_SIZE
+        startY = room.y//TILE_SIZE - 1
+        for x in range(room.width//TILE_SIZE):
+            for y in range(room.height//TILE_SIZE+1):
+                if self.wallsMap[startY + y][startX + x] == 0:
+                    floorTiles.append((x,y-1))
+
+        self.rooms[-1].floorTiles = floorTiles
+
+    def buildWalls(self):
+        room = self.rooms[-1]
+        
+        x = room.x//TILE_SIZE
+        y = room.y//TILE_SIZE
+        for pos in room.walls['lowWalls']:
+            self.wallsMap[y + pos[1]][x + pos[0]] = 1
+
+        for pos in room.walls['highWalls']:
+            self.wallsMap[y + pos[1]][x + pos[0]] = 2
 
 
     def addDoors(self,exitX,exitY,entryX,entryY,side):
@@ -216,7 +227,41 @@ class Roombuild:
         self.exits[-1].origin = self.roomIndex
         self.exits[-1].destination = len(self.rooms)-1
 
-        addExitWalls(exitX, exitY, side)
+        self.addExitWalls(exitX, exitY, side)
+
+    
+    def addExitWalls(self, x, y, side):
+        if side == 'up':
+            self.wallsMap[y-3][x-1] = 1
+            self.wallsMap[y-3][x+2] = 1
+            self.wallsRect(x,y,2,-5,0)
+        if side == 'down':
+            self.wallsMap[y+2][x-1] = 1
+            self.wallsMap[y+2][x+2] = 1
+            self.wallsRect(x,y,2,5,0)
+
+        if side == 'left':
+            self.wallsMap[y-1][x-2] = 1
+            self.wallsMap[y-1][x-3] = 1
+            self.wallsMap[y+2][x-2] = 1
+            self.wallsMap[y+2][x-3] = 1
+            self.wallsRect(x,y,-5,2,0)
+        if side == 'right':
+            self.wallsMap[y-1][x+2] = 1
+            self.wallsMap[y-1][x+3] = 1
+            self.wallsMap[y+2][x+2] = 1
+            self.wallsMap[y+2][x+3] = 1
+            self.wallsRect(x,y,5,2,0)
+
+    
+    def wallsRect(self,x,y,w,h,wall):
+        dW = pyxel.sgn(w)
+        dH = pyxel.sgn(h)
+        for inY in range(abs(h)):
+            for inX in range(abs(w)):
+                self.wallsMap[y+inY*dH][x+inX*dW] = wall #index * direction (neg or pos) + base pos to make rectangle
+
+
             
     def isRoomColliding(self,x1,y1,w1,h1):
         for room in self.rooms:
@@ -273,14 +318,6 @@ class Room:
                     wallsIn['highWalls'].append((x-1, y-2))
 
         return wallsIn
-
-    def getFloorTiles(self):
-        startX = self.x//TILE_SIZE
-        startY = self.y//TILE_SIZE - 1
-        for x in range(self.width//TILE_SIZE):
-            for y in range(self.height//TILE_SIZE+1):
-                if wallsMap[startY + y][startX + x] == 0:
-                    self.floorTiles.append((x,y-1))
         
 
     def __str__(self):
@@ -326,7 +363,6 @@ class Room:
             asset.draw()
 
     def mouseIn(self):
-        global camera
         return mouseInside(self.x,self.y-2*TILE_SIZE,self.width,self.height+2*TILE_SIZE,camera)
          
     def isExitUsable(self,side):
@@ -356,8 +392,6 @@ class LoadRoom(Room):
 
         self.initSettings()
 
-        self.getFloorTiles()
-
                 
 
     def initSettings(self):
@@ -379,17 +413,6 @@ class LoadRoom(Room):
 
                     self.assetAppend(classAsset,(self.x + asset['relativeX'],self.y + asset['relativeY']),asset['reversed'])
 
-        self.buildWalls()
-
-    def buildWalls(self):
-        global wallsMap
-        x = self.x//TILE_SIZE
-        y = self.y//TILE_SIZE
-        for pos in self.walls['lowWalls']:
-            wallsMap[y + pos[1]][x + pos[0]] = 1
-
-        for pos in self.walls['highWalls']:
-            wallsMap[y + pos[1]][x + pos[0]] = 2
 
 class Exit:
     def __init__(self,x,y):
@@ -578,37 +601,6 @@ def sideInverse(side):
         return 'right'
     if side == 'right':
         return 'left'
-
-def addExitWalls(x, y, side):
-    global wallsMap
-    if side == 'up':
-        wallsMap[y-3][x-1] = 1
-        wallsMap[y-3][x+2] = 1
-        wallsRect(x,y,2,-5,0)
-    if side == 'down':
-        wallsMap[y+2][x-1] = 1
-        wallsMap[y+2][x+2] = 1
-        wallsRect(x,y,2,5,0)
-
-    if side == 'left':
-        wallsMap[y-1][x-2] = 1
-        wallsMap[y-1][x-3] = 1
-        wallsMap[y+2][x-2] = 1
-        wallsMap[y+2][x-3] = 1
-        wallsRect(x,y,-5,2,0)
-    if side == 'right':
-        wallsMap[y-1][x+2] = 1
-        wallsMap[y-1][x+3] = 1
-        wallsMap[y+2][x+2] = 1
-        wallsMap[y+2][x+3] = 1
-        wallsRect(x,y,5,2,0)
-
-def wallsRect(x,y,w,h,wall):
-    dW = pyxel.sgn(w)
-    dH = pyxel.sgn(h)
-    for inY in range(abs(h)):
-        for inX in range(abs(w)):
-            wallsMap[y+inY*dH][x+inX*dW] = wall #index * direction (neg or pos) + base pos to make rectangle
 
 def pickRoomSide(room):
     sideList = []
