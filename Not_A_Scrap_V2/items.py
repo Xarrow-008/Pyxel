@@ -282,7 +282,7 @@ class GLASSES(Item):
 class GLAND(Item): #Meant to be some sort of organ that evolved to better digest stuff by using the ambiant radiation
     def __init__(self):
         self.name = "Glowing Gland" #Biological
-        self.image = (0,192)
+        self.image = (0,128)
         self.rarity = "rare"
         self.type = "healing"
         self.effects = [
@@ -293,7 +293,7 @@ class GLAND(Item): #Meant to be some sort of organ that evolved to better digest
 class CLAW(Item): #Meant to be hunters/aliens reinforcing their claws by using discarded steel scrap from inside the bunkers
     def __init__(self):
         self.name = "Steel Claw" #Biological/Artisanal
-        self.image = (0,192)
+        self.image = (16,128)
         self.rarity = "rare"
         self.type = "healing"
         self.effects = [
@@ -304,7 +304,7 @@ class CLAW(Item): #Meant to be hunters/aliens reinforcing their claws by using d
 class BOOTS(Item): #Basically just heavily reinforced boots meant to be able to traverse the wasteland safely
     def __init__(self):
         self.name = "Wastelander's Boots" #Artisanal
-        self.image = (0,192)
+        self.image = (32,128)
         self.rarity = "rare"
         self.type = "healing"
         self.effects = [
@@ -317,7 +317,7 @@ class BOOTS(Item): #Basically just heavily reinforced boots meant to be able to 
 class LEECHES(Item): #Leeches were heavily used during the medieval era to cure the "imbalance in humors" causing diseases (it worked more often than one would expect even though they were completely wrong about why it worked)
     def __init__(self):
         self.name = "Jar of Leeches" #Primitive
-        self.image = (0,192)
+        self.image = (48,128)
         self.rarity = "rare"
         self.type = "healing"
         self.effects = [
@@ -329,7 +329,7 @@ class LEECHES(Item): #Leeches were heavily used during the medieval era to cure 
 class CLOAK(Item): #This is just a cloak that regular members of the Celestials wear
     def __init__(self):
         self.name = "Acolyte's Cloak" #Primitive
-        self.image = (0,192)
+        self.image = (64,128)
         self.rarity = "rare"
         self.type = "support"
         self.effects = [
@@ -340,7 +340,7 @@ class CLOAK(Item): #This is just a cloak that regular members of the Celestials 
 class METAL_DETECTOR(Item): #Metal detector made out of magnets or something. Usually used to detect mines and other remnants of the war
     def __init__(self):
         self.name = "Metal Detector" #Artisanal
-        self.image = (0,192)
+        self.image = (80,128)
         self.rarity = "rare"
         self.type = "support"
         self.effects = [
@@ -351,7 +351,7 @@ class METAL_DETECTOR(Item): #Metal detector made out of magnets or something. Us
 class SACK(Item): #Something that was evolved by prey animals to project hot air at predators in order to escape (kind of like squids do it)
     def __init__(self):
         self.name = "Air Sack" #Biological
-        self.image = (0,192)
+        self.image = (96,128)
         self.rarity = "rare"
         self.type = "support"
         self.effects = [
@@ -362,7 +362,7 @@ class SACK(Item): #Something that was evolved by prey animals to project hot air
 class BANDOLIER(Item):
     def __init__(self):
         self.name = "Bandolier" #Artisanal
-        self.image = (0,192)
+        self.image = (112,128)
         self.rarity = "rare"
         self.type = "support"
         self.effects = [
@@ -374,7 +374,7 @@ class BANDOLIER(Item):
 class IDOL(Item): #A glass figurine used by the Celestials for prayer. #Because they're obsessed with light, they use mirrors to trap sunlight inside the idols
     def __init__(self):
         self.name = "Bright Idol" #Primitive
-        self.image = (0,192)
+        self.image = (128,128)
         self.rarity = "rare"
         self.type = "damage"
         self.effects = [
@@ -386,7 +386,7 @@ class IDOL(Item): #A glass figurine used by the Celestials for prayer. #Because 
 class SHRAPNEL(Item):
     def __init__(self):
         self.name = "Artisanal Shrapnel" #Artisanal
-        self.image = (0,192)
+        self.image = (144,128)
         self.rarity = "rare"
         self.type = "damage"
         self.effects = [
@@ -397,7 +397,7 @@ class SHRAPNEL(Item):
 class MAP(Item): #A map of the earth after the bombs
     def __init__(self):
         self.name = "Wasteland Map" #Artisanal
-        self.image = (0,192)
+        self.image = (0,144)
         self.rarity = "rare"
         self.type = "damage"
         self.effects = [
@@ -408,7 +408,7 @@ class MAP(Item): #A map of the earth after the bombs
 class TRAP(Item): #Its the tail of a predator which evolved to look like the female of its preys
     def __init__(self):
         self.name = "Lover's Trap" #Biological
-        self.image = (0,192)
+        self.image = (16,144)
         self.rarity = "rare"
         self.type = "damage"
         self.effects = [
@@ -422,7 +422,7 @@ class TRAP(Item): #Its the tail of a predator which evolved to look like the fem
 class CHARGER(Item): #Its a device that capts extra neutrons in atoms, then charges them electrically into protons to make new atoms (in this case it makes carbon to heal you)
     def __init__(self):
         self.name = "Neutron Charger"
-        self.image = (0,192)
+        self.image = (32,144)
         self.rarity = "legendary"
         self.type = "healing"
         self.effects = [
@@ -433,7 +433,7 @@ class CHARGER(Item): #Its a device that capts extra neutrons in atoms, then char
 class GENERATOR(Item): #It generates energy (eg. temp health) out of unused potential (you healing at max health)
     def __init__(self):
         self.name = "Potential Generator"
-        self.image = (0,192)
+        self.image = (48,144)
         self.rarity = "legendary"
         self.type = "healing"
         self.effects = [
@@ -444,7 +444,7 @@ class GENERATOR(Item): #It generates energy (eg. temp health) out of unused pote
 class NANOBOT(Item): #Its a whole network of nanobots that attach themselves to your nervous system. When you die, they go into overdrive to make your body continue to function, even though your biological nervous system isn't working anymore
     def __init__(self):
         self.name = "Nanobot Nervous System"
-        self.image = (0,192)
+        self.image = (64,144)
         self.rarity = "legendary"
         self.type = "healing"
         self.effects = [
@@ -455,7 +455,7 @@ class NANOBOT(Item): #Its a whole network of nanobots that attach themselves to 
 class PREDICTOR(Item): #Its a hyper advanced system that can analyse random situations and find the best course of action possible (quantum because that linked to probabilities or something)
     def __init__(self):
         self.name = "Quantum Predictor"
-        self.image = (0,192)
+        self.image = (80,144)
         self.rarity = "legendary"
         self.type = "support"
         self.effects = [
@@ -466,7 +466,7 @@ class PREDICTOR(Item): #Its a hyper advanced system that can analyse random situ
 class CORE(Item): #Its a thing you implement in a weapon, which allows it to manipulate the mass of the bullets (which means you can make them heavier once you've fired them to make them deal more damage)
     def __init__(self):
         self.name = "Graviton Core"
-        self.image = (0,192)
+        self.image = (96,144)
         self.rarity = "legendary"
         self.type = "damage"
         self.effects = [
@@ -477,7 +477,7 @@ class CORE(Item): #Its a thing you implement in a weapon, which allows it to man
 class DUPLICATOR(Item): #It uses small-scale time travel (I imagine large-scale time travel to be so energy consuming they literally can't do it) to get multiple copies of the same bullet
     def __init__(self):
         self.name = "Temporal Duplicator"
-        self.image = (0,192)
+        self.image = (112,144)
         self.rarity = "legendary"
         self.type = "damage"
         self.effects = [
@@ -493,7 +493,7 @@ class DUPLICATOR(Item): #It uses small-scale time travel (I imagine large-scale 
 class FANG(Item): #Matriarch Boss Item, a fang from its mouth
     def __init__(self):
         self.name = "Monstrous Fang"
-        self.image = (0,192)
+        self.image = (160,128)
         self.rarity = "boss"
         self.type = "healing" #also damage, but doesn't matter for boss items
         self.effects = [
@@ -504,7 +504,7 @@ class FANG(Item): #Matriarch Boss Item, a fang from its mouth
 class ERUDITE_TUMOR(Item): #Entropy Boss Item, one of the many tumors that compose its body
     def __init__(self):
         self.name = "Erudite Tumor"
-        self.image = (0,192)
+        self.image = (176,128)
         self.rarity = "boss"
         self.type = "damage"
         self.effects = [
@@ -516,7 +516,7 @@ class ERUDITE_TUMOR(Item): #Entropy Boss Item, one of the many tumors that compo
 class LOGS(Item): #Vanguard Boss Item, all of the logs from it being activated non-stop for decades
     def __init__(self):
         self.name = "Security Logs"
-        self.image = (0,192)
+        self.image = (192,128)
         self.rarity = "boss"
         self.type = "support"
         self.effects = [
@@ -528,7 +528,7 @@ class LOGS(Item): #Vanguard Boss Item, all of the logs from it being activated n
 class TROPHIES(Item): #Apex Boss Item, heads of various creatures its killed
     def __init__(self):
         self.name = "Hunting Trophies"
-        self.image = (0,192)
+        self.image = (160,144)
         self.rarity = "boss"
         self.type = "damage"
         self.effects = [
@@ -539,7 +539,7 @@ class TROPHIES(Item): #Apex Boss Item, heads of various creatures its killed
 class LANCE(Item): #Zenith Boss Item, one of its spears
     def __init__(self):
         self.name = "Lance of Hyperion" 
-        self.image = (0,192)
+        self.image = (176,144)
         self.rarity = "boss"
         self.type = "damage"
         self.effects = [
@@ -550,7 +550,7 @@ class LANCE(Item): #Zenith Boss Item, one of its spears
 class BOOK_BRASIER(Item): #Aegir Boss Item, basically the Celestial equivalent of the Bible
     def __init__(self):
         self.name = "Book of the Brasier" 
-        self.image = (0,192)
+        self.image = (192,144)
         self.rarity = "boss"
         self.type = "healing"
         self.effects = [

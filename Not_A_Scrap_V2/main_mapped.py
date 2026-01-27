@@ -6,8 +6,6 @@ from furniture import*
 from construct import*
 from copy import deepcopy as copy
 
-KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
-
 WID = 256
 HEI = 256 
 
@@ -192,7 +190,7 @@ class InMission:
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
     def spawnRandomEnemy(self,x,y):
-        EnemyClass = random.choice([EarthLing, HeavyHitter])
+        EnemyClass = random.choice([EarthLing, HeavyHitter, MomoNextBot])
         self.spawn(EnemyClass,x=x,y=y,level=self.level)
 
     def spawn(self,EnemyClass, x, y, level=0):
@@ -2514,6 +2512,21 @@ class HeavyHitter(Enemy):
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.8, speedChangeRate=10, knockbackCoef=1)
+        self.initMeleeAttack(priority=2)
+
+
+class MomoNextBot(Enemy):
+    def __init__(self, x ,y, level=0,id=0):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
+        self.name = 'MomoNextBot'
+        self.originalImage = (32,96)
+        self.image = (32,96)
+
+        self.health = 200
+        self.maxHealth = 200
+
+        self.scaling = 1.5
+        self.initWalk(priority=0, maxSpeed=0.45, speedChangeRate=10, knockbackCoef=1)
         self.initMeleeAttack(priority=2)
 
 
