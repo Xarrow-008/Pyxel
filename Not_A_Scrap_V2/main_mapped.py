@@ -222,7 +222,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, CLOAK()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, METAL_DETECTOR()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -305,12 +305,15 @@ class InMission:
             asset.interactable = False
             self.activeAsset = 'N/A'
 
-            pickup = asset.function[1].pickRandom(0)
-            pickupObject = Pickup(asset.x + asset.dropPos[0], asset.y + asset.dropPos[1], pickup)
-            if pickup is None:
-                print("Its meant to drop a rare/legendary item, but I haven't actually implemented those yet")
+            if self.player.inventory.increasedRarity > 0:
+                print(increaseRarity(asset.function[1]))
+                pickup = increaseRarity(asset.function[1]).pickRandom(0)
+                if issubclass(type(pickup),Item):
+                    self.player.inventory.increasedRarity -= 1
             else:
-                self.pickups.append(pickupObject)
+                pickup = asset.function[1].pickRandom(0)
+            pickupObject = Pickup(asset.x + asset.dropPos[0], asset.y + asset.dropPos[1], pickup)
+            self.pickups.append(pickupObject)
 
 
     def updateAllEntityAnims(self):
@@ -500,12 +503,7 @@ class InMission:
         if crit :
             value *= 2
                 
-
-
-        if damagerIsOwned :
-            target.lastHitBy = damager.owner
-        else:
-            target.lastHitBy = damager
+        target.lastHitBy = damagingEntity
 
         if target.canGetHurt():
 
@@ -2198,6 +2196,9 @@ class Inventory:
             elif effect["scaling"]=="geometric":
                 setattr(self, effect["stat"], effect["initial_term"]*(1-effect["reason"]**(self.items[item.name]))/(1-effect["reason"]))
 
+            elif effect["scaling"]=="incremental":
+                setattr(self, effect["stat"], (getattr(self, effect["stat"])+effect["value"]))
+
             print(effect["stat"], getattr(self, effect["stat"]))
         
         self.recalculateStats = True
@@ -2455,9 +2456,13 @@ class Enemy(Entity): #Creates an entity that fights the player
             self.dead = True
 
             if random.randint(1,100) <= self.deathItemSpawn:
-                pickup = RARITY_TABLE.pickRandom(0)
-                if pickup is not None:
-                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+                if hasattr(self.lastHitBy, "inventory") and self.lastHitBy.inventory.increasedRarity > 0:
+                    pickup = INCREASED_ITEM_TABLE.pickRandom(0)
+                    self.lastHitBy.inventory.increasedRarity -= 1
+                else:
+                    pickup = ITEM_TABLE.pickRandom(0)
+                
+                self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
             if hasattr(self.lastHitBy, "inventory"):
                 if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChance:
