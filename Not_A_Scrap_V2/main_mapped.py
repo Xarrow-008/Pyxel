@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, LEECHES()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, CLOAK()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -379,7 +379,6 @@ class InMission:
 
                 if not type(entity) == Projectile and not self.player.isInvincible() and collision(self.player.x,self.player.y,entity.x,entity.y,(self.player.width,self.player.height),(entity.width,entity.height)):
                     self.hurt(5, [0,0], 1, 0, entity, self.player) #TODO CHANGE WHEN BULLETS CAN HIT PLAYER
-                    self.player.isHitStun = True
 
 
     def isRoomNearby(self,room):
@@ -510,8 +509,9 @@ class InMission:
         else:
             target.lastHitBy = damager
 
-        if (not hasattr(target, "isHitStun")) or ((not target.isHitStun or target.hitBy == shot) and not target.isInvincible()):
-            
+        if target.canGetHurt():
+
+
             target.sufferDamage(value)
 
             if crit:
@@ -546,7 +546,6 @@ class InMission:
             damagingEntity.enemiesKilled += 1
             if hasattr(damagingEntity, "inventory"):
                 damagingEntity.triggerOnKillEffects()
-
 
     def calculateNewDamageValue(self, value, damager, target):
 
@@ -839,7 +838,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             self.applyVector(vector)
 
-    def initDash(self, priority, cooldown, speed, duration): #Gets the parameters of the "dash" action, and initialises the related variables
+    def initDash(self, priority, cooldown, speed, duration, invincibility): #Gets the parameters of the "dash" action, and initialises the related variables
         self.dashPriority = priority
         self.dashCooldown = cooldown
         self.dashSpeed = speed
@@ -850,6 +849,11 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.dashStartFrame = 0
         self.dashVector = [0,0]
 
+        self.chainedDashes = 0
+
+        self.isDashInvincible = False
+        self.dashInvincibilityDuration = invincibility
+
     def startDash(self, vector): #Used for dashing/lunging
         if self.canStartDash():
             self.currentActionPriority = self.dashPriority
@@ -858,14 +862,25 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.isDashing = True
             self.lastDashFrame = 0
             self.dashVector = copy(vector)
+            self.chainedDashes += 1
             self.anims.append(AnimDust(pos=[self.x,self.y,False])) #dashDust
 
+
     def canStartDash(self):
-        return timer(self.dashStartFrame, self.dashCooldown, game_frame) and self.currentActionPriority <= self.dashPriority
+        if hasattr(self, "inventory") and (self.inventory.extraDash != 0 and self.chainedDashes <= self.inventory.extraDash) and (timer(self.dashStartFrame, self.dashCooldown*0.1, game_frame)) and (self.currentActionPriority <= self.dashPriority):
+            return True
+
+        if timer(self.dashStartFrame, self.dashCooldown, game_frame) and self.currentActionPriority <= self.dashPriority:
+            self.chainedDashes = 0
+            return True
+
+        return False
 
     def dashMovement(self):
         if self.dashOngoing():
             self.applyVector([self.dashVector[0]*self.dashSpeed, self.dashVector[1]*self.dashSpeed])
+
+            self.isDashInvincible = not timer(self.dashStartFrame, self.dashDuration*self.dashInvincibilityDuration, game_frame)
 
         else :
             self.currentActionPriority = 0
@@ -876,6 +891,8 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.dashStartFrame = game_frame
             self.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
             self.dashVector = [0,0]
+
+            self.isInvincibleDash = False
 
     def dashOngoing(self):
         return not timer(self.dashStartFrame, self.dashDuration, game_frame)  
@@ -1042,6 +1059,9 @@ class Entity: #General Entity class with all the methods describing what entitie
     def isInvincible(self):
         return not timer(self.invincibilityStartFrame, self.invincibilityDuration, game_frame)
 
+    def canGetHurt(self):
+        return not (((hasattr(self, "isHitStun") and self.isHitStun) and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible))
+
     def hitstun(self):
         if hasattr(self, "isHitStun"):
 
@@ -1085,10 +1105,10 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.maxHealth = self.baseHealth
 
         self.baseSpeed = 0.8
-        self.baseDashCooldown = 40
+        self.baseDashCooldown = 60
 
         self.initWalk(priority=0, maxSpeed=self.baseSpeed, speedChangeRate=20, knockbackCoef=1)
-        self.initDash(priority=1, cooldown=self.baseDashCooldown, speed=1.5, duration=60)
+        self.initDash(priority=1, cooldown=self.baseDashCooldown, speed=1.5, duration=60, invincibility=0.5)
         self.initRangedAttack(priority=0)
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
