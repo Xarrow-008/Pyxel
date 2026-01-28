@@ -337,11 +337,7 @@ class Room:
                 self.assets.remove(asset)
 
     def draw(self):
-        pyxel.rect(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE,5)
-        pyxel.rectb(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE+1,6)
-        pyxel.rect(self.x,self.y,self.width,self.height+1,2)
-        self.floorPatternDraw()
-        pyxel.rectb(self.x,self.y,self.width,self.height+1,6)
+        show(self.x,self.y,(0,192),save=2)
 
         self.assetDraw()
 
@@ -412,6 +408,21 @@ class LoadRoom(Room):
                     classAsset = menu.allAssets[classIndex]
 
                     self.assetAppend(classAsset,(self.x + asset['relativeX'],self.y + asset['relativeY']),asset['reversed'])
+
+
+class LoadShip(LoadRoom):
+    def __init__(self,x,y):
+        path = '../rooms/finished_rooms.toml'
+        file = openToml(path)
+        settings = file['presetRooms'][0]
+
+        super().__init__(settings,x,y)
+        
+    def draw(self):
+        draw(self.x,self.y,2,0,192,6*TILE_SIZE,4*TILE_SIZE,colkey=11)
+
+        self.assetDraw()
+
 
 
 class Exit:
