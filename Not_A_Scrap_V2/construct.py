@@ -337,7 +337,11 @@ class Room:
                 self.assets.remove(asset)
 
     def draw(self):
-        show(self.x,self.y,(0,192),save=2)
+        pyxel.rect(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE,5)
+        pyxel.rectb(self.x,self.y-2.5*TILE_SIZE,self.width,2.5*TILE_SIZE+1,6)
+        pyxel.rect(self.x,self.y,self.width,self.height+1,2)
+        self.floorPatternDraw()
+        pyxel.rectb(self.x,self.y,self.width,self.height+1,6)
 
         self.assetDraw()
 
