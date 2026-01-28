@@ -222,7 +222,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, METAL_DETECTOR()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, SACK()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -306,7 +306,6 @@ class InMission:
             self.activeAsset = 'N/A'
 
             if self.player.inventory.increasedRarity > 0:
-                print(increaseRarity(asset.function[1]))
                 pickup = increaseRarity(asset.function[1]).pickRandom(0)
                 if issubclass(type(pickup),Item):
                     self.player.inventory.increasedRarity -= 1
@@ -606,10 +605,34 @@ class InMission:
                 else:
                     entity.playerCollisionEffect[3] -= 1
 
+                if hasattr(entity, "inventory") and entity.inventory.dashKnockbackStrength >0 and hasattr(entity, "isDashing") and entity.isDashing:
+                    direction = random.choice([-1,1])
+
+                    horizontalKnockback = -entity.dashVector[1]*direction
+                    verticalKnockback = entity.dashVector[0]*direction
+                    
+                    self.player.momentum[0] += horizontalKnockback*entity.inventory.dashKnockbackStrength
+                    self.player.momentum[1] += verticalKnockback*entity.inventory.dashKnockbackStrength
+
+                    self.player.isHitStun = True
+                    self.player.hitStunStartFrame = game_frame
+
     def enemy_player_collision(self): #Handles what happens when a player collides with an enemy
         for entity in self.entities:
             if self.player.collidingWithEnemy(entity):
-                pass #Right now, there isn't anything that happens when the player collides with an enemy
+                if hasattr(entity, "maxSpeed") and self.player.isDashing and self.player.inventory.dashKnockbackStrength > 0 :
+
+                    direction = random.choice([-1,1])
+
+                    horizontalKnockback = -self.player.dashVector[1]*direction
+                    verticalKnockback = self.player.dashVector[0]*direction
+                    
+                    entity.momentum[0] += horizontalKnockback*self.player.inventory.dashKnockbackStrength
+                    entity.momentum[1] += verticalKnockback*self.player.inventory.dashKnockbackStrength
+
+                    entity.isHitStun = True
+                    entity.hitStunStartFrame = game_frame
+
 
     def entityCollidingWithPlayer(self, entity):
         return collisionObjects(self.player, entity) and not self.player.isHitStun
@@ -861,7 +884,6 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.chainedDashes += 1
             self.anims.append(AnimDust(pos=[self.x,self.y,False])) #dashDust
 
-
     def canStartDash(self):
         if hasattr(self, "inventory") and (self.inventory.extraDash != 0 and self.chainedDashes <= self.inventory.extraDash) and (timer(self.dashStartFrame, self.dashCooldown*0.1, game_frame)) and (self.currentActionPriority <= self.dashPriority):
             return True
@@ -888,7 +910,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.momentum = [pyxel.sgn(self.dashVector[0])*self.dashSpeed, pyxel.sgn(self.dashVector[1])*self.dashSpeed]
             self.dashVector = [0,0]
 
-            self.isInvincibleDash = False
+            self.isDashInvincible = False
 
     def dashOngoing(self):
         return not timer(self.dashStartFrame, self.dashDuration, game_frame)  
@@ -1104,7 +1126,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.baseDashCooldown = 60
 
         self.initWalk(priority=0, maxSpeed=self.baseSpeed, speedChangeRate=20, knockbackCoef=1)
-        self.initDash(priority=1, cooldown=self.baseDashCooldown, speed=1.5, duration=60, invincibility=0.5)
+        self.initDash(priority=1, cooldown=self.baseDashCooldown, speed=3, duration=20, invincibility=1)
         self.initRangedAttack(priority=0)
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
@@ -1114,6 +1136,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.image = (6,3)
         self.facing = [1,0]
         #We should probably make it so that "facing" and "direction" work the same way (because facing doesn't have diagonals)
+        self.lastDirection = [1,0]
         self.direction = [1,0]
 
         self.isWalking = False
@@ -1252,9 +1275,6 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
     def baseUpdate(self):
         self.controlInventory()
-
-        if self.isHitStun:
-            print('HitStun')
 
     def controlInventory(self):
         #Allows the player to switch weapons between backpack and handheld
@@ -1510,6 +1530,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.walk(self.momentum)
     
     def speedDecrease(self):
+        self.lastDirection = self.direction.copy()
         #If the player isn't moving in a specific direction, we lower their speed in that direction progressively
         if not(keyPress("UP","btn") or keyPress("DOWN","btn")):
             self.momentum[1] -= self.momentum[1]/self.speedChangeRate
@@ -1536,6 +1557,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
             self.momentum[0] -= self.momentum[0]/self.speedChangeRate
         if abs(self.momentum[1]) > self.maxSpeed:
             self.momentum[1] -= self.momentum[1]/self.speedChangeRate 
+
+        if self.direction == [0,0]:
+            self.direction = self.lastDirection.copy()
 
     def dash(self):
         if self.isDashing:
@@ -2427,7 +2451,6 @@ class Enemy(Entity): #Creates an entity that fights the player
 
 
     def speedDecrease(self):
-        #These two lines are temporary and will be removed once we have pathing. They're just there to make sure the speed decreases
         self.momentum[0] -= self.momentum[0]/self.speedChangeRate
         self.momentum[1] -= self.momentum[1]/self.speedChangeRate
 

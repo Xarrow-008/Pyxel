@@ -355,7 +355,7 @@ class SACK(Item): #Something that was evolved by prey animals to project hot air
         self.rarity = "rare"
         self.type = "support"
         self.effects = [
-            {"stat":"dashKnockbackStrength","scaling":"arithmetic", "initial_term":15, "reason":15}]
+            {"stat":"dashKnockbackStrength","scaling":"arithmetic", "initial_term":2, "reason":2}]
         self.shortDescription = "Pushback enemies while dashing"
         self.longDescription = "Enemies which you enter in contact with, or are near you when finish dashing are knockbacked. The strength of the knockback increases linearly with every stack."
 
@@ -366,7 +366,9 @@ class BANDOLIER(Item):
         self.rarity = "rare"
         self.type = "support"
         self.effects = [
-            {"stat":"dashKnockbackStrength","scaling":"arithmetic", "initial_term":15, "reason":15}]
+            {"stat":"extraAmmo","scaling":"arithmetic", "initial_term":15, "reason":15},
+            {"stat":"extraReloadSpeed", "scaling":"arithmetic", "initial_term":10, "reason":5},
+            {"stat":"extraDurability", "scaling":"arithmetic", "initial_term":35, "reason":35}] #TODO : implement this with melee weapons
         self.shortDescription = "Increased durability, ammo capacity and reload speed"
         self.longDescription = "Increases the ammount of ammo in clips and in the reserve by 15%(+15% per stack). Increases reload speed by 10(+5% per stack). Increases the durability of melee weapons by 35%(+35% per stack)"
 
