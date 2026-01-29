@@ -222,7 +222,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, SACK()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, SHRAPNEL()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -847,6 +847,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def initWalk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
         self.walkPriority = priority
+        self.baseSpeed = maxSpeed
         self.maxSpeed = maxSpeed
         self.speedChangeRate = speedChangeRate
         self.knockbackCoef = knockbackCoef
@@ -859,6 +860,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def initDash(self, priority, cooldown, speed, duration, invincibility): #Gets the parameters of the "dash" action, and initialises the related variables
         self.dashPriority = priority
+        self.baseDashCooldown = cooldown
         self.dashCooldown = cooldown
         self.dashSpeed = speed
         self.dashDuration = duration
@@ -1122,11 +1124,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.baseHealth = 80
         self.maxHealth = self.baseHealth
 
-        self.baseSpeed = 0.8
-        self.baseDashCooldown = 60
 
-        self.initWalk(priority=0, maxSpeed=self.baseSpeed, speedChangeRate=20, knockbackCoef=1)
-        self.initDash(priority=1, cooldown=self.baseDashCooldown, speed=3, duration=20, invincibility=1)
+        self.initWalk(priority=0, maxSpeed=0.8, speedChangeRate=20, knockbackCoef=1)
+        self.initDash(priority=1, cooldown=60, speed=3, duration=20, invincibility=1)
         self.initRangedAttack(priority=0)
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
@@ -1981,8 +1981,19 @@ class Inventory:
     def addWeapon(self, weapon, hand, level): #Function used when the player picks up a weapon
 
         damage = math.ceil(weapon.damage*(weapon.scaling**level))
+        maxAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
+        magAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
+        reserveAmmo = math.ceil(weapon.reserveAmmo*(1+self.extraAmmo/100))
+        reloadTime = weapon.reloadTime*(1-self.extraReloadSpeed/100)
+        piercing = weapon.piercing+(self.extraPiercing)
+
         new_weapon = weapon.copy()
         new_weapon.damage = damage
+        new_weapon.maxAmmo = maxAmmo
+        new_weapon.magAmmo = magAmmo
+        new_weapon.reserveAmmo = reserveAmmo
+        new_weapon.reloadTime = reloadTime
+        new_weapon.piercing = piercing
 
         setattr(self, hand, new_weapon.copy())
         setattr(self, hand+"Level", level)
@@ -2250,7 +2261,6 @@ class Enemy(Entity): #Creates an entity that fights the player
         self.initPath()
         self.id = id
         self.target = (self.x,self.y)
-        self.baseSpeed = 1
         
         self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)

@@ -46,7 +46,7 @@ class RangedWeapon(Weapon):
         self.rangedWeaponInfo = rangedWeaponInfo
 
     def copy(self):
-        return RangedWeapon(self.baseWeaponInfo, self.rangedWeaponInfo)
+        return RangedWeapon(self.baseWeaponInfo, [self.mode, self.bulletImage, self.bulletWidth, self.bulletHeight, self.spread, self.movingSpreadIncrease, self.bulletCount, self.bulletSpeed, self.range, self.damage, self.piercing, self.knockbackCoef, self.fallOffCoef, self.noFallOffArea, self.reloadTime, self.attackCooldown, self.magAmmo, self.maxAmmo, self.reserveAmmo])
 
 class MeleeWeapon(Weapon):
     def __init__(self, baseWeaponInfo):

@@ -370,7 +370,7 @@ class BANDOLIER(Item):
             {"stat":"extraReloadSpeed", "scaling":"arithmetic", "initial_term":10, "reason":5},
             {"stat":"extraDurability", "scaling":"arithmetic", "initial_term":35, "reason":35}] #TODO : implement this with melee weapons
         self.shortDescription = "Increased durability, ammo capacity and reload speed"
-        self.longDescription = "Increases the ammount of ammo in clips and in the reserve by 15%(+15% per stack). Increases reload speed by 10(+5% per stack). Increases the durability of melee weapons by 35%(+35% per stack)"
+        self.longDescription = "Increases the ammount of ammo in clips and in the reserve by 15%(+15% per stack). Increases reload speed by 10(+5% per stack). Increases the durability of melee weapons by 35%(+35% per stack). Does not affect the weapons you currently have equipped."
 
 
 class IDOL(Item): #A glass figurine used by the Celestials for prayer. #Because they're obsessed with light, they use mirrors to trap sunlight inside the idols
@@ -380,7 +380,7 @@ class IDOL(Item): #A glass figurine used by the Celestials for prayer. #Because 
         self.rarity = "rare"
         self.type = "damage"
         self.effects = [
-            {"stat":"onKillFireEnemyNumber","scaling":"arithmetic", "initial_term":2, "reason":1},
+            {"stat":"onKillFireEnemyNumber","scaling":"arithmetic", "initial_term":2, "reason":1}, #TODO :implement this with status effect
             {"stat":"onKillFireRadius", "scaling":"arithmetic", "initial_term":3*TILE_SIZE, "reason":1.5*TILE_SIZE}]
         self.shortDescription = "Set enemies on fire on kill"
         self.longDescription = "Every time you kill an enemy, 2(+1 per stack) enemies in a 3T(+1.5 per stack) gets set on fire."
@@ -392,9 +392,9 @@ class SHRAPNEL(Item):
         self.rarity = "rare"
         self.type = "damage"
         self.effects = [
-            {"stat":"piercingIncrease","scaling":"arithmetic", "initial_term":1, "reason":1}]
+            {"stat":"extraPiercing","scaling":"arithmetic", "initial_term":1, "reason":1}] #TODO : make this work for melee weapons
         self.shortDescription = "Increases piercing"
-        self.longDescription = "Your attacks can go through 1 (+1 per stack) more enemy."
+        self.longDescription = "Increases piercing by 1 (+ 1 per stack). Does not affect the weapons you currently have equipped."
 
 class MAP(Item): #A map of the earth after the bombs
     def __init__(self):
@@ -403,7 +403,7 @@ class MAP(Item): #A map of the earth after the bombs
         self.rarity = "rare"
         self.type = "damage"
         self.effects = [
-            {"stat":"exposedChance","scaling":"geometric", "initial_term":5, "reason":0.8}]
+            {"stat":"exposedChance","scaling":"geometric", "initial_term":5, "reason":0.8}] #TODO : implement this with status effects
         self.shortDescription = "Random chance to expose weaknesses in opponents."
         self.longDescription = "On hit, you have a 5% chance to make enemies exposed for 5s, which doubles crit chance, and multiplies crit damage by another 50%. Every stack gives 4/5th of the last ones effect."
 
@@ -414,7 +414,7 @@ class TRAP(Item): #Its the tail of a predator which evolved to look like the fem
         self.rarity = "rare"
         self.type = "damage"
         self.effects = [
-            {"stat":"linkedDamageShare","scaling":"arithmetic", "initial_term":40, "reason":10}]
+            {"stat":"linkedDamageShare","scaling":"arithmetic", "initial_term":40, "reason":10}] #TODO : implement this with status effects
         self.shortDescription = "Enemies share damage"
         self.longDescription = "Two random enemies on screen will be linked, which means that they will take 40%(+10% per stack) of the other's damage. Once a linked enemy dies, a new one is chosen randomly."
 
