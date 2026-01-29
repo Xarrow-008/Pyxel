@@ -414,6 +414,21 @@ class LoadRoom(Room):
                     self.assetAppend(classAsset,(self.x + asset['relativeX'],self.y + asset['relativeY']),asset['reversed'])
 
 
+class LoadShip(LoadRoom):
+    def __init__(self,x,y):
+        path = '../rooms/finished_rooms.toml'
+        file = openToml(path)
+        settings = file['presetRooms'][0]
+
+        super().__init__(settings,x,y)
+        
+    def draw(self):
+        draw(self.x,self.y,2,0,192,6*TILE_SIZE,4*TILE_SIZE,colkey=11)
+
+        self.assetDraw()
+
+
+
 class Exit:
     def __init__(self,x,y):
         self.x = x*TILE_SIZE

@@ -19,7 +19,7 @@ camera = [0,0]
 class App:
     def __init__(self):
         pyxel.init(CAM_WIDTH, CAM_HEIGHT, fps=120)
-        pyxel.load('../rooms.pyxres')
+        pyxel.load('../notAScrap.pyxres')
         pyxel.colors[1] = get_color('232A4F')
         pyxel.colors[2] = get_color('740152')
         pyxel.colors[14] = get_color('C97777')
@@ -330,7 +330,7 @@ class Player(Entity):
     def __init__(self,x,y):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE)
 
-        self.img = (14,1)
+        self.img = (6,3)
 
         self.keyboard = 'zqsd'
         self.direction = [0,0]
@@ -396,7 +396,7 @@ class Player(Entity):
     def draw(self):
         show(self.x, self.y, self.img, TILE_SIZE=TILE_SIZE)
         if self.constructorHat:
-            show(self.x,self.y,(15,1), TILE_SIZE=TILE_SIZE)
+            show(self.x,self.y,(10,8), TILE_SIZE=TILE_SIZE)
 
 
 
@@ -546,6 +546,9 @@ class Roombuild:
         if pyxel.btnp(pyxel.MOUSE_BUTTON_RIGHT):
             self.loadRoom()
 
+        if pyxel.btnp(pyxel.KEY_V):
+            self.addShip()
+
         self.exitsActions()
 
         if pyxel.btnp(pyxel.KEY_N):
@@ -555,11 +558,19 @@ class Roombuild:
                 self.extendRooms()
         if pyxel.btnp(pyxel.KEY_U):
             print(len(self.rooms))
+            if len(self.rooms) != 0:
+                print(self.rooms[-1].name)
             
 
 
         if len(self.rooms) != 0:
             self.rooms[self.roomIndex].update()
+
+    def addShip(self):
+        x = (pyxel.mouse_x + self.camera[0])//TILE_SIZE
+        y = (pyxel.mouse_y + self.camera[1])//TILE_SIZE
+
+        self.rooms.append(LoadShip(x,y))
 
     def exitsActions(self):
         global camera
@@ -963,6 +974,24 @@ class LoadRoom(Room):
                 wallsMap[y + pos[1]][x + pos[0]] = 2
 
 
+class LoadShip(LoadRoom):
+    def __init__(self,x,y):
+        path = '../rooms/finished_rooms.toml'
+        file = openToml(path)
+        settings = file['presetRooms'][0]
+
+        super().__init__(settings,x,y)
+
+        self.name = 'ship'
+        
+    def draw(self):
+        draw(self.x,self.y,2,0,192,self.width,self.height,colkey=11)
+
+        self.assetDraw()
+
+
+
+
 class WallsEditor:
     def __init__(self):
         pass
@@ -1124,7 +1153,7 @@ class Asset:
         if not self.interactable:
             pyxel.pal(7,0)
         
-        pyxel.blt(self.x,self.y,1,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
+        pyxel.blt(self.x,self.y,2,self.img[0]*TILE_SIZE,self.img[1]*TILE_SIZE,self.width * self.coeff(),self.height,11)
         pyxel.pal()
 
     def convertDic(self,pos):
@@ -1232,7 +1261,7 @@ class ClosetBack(Asset):
     name = 'ClosetBack'
     def __init__(self,x,y,reversed=False):
         super().__init__(x,y,reversed=reversed)
-        self.img = (6,6)
+        self.img = (8,3)
         self.width = 2*TILE_SIZE
         self.height = 3*TILE_SIZE
 
@@ -1240,7 +1269,7 @@ class Dressing(Asset):
     name = 'Dressing'
     def __init__(self,x,y,reversed=False):
         super().__init__(x,y,reversed=reversed)
-        self.img = (8,3)
+        self.img = (11,3)
         self.width = 3*TILE_SIZE
         self.height = 2*TILE_SIZE
 
