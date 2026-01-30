@@ -222,7 +222,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, SHRAPNEL()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, IDOL()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -230,9 +230,8 @@ class InMission:
         if pyxel.btnp(pyxel.KEY_N):
             self.player.fuel += 1
 
-
         if pyxel.btnp(pyxel.KEY_L):
-            self.interactables.append(Interactable(self.player.x, self.player.y, InteractableTemplate.CHEST))
+            self.player.fireStacks += 1
 
     def roomsUpdate(self):
         room = self.findRoom(self.player.x,self.player.y)
@@ -338,7 +337,12 @@ class InMission:
         if self.player.heal > 0:
             self.heal(self.player.heal, self.player, self.player)
             self.player.heal = 0
+
+        if self.player.statusEffectDamage > 0:
+            self.hurt(self.player.statusEffectDamage, [0,0], 0, 0, self.player, self.player, hitStun=False)
+            self.player.statusEffectDamage = 0
         
+
         for entity in self.entities:
             
             if hasattr(entity, "bulletList") and entity.bulletList != []:
@@ -363,6 +367,10 @@ class InMission:
             if entity.heal > 0:
                 self.heal(entity.heal, entity, entity)
                 entity.heal = 0
+
+            if entity.statusEffectDamage > 0:
+                self.hurt(entity.statusEffectDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
+                entity.statusEffectDamage = 0
 
             room = self.findRoom(entity.x,entity.y)
             conditionUpdate = type(entity) == Projectile
@@ -471,7 +479,7 @@ class InMission:
             target.health = target.maxHealth
         target.addDamageNumber(target, value, 11)
 
-    def hurt(self, value, vector, knockback_coef, shot, damager, target):
+    def hurt(self, value, vector, knockback_coef, shot, damager, target, hitStun=True):
         global freeze_start, freeze_duration, game_frame
 
         damagerIsOwned = (type(damager)==Projectile)
@@ -504,7 +512,7 @@ class InMission:
                 
         target.lastHitBy = damagingEntity
 
-        if target.canGetHurt():
+        if target.canGetHurt(shot):
 
 
             target.sufferDamage(value)
@@ -520,14 +528,14 @@ class InMission:
                 damagingEntity.heal += damagingEntity.inventory.healOnHitAmount
 
 
+            if hitStun :
+                target.isHitStun = True
+                target.hitStunStartFrame = game_frame
 
-            target.isHitStun = True
-            target.hitStunStartFrame = game_frame
+                target.invincibilityStartFrame = game_frame
 
-            target.invincibilityStartFrame = game_frame
-
-            freeze_start = pyxel.frame_count
-            freeze_duration = target.hitFreezeFrame
+                freeze_start = pyxel.frame_count
+                freeze_duration = target.hitFreezeFrame
 
             target.hitBy = shot
             if hasattr(target, "maxSpeed"):
@@ -539,8 +547,19 @@ class InMission:
 
         if target.health <= 0:
             damagingEntity.enemiesKilled += 1
+
             if hasattr(damagingEntity, "inventory"):
                 damagingEntity.triggerOnKillEffects()
+
+                enemiesSetOnFire = 0
+                for entity in self.entities:
+                    if enemiesSetOnFire == damagingEntity.inventory.onKillFireEnemyNumber:
+                        break
+                    if entity != target and issubclass(type(entity), Enemy) and distanceObjects(target, entity) <= damagingEntity.inventory.onKillFireRadius:
+                        entity.fireStacks += 2
+                        enemiesSetOnFire += 1
+                        
+
 
     def calculateNewDamageValue(self, value, damager, target):
 
@@ -670,6 +689,8 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.enemiesKilled = 0
 
+        self.initStatusEffects()
+
     def __str__(self):
         if type(self) == Player:
             return f"Type : Player, x : {self.x}, y : {self.y}, momentum : {self.momentum}, health : {self.health}"
@@ -677,6 +698,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             return f"Type : Enemy, x : {self.x}, y : {self.y}, momentum : {self.momentum}, health : {self.health}"
         elif type(self) == Projectile:
             return f"Type : Projectile, x : {self.x}, y : {self.y}, momentum : {self.momentum}, range : {self.range}"
+
 
     def update(self):
 
@@ -689,6 +711,8 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         if hasattr(self, "inventory") and self.inventory.recalculateStats:
             self.getNewStats()
+
+        self.statusEffects()
 
         self.hitstun()
 
@@ -708,6 +732,10 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.updateAnims()
 
+    def baseUpdate(self):
+        pass
+
+
     def draw(self):
         pass
 
@@ -718,8 +746,6 @@ class Entity: #General Entity class with all the methods describing what entitie
         for anim in self.anims:
             anim.draw(self.x,self.y)
 
-    def baseUpdate(self):
-        pass
 
     def getConditions(self): #Basically just a bunch of booleans used to check whether or not an item's effect has to be triggered
 
@@ -763,9 +789,34 @@ class Entity: #General Entity class with all the methods describing what entitie
     def canDoActions(self):
         return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun")
 
+
     def tempHealthDecay(self):
         if onTick(FPS):
             self.tempHealth -= math.ceil(self.tempHealth/10)
+
+    def sufferDamage(self, value):
+        if self.tempHealth >= value:
+            self.tempHealth -= value
+        else:
+            value -= self.tempHealth
+            self.tempHealth = 0
+            self.health -= value
+
+        self.hitCurrentFrame = True
+
+
+    def initStatusEffects(self, fireDamage=5):
+        self.statusEffectDamage = 0
+
+        self.fireStacks = 0
+        self.fireDamage = fireDamage
+
+    def statusEffects(self):
+        if onTick(FPS):
+            self.statusEffectDamage += self.fireStacks*self.fireDamage
+        if onTick(2*FPS) and self.fireStacks > 0:
+            self.fireStacks -= 1
+
 
     def movement(self):
         pass
@@ -786,6 +837,9 @@ class Entity: #General Entity class with all the methods describing what entitie
         pass
 
     def updateAnims(self):
+        if self.fireStacks > 0:
+            self.addFireMarker()
+
         for anim in self.anims:
             anim.update()
             if anim.is_dead():
@@ -793,6 +847,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def death(self):
         pass
+
 
     def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
         X = int(self.x//TILE_SIZE)
@@ -845,6 +900,7 @@ class Entity: #General Entity class with all the methods describing what entitie
                 self.collidedWithWall = True
                 self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
+
     def initWalk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
         self.walkPriority = priority
         self.baseSpeed = maxSpeed
@@ -857,6 +913,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.currentActionPriority = self.walkPriority
 
             self.applyVector(vector)
+
 
     def initDash(self, priority, cooldown, speed, duration, invincibility): #Gets the parameters of the "dash" action, and initialises the related variables
         self.dashPriority = priority
@@ -917,6 +974,7 @@ class Entity: #General Entity class with all the methods describing what entitie
     def dashOngoing(self):
         return not timer(self.dashStartFrame, self.dashDuration, game_frame)  
 
+
     def initDeath(self, spawnItem, spawnFuel, spawnWeapon):
         self.deathItemSpawn = spawnItem
         self.deathFuelSpawn = spawnFuel
@@ -924,11 +982,13 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.dead = False
 
+
     def initMeleeAttack(self, priority):
         self.meleeAttackPriority = priority
         self.isSlashing = False
         self.lastSlashFrame = 0
         self.slashFrameDuration = 25
+
 
     def initRangedAttack(self, priority):
         self.rangedAttackPriority = priority
@@ -1014,6 +1074,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         startFrame = getattr(self.inventory, hand+"StartFrame")
         return timer(startFrame, weapon.reloadTime, game_frame) and weapon.magAmmo==0 and weapon.name != "None"
 
+
     def initCollision(self, wall, enemy, player):
         self.wallCollisionEffect = wall
         self.enemyCollisionEffect = enemy
@@ -1037,6 +1098,7 @@ class Entity: #General Entity class with all the methods describing what entitie
     def collidingWithEnemy(self, entity):
         return issubclass(type(entity),Enemy) and collisionObjects(self, entity) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
 
+
     def addAnimationHit(self,pos):
         self.addAnimation(pos=[pos[0],pos[1],False],settings={'u':0,'v':1,'length':5},lifetime='1 cycle')
 
@@ -1049,19 +1111,18 @@ class Entity: #General Entity class with all the methods describing what entitie
     def addIgnoreDamageMarker(self, pos):
         self.addAnimation(pos=[pos[0], pos[1], False], settings={"width":0, "height":0, "text":("Blocked", 7, 7, True)}, lifetime=24)
 
+    def addFireMarker(self):
+        if type(self) == Player and self.canStartDash and not self.isDashing and not timer(self.dashStartFrame, 2*self.dashCooldown, game_frame):
+            self.addAnimation(pos=[-8,-12, True], settings={"u":6, "v":0, "width":8, "height":10}, lifetime=1)
+        
+        else:
+            self.addAnimation(pos=[4, -11, True], settings={"u":6, "v":0, "width":8, "height":10}, lifetime=1)
+
     def addAnimation(self,pos=[0,0],settings=0,lifetime='1 cycle'):
         self.anims.append(Animation(pos,settings,lifetime))
 
-    def sufferDamage(self, value):
-        if self.tempHealth >= value:
-            self.tempHealth -= value
-        else:
-            value -= self.tempHealth
-            self.tempHealth = 0
-            self.health -= value
 
-        self.hitCurrentFrame = True
-
+    
     def initHitstun(self, duration, freezeFrame, invincibility):
         self.hitFreezeFrame = freezeFrame
         self.frozen = 0
@@ -1079,7 +1140,7 @@ class Entity: #General Entity class with all the methods describing what entitie
     def isInvincible(self):
         return not timer(self.invincibilityStartFrame, self.invincibilityDuration, game_frame)
 
-    def canGetHurt(self):
+    def canGetHurt(self, shot):
         return not (((hasattr(self, "isHitStun") and self.isHitStun) and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible))
 
     def hitstun(self):
@@ -1091,6 +1152,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             if timer(self.hitStunStartFrame, self.hitStunDuration, game_frame):
                 self.isHitStun = False
+
 
     def triggerOnKillEffects(self):
         self.tempHealth += self.inventory.onKillTempHealth
