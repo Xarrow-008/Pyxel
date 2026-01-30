@@ -172,6 +172,8 @@ class InMission:
         self.level = level
         self.nbEnemiesSpawned = 0
 
+        self.linkedEnemies = []
+
         self.createInteractables()
         #self.fillBasicEnemies()
 
@@ -222,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, IDOL()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, TRAP()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -231,7 +233,9 @@ class InMission:
             self.player.fuel += 1
 
         if pyxel.btnp(pyxel.KEY_L):
-            self.player.fireStacks += 1
+            self.player.statusEffectStacks["fire"] += 1
+            self.player.statusEffectStacks["exposed"] += 1
+            self.player.statusEffectStacks["linked"] += 1
 
     def roomsUpdate(self):
         room = self.findRoom(self.player.x,self.player.y)
@@ -357,6 +361,8 @@ class InMission:
 
             if entity.dead:
                 self.entities.remove(entity)
+                if entity in self.linkedEnemies:
+                    self.linkedEnemies.remove(entity)
                 break
 
             if hasattr(entity, "reloadedThisFrame") and entity.reloadedThisFrame : 
@@ -387,6 +393,16 @@ class InMission:
 
                 if not type(entity) == Projectile and not self.player.isInvincible() and collision(self.player.x,self.player.y,entity.x,entity.y,(self.player.width,self.player.height),(entity.width,entity.height)):
                     self.hurt(5, [0,0], 1, 0, entity, self.player) #TODO CHANGE WHEN BULLETS CAN HIT PLAYER
+
+        if self.player.inventory.linkedDamageShare > 0:
+            if len([x for x in self.entities if issubclass(type(x), Enemy)]) >= 2:
+                i = 0
+                while len(self.linkedEnemies) < 2:
+                    entity = self.entities[i]
+                    if issubclass(type(entity), Enemy) and entity not in self.linkedEnemies:
+                        self.linkedEnemies.append(entity)
+                        entity.statusEffectStacks["linked"] = 1
+                    i += 1
 
 
     def isRoomNearby(self,room):
@@ -504,18 +520,26 @@ class InMission:
             return
 
         
+        if target.statusEffectStacks["exposed"] == 0 :
+            crit = hasattr(damagingEntity, "inventory") and damagingEntity.inventory.critChance >= random.randint(1,100)
 
-        crit = hasattr(damagingEntity, "inventory") and damagingEntity.inventory.critChance >= random.randint(1,100)
+            if crit :
+                value *= 2
+        else :
+            crit = hasattr(damagingEntity, "inventory") and 2*damagingEntity.inventory.critChance >= random.randint(1,100)
 
-        if crit :
-            value *= 2
+            if crit :
+                value *= 3
                 
         target.lastHitBy = damagingEntity
 
         if target.canGetHurt(shot):
 
-
             target.sufferDamage(value)
+            
+            if target in self.linkedEnemies:
+                linkedEntity = [entity for entity in self.linkedEnemies if entity != target][0]
+                linkedEntity.statusEffectDamage += value*(self.player.inventory.linkedDamageShare/100)
 
             if crit:
                 damagingEntity.addDamageNumber(target, value, 8)
@@ -526,6 +550,9 @@ class InMission:
 
             if hasattr(damagingEntity, "inventory") and random.randint(1,100) <= damagingEntity.inventory.healOnHitChance:
                 damagingEntity.heal += damagingEntity.inventory.healOnHitAmount
+
+            if hasattr(damagingEntity, "inventory") and random.randint(1,100) <= damagingEntity.inventory.exposedChance:
+                target.statusEffectStacks["exposed"] += 1
 
 
             if hitStun :
@@ -556,7 +583,7 @@ class InMission:
                     if enemiesSetOnFire == damagingEntity.inventory.onKillFireEnemyNumber:
                         break
                     if entity != target and issubclass(type(entity), Enemy) and distanceObjects(target, entity) <= damagingEntity.inventory.onKillFireRadius:
-                        entity.fireStacks += 2
+                        entity.statusEffectStacks["fire"] += 2
                         enemiesSetOnFire += 1
                         
 
@@ -805,17 +832,34 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.hitCurrentFrame = True
 
 
-    def initStatusEffects(self, fireDamage=5):
+    def initStatusEffects(self):
         self.statusEffectDamage = 0
 
-        self.fireStacks = 0
-        self.fireDamage = fireDamage
+        self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0}
+
+        self.fireDimensions = (8,10)
+        self.fireImage = (48/8,0)
+        self.fireDamage = 5
+
+        self.exposedDimensions = (9,9)
+        self.exposedImage = (64/9,0)
+        
+        self.linkedDimensions = (15,4)
+        self.linkedImage = (80/15,0)
+
+        
+
 
     def statusEffects(self):
         if onTick(FPS):
-            self.statusEffectDamage += self.fireStacks*self.fireDamage
-        if onTick(2*FPS) and self.fireStacks > 0:
-            self.fireStacks -= 1
+            self.statusEffectDamage += self.statusEffectStacks["fire"]*self.fireDamage
+
+        if onTick(2*FPS) and self.statusEffectStacks["fire"] > 0:
+            self.statusEffectStacks["fire"] -= 1
+
+        if onTick(5*FPS) and self.statusEffectStacks["exposed"] > 0:
+            self.statusEffectStacks["exposed"] -= 1
+        
 
 
     def movement(self):
@@ -837,8 +881,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         pass
 
     def updateAnims(self):
-        if self.fireStacks > 0:
-            self.addFireMarker()
+        self.addStatusMarkers()
 
         for anim in self.anims:
             anim.update()
@@ -1111,12 +1154,25 @@ class Entity: #General Entity class with all the methods describing what entitie
     def addIgnoreDamageMarker(self, pos):
         self.addAnimation(pos=[pos[0], pos[1], False], settings={"width":0, "height":0, "text":("Blocked", 7, 7, True)}, lifetime=24)
 
-    def addFireMarker(self):
+    def addStatusMarkers(self):
         if type(self) == Player and self.canStartDash and not self.isDashing and not timer(self.dashStartFrame, 2*self.dashCooldown, game_frame):
-            self.addAnimation(pos=[-8,-12, True], settings={"u":6, "v":0, "width":8, "height":10}, lifetime=1)
-        
+            yIncrease = TILE_SIZE
         else:
-            self.addAnimation(pos=[4, -11, True], settings={"u":6, "v":0, "width":8, "height":10}, lifetime=1)
+            yIncrease = 0
+
+        startPoint = 8
+        for item in self.statusEffectStacks.items():
+            if item[1] > 0 :
+                startPoint -= getattr(self, item[0]+"Dimensions")[0]/2
+        
+        for item in self.statusEffectStacks.items():
+            if item[1] > 0 :
+                self.addAnimation(pos=[startPoint, -getattr(self, item[0]+"Dimensions")[1]-1-yIncrease, True], settings={"u":getattr(self, item[0]+"Image")[0], "v":getattr(self, item[0]+"Image")[1], "width":getattr(self, item[0]+"Dimensions")[0], "height":getattr(self, item[0]+"Dimensions")[1]}, lifetime=1)
+                if item[0] != "linked":
+                    self.addAnimation(pos=[startPoint+4, -getattr(self, item[0]+"Dimensions")[1]+3-yIncrease, True], settings={"width":0, "height":0, "text":(str(item[1]), 6, 0, False)}, lifetime=1)
+                startPoint += getattr(self, item[0]+"Dimensions")[0]
+
+
 
     def addAnimation(self,pos=[0,0],settings=0,lifetime='1 cycle'):
         self.anims.append(Animation(pos,settings,lifetime))
@@ -2571,6 +2627,8 @@ class Enemy(Entity): #Creates an entity that fights the player
             if random.randint(1,100) <= self.deathWeaponSpawn:
                 pickup = WEAPON_TABLE.pickRandom(0)
                 self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+
+            self.statusEffectStacks["linked"] = 0
 
 
 class Dummy(Enemy):
