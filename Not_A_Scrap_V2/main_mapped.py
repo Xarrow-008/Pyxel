@@ -207,7 +207,7 @@ class InMission:
                         asset.interactable = True
 
     def exitCondition(self): #for when we come back
-        return self.hasWon() or self.player.health <= 0
+        return self.hasWon() or self.player.dead
 
     def update(self):
 
@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, BOOTS()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, NANOBOT()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -490,9 +490,27 @@ class InMission:
                 pyxel.dither(1)
 
     def heal(self, value, healer, target):
-        target.health += value
+
+        if hasattr(healer, "inventory"):
+            value *= 1 + healer.inventory.extraHealingCoef/100
+
+        value = math.ceil(value)
+
+        if hasattr(target, "inventory") and target.inventory.overhealIntoTempHealthShare != 0 and value > target.maxHealth - target.health:
+                
+            target.health += target.maxHealth - target.health
+            value -= target.maxHealth - target.health
+
+            target.tempHealth += math.ceil(value*(target.inventory.overhealIntoTempHealthShare)/100)
+            if target.tempHealth > target.maxHealth :
+                target.tempHealth = target.maxHealth
+
+        else :
+            target.health += value
+
         if target.health > target.maxHealth:
             target.health = target.maxHealth
+
         target.addDamageNumber(target, value, 11)
 
     def hurt(self, value, vector, knockback_coef, shot, damager, target, hitStun=True):
@@ -781,7 +799,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.inCombat = False
 
             if hasattr(self, "inventory"):
-                self.heal += self.inventory.healLeftCombat
+                self.heal += math.ceil(self.inventory.healLeftCombat)
         
 
         if hasattr(self, "health"):
@@ -1845,7 +1863,15 @@ class Player(Entity): #Creates an entity that's controlled by the player
         pass
 
     def death(self):
-        pass
+        if self.health <= 0 :
+
+            if self.inventory.extraLife > 0:
+                self.health = 0
+                self.heal += self.maxHealth
+                self.inventory.extraLife -= 1
+
+            else:
+                self.dead = True
 
 
 class Projectile(Entity) : #Creates a projectile that can hit other entities
@@ -2616,31 +2642,38 @@ class Enemy(Entity): #Creates an entity that fights the player
 
     def death(self):
         if self.health <= 0 and not self.dead:
-            self.dead = True
 
-            if random.randint(1,100) <= self.deathItemSpawn:
-                if hasattr(self.lastHitBy, "inventory") and self.lastHitBy.inventory.increasedRarity > 0:
-                    pickup = INCREASED_ITEM_TABLE.pickRandom(0)
-                    self.lastHitBy.inventory.increasedRarity -= 1
-                else:
-                    pickup = ITEM_TABLE.pickRandom(0)
-                
-                self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+            if hasattr(self, "inventory") and self.inventory.extraLife > 0 :
+                self.health = 0
+                self.heal += self.maxHealth
+                self.inventory.extraLife -= 1
 
-            if hasattr(self.lastHitBy, "inventory"):
-                if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChance:
-                    pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance)
-                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
             else:
-                if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChancce:
-                    pickup = FUEL_TABLE.pickRandom(0)
+                self.dead = True
+
+                if random.randint(1,100) <= self.deathItemSpawn:
+                    if hasattr(self.lastHitBy, "inventory") and self.lastHitBy.inventory.increasedRarity > 0:
+                        pickup = INCREASED_ITEM_TABLE.pickRandom(0)
+                        self.lastHitBy.inventory.increasedRarity -= 1
+                    else:
+                        pickup = ITEM_TABLE.pickRandom(0)
+                    
                     self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
-            if random.randint(1,100) <= self.deathWeaponSpawn:
-                pickup = WEAPON_TABLE.pickRandom(0)
-                self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+                if hasattr(self.lastHitBy, "inventory"):
+                    if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChance:
+                        pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance)
+                        self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+                else:
+                    if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChancce:
+                        pickup = FUEL_TABLE.pickRandom(0)
+                        self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
-            self.statusEffectStacks["linked"] = 0
+                if random.randint(1,100) <= self.deathWeaponSpawn:
+                    pickup = WEAPON_TABLE.pickRandom(0)
+                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+
+                self.statusEffectStacks["linked"] = 0
 
 
 class Dummy(Enemy):

@@ -428,7 +428,7 @@ class CHARGER(Item): #Its a device that capts extra neutrons in atoms, then char
         self.rarity = "legendary"
         self.type = "healing"
         self.effects = [
-            {"stat":"extraHealingCoef", "scaling":"arithmetic", "initial_term":2, "reason":1}]
+            {"stat":"extraHealingCoef", "scaling":"arithmetic", "initial_term":100, "reason":100}]
         self.shortDescription = "Greatly increases healing"
         self.longDescription = "Increases all forms of healing by 100% (+100% per stack)."
 
