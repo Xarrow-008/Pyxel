@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, TRAP()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, BOOTS()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -233,9 +233,9 @@ class InMission:
             self.player.fuel += 1
 
         if pyxel.btnp(pyxel.KEY_L):
-            self.player.statusEffectStacks["fire"] += 1
-            self.player.statusEffectStacks["exposed"] += 1
-            self.player.statusEffectStacks["linked"] += 1
+            self.player.addStatusEffect("fire")
+            self.player.addStatusEffect("exposed")
+            self.player.addStatusEffect("linked")
 
     def roomsUpdate(self):
         room = self.findRoom(self.player.x,self.player.y)
@@ -401,7 +401,7 @@ class InMission:
                     entity = self.entities[i]
                     if issubclass(type(entity), Enemy) and entity not in self.linkedEnemies:
                         self.linkedEnemies.append(entity)
-                        entity.statusEffectStacks["linked"] = 1
+                        entity.addStatusEffect("linked")
                     i += 1
 
 
@@ -552,7 +552,7 @@ class InMission:
                 damagingEntity.heal += damagingEntity.inventory.healOnHitAmount
 
             if hasattr(damagingEntity, "inventory") and random.randint(1,100) <= damagingEntity.inventory.exposedChance:
-                target.statusEffectStacks["exposed"] += 1
+                target.addStatusEffect("exposed")
 
 
             if hitStun :
@@ -583,7 +583,8 @@ class InMission:
                     if enemiesSetOnFire == damagingEntity.inventory.onKillFireEnemyNumber:
                         break
                     if entity != target and issubclass(type(entity), Enemy) and distanceObjects(target, entity) <= damagingEntity.inventory.onKillFireRadius:
-                        entity.statusEffectStacks["fire"] += 2
+                        entity.addStatusEffect("fire")
+                        entity.addStatusEffect("fire")
                         enemiesSetOnFire += 1
                         
 
@@ -836,6 +837,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.statusEffectDamage = 0
 
         self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0}
+        self.statusEffectFrames = {"fire":0, "exposed":0, "linked":0}
 
         self.fireDimensions = (8,10)
         self.fireImage = (0,4)
@@ -847,18 +849,28 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.linkedDimensions = (15,4)
         self.linkedImage = (0,6)
 
-        
-
+        self.ignoreStatusEffectFrame = 0
 
     def statusEffects(self):
+
         if onTick(FPS):
             self.statusEffectDamage += self.statusEffectStacks["fire"]*self.fireDamage
 
-        if onTick(2*FPS) and self.statusEffectStacks["fire"] > 0:
+        if self.statusEffectStacks["fire"] > 0 and timer(self.statusEffectFrames["fire"], 2*FPS, game_frame):
             self.statusEffectStacks["fire"] -= 1
 
-        if onTick(5*FPS) and self.statusEffectStacks["exposed"] > 0:
+        if self.statusEffectStacks["exposed"] > 0 and timer(self.statusEffectFrames["exposed"], 5*FPS, game_frame):
             self.statusEffectStacks["exposed"] -= 1
+
+    def addStatusEffect(self, effect):
+
+        if hasattr(self, "inventory") and self.inventory.ignoreStatusCooldown != 0 and timer(self.ignoreStatusEffectFrame, self.inventory.ignoreStatusCooldown, game_frame):
+            self.heal = math.ceil(self.maxHealth*(self.inventory.healInsteadOfStatus)/100)
+            self.ignoreStatusEffectFrame = game_frame
+
+        else:
+            self.statusEffectStacks[effect] += 1
+            self.statusEffectFrames[effect] = game_frame
         
 
 

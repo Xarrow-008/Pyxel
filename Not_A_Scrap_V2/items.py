@@ -308,7 +308,7 @@ class BOOTS(Item): #Basically just heavily reinforced boots meant to be able to 
         self.rarity = "rare"
         self.type = "healing"
         self.effects = [
-            {"stat":"ignoreStatusCooldown","scaling":"constant", "value":15*FPS}, #TODO : implement with status effects
+            {"stat":"ignoreStatusCooldown","scaling":"constant", "value":15*FPS},
             {"stat":"healInsteadOfStatus", "scaling":"geometric", "initial_term":10, "reason":0.6}]
         self.shortDescription = "Ignore status effects and heal instead"
         self.longDescription = "If you would be affected by a status effect, don't, and heal instead for 10% of your max health. Has a 15s cooldown. Every stack gives 3/5th of the last ones effect."
