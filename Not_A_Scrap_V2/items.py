@@ -189,7 +189,7 @@ class PAMPHLET(Item):
         self.rarity = "common"
         self.type = "support"
         self.effects = [
-            {"stat":"ressourceKillEffect","scaling":"geometric", "initial_term":5, "reason":0.6}]
+            {"stat":"ressourceKillEffect","scaling":"geometric", "initial_term":5, "reason":0.6}] #TODO : make this work with melee weapons
         self.shortDescription = "Chance to get ressources back on kill"
         self.longDescription = "You have a 10% chance to get 5% of your amunitions and durability back on kill. Every stack gives 3/5th of the last ones effect."
 
@@ -454,6 +454,7 @@ class NANOBOT(Item): #Its a whole network of nanobots that attach themselves to 
         self.shortDescription = "You can come back from death once"
         self.longDescription = "If your health reaches 0, instead of dying, come back to life with 100% of your health."
 
+
 class PREDICTOR(Item): #Its a hyper advanced system that can analyse random situations and find the best course of action possible (quantum because that linked to probabilities or something)
     def __init__(self):
         self.name = "Quantum Predictor"
@@ -464,6 +465,7 @@ class PREDICTOR(Item): #Its a hyper advanced system that can analyse random situ
             {"stat":"extraLuck", "scaling":"arithmetic", "initial_term":1, "reason":1}]
         self.shortDescription = "Increased luck"
         self.longDescription = "Increases luck by 1(+1 per stack), which rerolls random events for better outcomes."
+
 
 class CORE(Item): #Its a thing you implement in a weapon, which allows it to manipulate the mass of the bullets (which means you can make them heavier once you've fired them to make them deal more damage)
     def __init__(self):
@@ -484,7 +486,7 @@ class DUPLICATOR(Item): #It uses small-scale time travel (I imagine large-scale 
         self.type = "damage"
         self.effects = [
             {"stat":"bulletCountCoef", "scaling":"arithmetic", "initial_term":100, "reason":100},
-            {"stat":"extraMeleeAttack", "scaling":"arithmetic", "initial_term":1, "reason":1}]
+            {"stat":"extraMeleeAttack", "scaling":"arithmetic", "initial_term":1, "reason":1}] #TODO : make this work once melee weapons are a thing
         self.shortDescription = "Weapons attack more times"
         self.longDescription = "Ranged weapons fire 100%(+100% per stack) more bullets. Melee weapons attack 1(+1 per stack) extra time."
 

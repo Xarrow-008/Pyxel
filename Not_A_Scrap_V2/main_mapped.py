@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, PREDICTOR()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, METAL_SHEET()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -427,9 +427,9 @@ class InMission:
 
                 elif issubclass(type(pickup.pickup), Weapon): 
                     if keyPress("RIGHT_HAND", "btn"):
-                        self.player.inventory.addWeapon(pickup.pickup, "rightHand",0)
+                        self.player.inventory.addWeapon(pickup.pickup, "rightHand",1)
                     else:
-                            self.player.inventory.addWeapon(pickup.pickup, "leftHand",0)
+                        self.player.inventory.addWeapon(pickup.pickup, "leftHand",1)
 
                 elif issubclass(type(pickup.pickup), Fuel): 
                     self.player.fuel += pickup.pickup.value
@@ -612,6 +612,9 @@ class InMission:
         if hasattr(damager, "inventory"):
             if (damager.inventory.leftHandLevel < target.level or damager.inventory.leftHand.name == "None") and (damager.inventory.rightHandLevel < target.level or damager.inventory.rightHand.name == "None"): #TODO : Make this also trigger if the enemy is a boss
                 value *= 1+(damager.inventory.strongEnemiesDamageBoost)/100
+
+            if target.health == target.maxHealth :
+                value *= 1+(damager.inventory.fullHealthEnemyDamageBoost)/100
         
         if hasattr(target, "inventory"):
 
@@ -1105,7 +1108,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
             bulletPos = getPlayerBulletPos(self.facing)
-            for i in range(weapon.bulletCount):
+            for i in range(weapon.bulletCount * math.ceil(1+self.inventory.bulletCountCoef/100)):
                 horizontal = x - (self.x + bulletPos[0])
                 vertical = y - (self.y + bulletPos[1])
                 norm = math.sqrt(horizontal**2 + vertical**2)
@@ -1113,9 +1116,17 @@ class Entity: #General Entity class with all the methods describing what entitie
                 if norm != 0:
                     cos = horizontal/norm
                     sin = vertical/norm
+
+                    spread = (weapon.spread - self.inventory.precisionIncrease)*(math.pi/180)
+                    if self.momentum != [0,0]:
+                        spread += weapon.movingSpreadIncrease - self.inventory.movingPrecisionIncrease
+                    if spread < 0:
+                        spread = 0
+
                     angle = math.acos(cos) * pyxel.sgn(sin)
-                    lowest_angle = angle - weapon.spread*(math.pi/180)
-                    highest_angle = angle + weapon.spread*(math.pi/180)
+                    lowest_angle = angle - spread
+                    highest_angle = angle + spread
+                                                           
                     angle = random.uniform(lowest_angle, highest_angle)
                     cos = math.cos(angle)
                     sin = math.sin(angle)
@@ -1132,7 +1143,7 @@ class Entity: #General Entity class with all the methods describing what entitie
     def canRangedAttack(self, hand):
         weapon = getattr(self.inventory, hand)
         startFrame = getattr(self.inventory, hand+"StartFrame")
-        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon.attackCooldown, game_frame) and weapon.magAmmo>0
+        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon.attackCooldown*(1-(self.inventory.attackSpeedIncrease)/100), game_frame) and weapon.magAmmo>0
 
     def reloadWeapon(self, hand):
         weapon = getattr(self.inventory, hand)
@@ -1174,7 +1185,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         return hasattr(self, "playerCollisionEffect") and self.playerCollisionEffect[3] != -1
 
     def collidingWithEnemy(self, entity):
-        return issubclass(type(entity),Enemy) and collisionObjects(self, entity) and ((hasattr(entity, "isHitStun") and not entity.isHitStun) or not hasattr(entity, "isHitStun"))
+        return issubclass(type(entity),Enemy) and collisionObjects(self, entity)
 
 
     def addAnimationHit(self,pos):
@@ -1232,7 +1243,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         return not timer(self.invincibilityStartFrame, self.invincibilityDuration, game_frame)
 
     def canGetHurt(self, shot):
-        return not (((hasattr(self, "isHitStun") and self.isHitStun) and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible))
+        return not ((hasattr(self, "isHitStun") and self.isHitStun and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible))
 
     def hitstun(self):
         if hasattr(self, "isHitStun"):
@@ -1429,6 +1440,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
     def baseUpdate(self):
         self.controlInventory()
 
+
     def controlInventory(self):
         #Allows the player to switch weapons between backpack and handheld
         if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count):
@@ -1469,16 +1481,16 @@ class Player(Entity): #Creates an entity that's controlled by the player
         if inventoryFrame == 1:
             self.inventoryPosition += 8*self.inventoryDirection
 
-        elif inventoryFrame in [x for x in range(2,16)]: #TODO Holy shit what is that pls use 2 < frame < 16
+        elif 2 <= inventoryFrame < 18 :
             self.inventoryPosition += 16*self.inventoryDirection
 
-        elif inventoryFrame in [x for x in range(16,21)]:
+        elif 18 <= inventoryFrame < 23:
             self.inventoryPosition += 8*self.inventoryDirection
 
-        elif inventoryFrame in [x for x in range(21,27)]:
+        elif 23 <= inventoryFrame < 29:
             self.inventoryPosition += 4*self.inventoryDirection
 
-        elif inventoryFrame in [x for x in range(27,39)]:
+        elif 29 <= inventoryFrame < 41:
             self.inventoryPosition += 2*self.inventoryDirection
 
         else:
@@ -1895,10 +1907,14 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
             self.baseDamage = weapon.damage
             self.damage = weapon.damage
 
+        if weapon.magAmmo == 0 and weapon.maxAmmo != 1:
+            self.baseDamage *= 1 + owner.inventory.lowRessourcesDamageIncrease/100
+
         self.piercing = weapon.piercing
 
         self.baseRange = weapon.range
-        self.range = weapon.range
+
+        self.range = weapon.range * (1+owner.inventory.rangeIncrease/100)
 
         self.fallOffCoef = weapon.fallOffCoef
         self.noFallOffArea = weapon.noFallOffArea
@@ -2141,7 +2157,7 @@ class Inventory:
 
     def addWeapon(self, weapon, hand, level): #Function used when the player picks up a weapon
 
-        damage = math.ceil(weapon.damage*(weapon.scaling**level))
+        damage = math.ceil(weapon.damage*((weapon.scaling*(1+self.extraWeaponScale/100))**level))
         maxAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
         magAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
         reserveAmmo = math.ceil(weapon.reserveAmmo*(1+self.extraAmmo/100))
@@ -2670,7 +2686,7 @@ class Enemy(Entity): #Creates an entity that fights the player
                         pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance + self.lastHitBy.luck)
                         self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
                 else:
-                    if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChancce:
+                    if random.randint(1,100) <= self.deathFuelSpawn:
                         pickup = FUEL_TABLE.pickRandom(self.lastHitBy.luck)
                         self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
