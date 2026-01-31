@@ -9,8 +9,8 @@ from copy import deepcopy as copy
 WID = 256
 HEI = 256 
 
-CAM_WIDTH = TILE_SIZE*20
-CAM_HEIGHT = TILE_SIZE*20
+CAM_WIDTH = TILE_SIZE*22
+CAM_HEIGHT = TILE_SIZE*16
 
 wallsMap = [[0 for x in range(WID)] for y in range(HEI)]
 
@@ -838,14 +838,14 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0}
 
         self.fireDimensions = (8,10)
-        self.fireImage = (48/8,0)
+        self.fireImage = (0,4)
         self.fireDamage = 5
 
         self.exposedDimensions = (9,9)
-        self.exposedImage = (64/9,0)
+        self.exposedImage = (0,5)
         
         self.linkedDimensions = (15,4)
-        self.linkedImage = (80/15,0)
+        self.linkedImage = (0,6)
 
         
 
@@ -2715,10 +2715,10 @@ class Animation:
             
     def draw(self,x,y):
         if self.posRelative:
-            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.image[0]*self.settings["width"], v=self.image[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
             sized_text(x + self.pos[0], y + self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         else:
-            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.image[0]*self.settings["width"], v=self.image[1]*self.settings["height"], w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
             sized_text(self.pos[0], self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         
     def get_img(self):
