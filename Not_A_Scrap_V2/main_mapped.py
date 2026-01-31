@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, NANOBOT()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, PREDICTOR()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -309,11 +309,11 @@ class InMission:
             self.activeAsset = 'N/A'
 
             if self.player.inventory.increasedRarity > 0:
-                pickup = increaseRarity(asset.function[1]).pickRandom(0)
+                pickup = increaseRarity(asset.function[1]).pickRandom(self.player.luck)
                 if issubclass(type(pickup),Item):
                     self.player.inventory.increasedRarity -= 1
             else:
-                pickup = asset.function[1].pickRandom(0)
+                pickup = asset.function[1].pickRandom(self.player.luck)
             pickupObject = Pickup(asset.x + asset.dropPos[0], asset.y + asset.dropPos[1], pickup)
             self.pickups.append(pickupObject)
 
@@ -737,6 +737,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.initStatusEffects()
 
+        self.baseLuck = 0
+        self.luck = 0
+
     def __str__(self):
         if type(self) == Player:
             return f"Type : Player, x : {self.x}, y : {self.y}, momentum : {self.momentum}, health : {self.health}"
@@ -831,6 +834,8 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.inventory.critChance = self.inventory.baseCritChance + self.inventory.critChanceIncrease
         if self.inventory.critChance > 50 :
             self.inventory.critChance = 50
+
+        self.luck = self.baseLuck + self.inventory.extraLuck
 
     def canDoActions(self):
         return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun")
@@ -2653,24 +2658,24 @@ class Enemy(Entity): #Creates an entity that fights the player
 
                 if random.randint(1,100) <= self.deathItemSpawn:
                     if hasattr(self.lastHitBy, "inventory") and self.lastHitBy.inventory.increasedRarity > 0:
-                        pickup = INCREASED_ITEM_TABLE.pickRandom(0)
+                        pickup = INCREASED_ITEM_TABLE.pickRandom(self.lastHitBy.luck)
                         self.lastHitBy.inventory.increasedRarity -= 1
                     else:
-                        pickup = ITEM_TABLE.pickRandom(0)
+                        pickup = ITEM_TABLE.pickRandom(self.lastHitBy.luck)
                     
                     self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
                 if hasattr(self.lastHitBy, "inventory"):
                     if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChance:
-                        pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance)
+                        pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance + self.lastHitBy.luck)
                         self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
                 else:
                     if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChancce:
-                        pickup = FUEL_TABLE.pickRandom(0)
+                        pickup = FUEL_TABLE.pickRandom(self.lastHitBy.luck)
                         self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
                 if random.randint(1,100) <= self.deathWeaponSpawn:
-                    pickup = WEAPON_TABLE.pickRandom(0)
+                    pickup = WEAPON_TABLE.pickRandom(self.lastHitBy.luck)
                     self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
                 self.statusEffectStacks["linked"] = 0
