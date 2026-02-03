@@ -232,6 +232,9 @@ class InMission:
         if pyxel.btnp(pyxel.KEY_N):
             self.player.fuel += 1
 
+        if pyxel.btnp(pyxel.KEY_J):
+            self.player.anims.append(AnimBoostTop([14,0]))
+
         if pyxel.btnp(pyxel.KEY_L):
             self.player.addStatusEffect("fire")
             self.player.addStatusEffect("exposed")
@@ -1289,7 +1292,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.maxHealth = self.baseHealth
 
 
-        self.initWalk(priority=0, maxSpeed=0.8, speedChangeRate=20, knockbackCoef=1)
+        self.initWalk(priority=0, maxSpeed=0.8, speedChangeRate=10, knockbackCoef=1)
         self.initDash(priority=1, cooldown=60, speed=3, duration=20, invincibility=1)
         self.initRangedAttack(priority=0)
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
@@ -1419,7 +1422,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.reloadImage*2, self.image[1] + self.facing[1] - 2)) #TODO LEO backtrack, delete LastreloadFrame, make it so it works with the weapon reload time, in imageGestion, make anims at like 1/2 of reload time n everything
 
     def dashDraw(self):
-        show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.lastDashFrame//(self.dashDuration/3+1)*2, self.image[1] + self.facing[1] + 2))
+        show(self.x, self.y, (self.image[0] + self.facing[0] + 2, self.image[1] + self.facing[1] + 2))
 
     def idleDraw(self):
         show(self.x, self.y, (self.image[0] + self.facing[0], self.image[1] + self.facing[1] - 2))
@@ -1827,11 +1830,22 @@ class Player(Entity): #Creates an entity that's controlled by the player
                 elif self.reloadFrame() == self.reloadStartPhase() + interval*2/3:
                     self.reloadImage = 2
                     
-
-
-            
         if self.isDashing:
+            if self.lastDashFrame == 0:
+                self.appendBoostDashAnim()
             self.lastDashFrame += 1
+
+    def appendBoostDashAnim(self):
+        if self.facing == [0,0]:
+            self.anims.append(AnimBoostLeft([13,1]))
+        elif self.facing == [1,0]:
+            self.anims.append(AnimBoostRight([-13,1]))
+        elif self.facing == [0,1]:
+            self.anims.append(AnimBoostBottom([7,8]))
+            self.anims.append(AnimBoostBottom([-1,8]))
+        elif self.facing == [1,1]:
+            self.anims.append(AnimBoostTop([3,-10]))
+            self.anims.append(AnimBoostTop([-6,-10]))
 
     def isReloading(self):
         return self.inventory.rightHandIsReloading or self.inventory.leftHandIsReloading
@@ -2849,7 +2863,29 @@ class AnimSmokeRight(Animation):
                         settings={'u':11,'v':5,'length':5,'duration':10,'colkey':3},
                         lifetime=lifetime)
 
+class AnimBoostLeft(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':11,'v':6,'length':5,'duration':6,'colkey':3},
+                        lifetime=lifetime)
 
+class AnimBoostRight(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':11,'v':7,'length':5,'duration':6,'colkey':3},
+                        lifetime=lifetime)
+
+class AnimBoostTop(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':11,'v':8,'length':5,'duration':6,'colkey':3},
+                        lifetime=lifetime)
+
+class AnimBoostBottom(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':11,'v':9,'length':5,'duration':6,'colkey':3,'overPlayer':True},
+                        lifetime=lifetime)
 
 
 def distance(x1, y1, x2, y2):
