@@ -1153,11 +1153,12 @@ class Entity: #General Entity class with all the methods describing what entitie
                     cos = horizontal/norm
                     sin = vertical/norm
 
-                    spread = (weapon.spread - self.inventory.precisionIncrease)*(math.pi/180)
+                    spread = (weapon.spread - self.inventory.precisionIncrease)
                     if self.momentum != [0,0]:
                         spread += weapon.movingSpreadIncrease - self.inventory.movingPrecisionIncrease
                     if spread < 0:
                         spread = 0
+                    spread *= (math.pi)/180
 
                     angle = math.acos(cos) * pyxel.sgn(sin)
                     lowest_angle = angle - spread

@@ -90,7 +90,7 @@ class RUSTY_PISTOL(RangedWeapon):
         bulletHeight = 4
 
         spread = 15
-        movingSpreadIncrease = 1
+        movingSpreadIncrease = 15
         bulletCount = 1
 
         bulletSpeed = 2.5
@@ -130,7 +130,7 @@ class SNIPER(RangedWeapon): #just a test, you can erase it if you want
         bulletWidth = 4
         bulletHeight = 4
 
-        spread = 2
+        spread = 5
         movingSpreadIncrease = 50
         bulletCount = 1
 
