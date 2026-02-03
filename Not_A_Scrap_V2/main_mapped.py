@@ -224,7 +224,8 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, METAL_SHEET()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, FANG()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, BOTTLE()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -345,9 +346,15 @@ class InMission:
             self.heal(self.player.heal, self.player, self.player)
             self.player.heal = 0
 
-        if self.player.statusEffectDamage > 0:
-            self.hurt(self.player.statusEffectDamage, [0,0], 0, 0, self.player, self.player, hitStun=False)
-            self.player.statusEffectDamage = 0
+        if self.player.storedFireDamage > 0:
+            self.hurt(self.player.storedFireDamage, [0,0], 0, 0, self.player, self.player, hitStun=False)
+            self.player.storedFireDamage = 0
+
+        if self.player.storedPoisonDamage > 0:
+            self.hurt(self.player.storedPoisonDamage, [0,0], 0, 0, self.player, self.player, hitStun=False)
+            self.player.poisonDamageReceived += self.player.storedPoisonDamage
+            self.player.storedPoisonDamage = 0
+            
         
 
         for entity in self.entities:
@@ -377,9 +384,18 @@ class InMission:
                 self.heal(entity.heal, entity, entity)
                 entity.heal = 0
 
-            if entity.statusEffectDamage > 0:
-                self.hurt(entity.statusEffectDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
-                entity.statusEffectDamage = 0
+            if entity.storedFireDamage > 0:
+                self.hurt(entity.storedFireDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
+                entity.storedFireDamage = 0
+
+            if entity.storedPoisonDamage > 0:
+                self.hurt(entity.storedPoisonDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
+                entity.poisonDamageReceived += entity.storedPoisonDamage
+                entity.storedPoisonDamage = 0
+
+            if entity.storedLinkedDamage > 0:
+                self.hurt(entity.storedLinkedDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
+                entity.storedLinkedDamage = 0
 
             room = self.findRoom(entity.x,entity.y)
             conditionUpdate = type(entity) == Projectile
@@ -560,12 +576,17 @@ class InMission:
             
             if target in self.linkedEnemies:
                 linkedEntity = [entity for entity in self.linkedEnemies if entity != target][0]
-                linkedEntity.statusEffectDamage += value*(self.player.inventory.linkedDamageShare/100)
+                linkedEntity.storedLinkedDamage += value*(self.player.inventory.linkedDamageShare/100)
 
             if crit:
                 damagingEntity.addDamageNumber(target, value, 8)
+
                 if hasattr(damagingEntity, "inventory"):
                     damagingEntity.heal += math.ceil(value*(damagingEntity.inventory.healCriticalHit)/100)
+
+                    if damagingEntity.inventory.healSharePoisonKill > 0 :
+                        target.addStatusEffect("poison")
+
             else:
                 damagingEntity.addDamageNumber(target, value, 7)
 
@@ -607,6 +628,8 @@ class InMission:
                         entity.addStatusEffect("fire")
                         entity.addStatusEffect("fire")
                         enemiesSetOnFire += 1
+
+                damagingEntity.heal += math.ceil(target.poisonDamageReceived * damagingEntity.inventory.healSharePoisonKill/100)
                         
 
 
@@ -863,33 +886,43 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
     def initStatusEffects(self):
-        self.statusEffectDamage = 0
-
-        self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0}
-        self.statusEffectFrames = {"fire":0, "exposed":0, "linked":0}
+        self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0, "poison":0}
+        self.statusEffectFrames = {"fire":0, "exposed":0, "linked":0, "poison":0}
 
         self.fireDimensions = (8,10)
         self.fireImage = (0,4)
         self.fireDamage = 5
+        self.storedFireDamage = 0
 
         self.exposedDimensions = (9,9)
         self.exposedImage = (0,5)
         
         self.linkedDimensions = (15,4)
         self.linkedImage = (0,6)
+        self.storedLinkedDamage = 0
+
+        self.poisonDimensions = (9,7)
+        self.poisonImage = (0,7)
+        self.poisonDamage = 0.05
+        self.storedPoisonDamage = 0
+        self.poisonDamageReceived = 0
 
         self.ignoreStatusEffectFrame = 0
 
     def statusEffects(self):
 
         if onTick(FPS):
-            self.statusEffectDamage += self.statusEffectStacks["fire"]*self.fireDamage
+            self.storedFireDamage += self.statusEffectStacks["fire"]*self.fireDamage
+            self.storedPoisonDamage += self.statusEffectStacks["poison"]*self.poisonDamage*self.maxHealth
 
         if self.statusEffectStacks["fire"] > 0 and timer(self.statusEffectFrames["fire"], 2*FPS, game_frame):
             self.statusEffectStacks["fire"] -= 1
 
         if self.statusEffectStacks["exposed"] > 0 and timer(self.statusEffectFrames["exposed"], 5*FPS, game_frame):
             self.statusEffectStacks["exposed"] -= 1
+
+        if self.statusEffectStacks["poison"] > 0 and timer(self.statusEffectFrames["poison"], 2*FPS, game_frame) :
+            self.statusEffectStacks["poison"] -= 1
 
     def addStatusEffect(self, effect):
 
