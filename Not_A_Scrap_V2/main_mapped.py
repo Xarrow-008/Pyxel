@@ -178,7 +178,7 @@ class InMission:
         #self.fillBasicEnemies()
 
     def requiredFuel(self):
-        return 5+3*self.level
+        return 5+3*self.level - self.player.inventory.shipFuelCostDecrease
 
     def hasWon(self):
         return self.player.fuel >= self.requiredFuel() and self.currentRoom.index == 0
@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, ERUDITE_TUMOR()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, TROPHIES()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -652,6 +652,8 @@ class InMission:
 
             if target.health == target.maxHealth :
                 value *= 1+(damager.inventory.fullHealthEnemyDamageBoost)/100
+
+            value *= 1 + damager.inventory.killStreakDamageIncrease * damager.statusEffectStacks["killStreak"]/100
         
         if hasattr(target, "inventory"):
 
@@ -899,10 +901,12 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.hitCurrentFrame = True
 
+        self.statusEffectStacks["killStreak"] = 0
+
 
     def initStatusEffects(self):
-        self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0, "poison":0}
-        self.statusEffectFrames = {"fire":0, "exposed":0, "linked":0, "poison":0}
+        self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0, "poison":0, "killStreak":0}
+        self.statusEffectFrames = {"fire":0, "exposed":0, "linked":0, "poison":0, "killStreak":0}
 
         self.fireDimensions = (8,10)
         self.fireImage = (0,4)
@@ -921,6 +925,9 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.poisonDamage = 0.05
         self.storedPoisonDamage = 0
         self.poisonDamageReceived = 0
+
+        self.killStreakDimensions = (11,9)
+        self.killStreakImage = (0,8)
 
         self.ignoreStatusEffectFrame = 0
 
@@ -941,7 +948,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def addStatusEffect(self, effect):
 
-        if hasattr(self, "inventory") and self.inventory.ignoreStatusCooldown != 0 and timer(self.ignoreStatusEffectFrame, self.inventory.ignoreStatusCooldown, game_frame):
+        if effect != "killStreak" and hasattr(self, "inventory") and self.inventory.ignoreStatusCooldown != 0 and timer(self.ignoreStatusEffectFrame, self.inventory.ignoreStatusCooldown, game_frame):
             self.heal = math.ceil(self.maxHealth*(self.inventory.healInsteadOfStatus)/100)
             self.ignoreStatusEffectFrame = game_frame
 
@@ -1270,7 +1277,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             if item[1] > 0 :
                 self.addAnimation(pos=[startPoint, -getattr(self, item[0]+"Dimensions")[1]-1-yIncrease, True], settings={"u":getattr(self, item[0]+"Image")[0], "v":getattr(self, item[0]+"Image")[1], "width":getattr(self, item[0]+"Dimensions")[0], "height":getattr(self, item[0]+"Dimensions")[1]}, lifetime=1)
                 if item[0] != "linked":
-                    self.addAnimation(pos=[startPoint+4, -getattr(self, item[0]+"Dimensions")[1]+3-yIncrease, True], settings={"width":0, "height":0, "text":(str(item[1]), 6, 0, False)}, lifetime=1)
+                    self.addAnimation(pos=[startPoint+getattr(self, item[0]+"Dimensions")[0]-3, -getattr(self, item[0]+"Dimensions")[1]+3-yIncrease, True], settings={"width":0, "height":0, "text":(str(item[1]), 6, 0, False)}, lifetime=1)
                 startPoint += getattr(self, item[0]+"Dimensions")[0]
 
 
@@ -1329,6 +1336,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         if self.enemiesKilled%10 == 0:
             self.heal += math.ceil(self.maxHealth*(self.inventory.healAfter10EnemiesKilled/100))
+
+        if self.inventory.killStreakDamageIncrease > 0 :
+            self.addStatusEffect("killStreak")
 
 
 class Player(Entity): #Creates an entity that's controlled by the player

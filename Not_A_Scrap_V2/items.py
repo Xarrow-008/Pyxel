@@ -512,20 +512,20 @@ class ERUDITE_TUMOR(Item): #Entropy Boss Item, one of the many tumors that compo
         self.rarity = "boss"
         self.type = "damage"
         self.effects = [
-            {"stat":"explosionImpactDamageShare", "scaling":"arithmetic", "initial_term":75, "reason":50},
+            {"stat":"explosionImpactDamageShare", "scaling":"arithmetic", "initial_term":75, "reason":50}, #TODO : make this work for melee weapons
             {"stat":"explosionImpactRadius", "scaling":"arithmetic", "initial_term":2*TILE_SIZE, "reason":1*TILE_SIZE}]
         self.shortDescription = "Attacks explode"
         self.longDescription = "You attack create an explosion on impact, dealing 75%(+50%) damage in a 2T(+1T per stack radius)"
 
-class LOGS(Item): #Vanguard Boss Item, all of the logs from it being activated non-stop for decades
+class MACHINE_BLOOD(Item): #Vanguard Boss Item, bottle of a highly energetic and radioactive liquid that used to power machines, which gets nicknamed "machine blood"
     def __init__(self):
-        self.name = "Security Logs"
+        self.name = "Machine Blood Vial"
         self.image = (192,128)
         self.rarity = "boss"
         self.type = "support"
         self.effects = [
             {"stat":"shipFuelCostDecrease", "scaling":"arithmetic", "initial_term":3, "reason":3},
-            {"stat":"freeInteractablesPerBunker", "scaling":"arithmetic", "initial_term":2, "reason":2}]
+            {"stat":"freeInteractablesPerBunker", "scaling":"arithmetic", "initial_term":2, "reason":2}] #TODO : make this work once we had fuel based interactables
         self.shortDescription = "Decreased fuel costs."
         self.longDescription = "Decreases by 3(+3 per stack) the fuel costs of the ship. The first 2(+2 per stack) times you spend fuel on an interactable in a bunker are free."
 
@@ -536,7 +536,7 @@ class TROPHIES(Item): #Apex Boss Item, heads of various creatures its killed
         self.rarity = "boss"
         self.type = "damage"
         self.effects = [
-            {"stat":"consecutiveKillsDamageIncrease", "scaling":"arithmetic", "initial_term":5, "reason":5}]
+            {"stat":"killStreakDamageIncrease", "scaling":"arithmetic", "initial_term":5, "reason":5}]
         self.shortDescription = "Increases damage for consecutive kills."
         self.longDescription = "Everytime you kill an enemy, increase your damage output by 5%(+5% per stack). Taking damage causes this bonus to go back to 0."
 
