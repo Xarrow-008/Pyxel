@@ -224,8 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, FANG()))
-            self.pickups.append(Pickup(self.player.x, self.player.y, BOTTLE()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, ERUDITE_TUMOR()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -371,8 +370,20 @@ class InMission:
 
             if entity.dead:
                 self.entities.remove(entity)
+
                 if entity in self.linkedEnemies:
                     self.linkedEnemies.remove(entity)
+
+                if type(entity)==Projectile and hasattr(entity.owner, "inventory") and entity.owner.inventory.explosionImpactRadius > 0 :
+
+                    entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
+
+                    for entity2 in self.entities:
+                        if distanceObjects(entity, entity2) <= entity.owner.inventory.explosionImpactRadius:
+                            vector = getVector(entity.x+entity.width/2, entity2.x+entity2.width/2, entity.y+entity.height/2, entity2.y+entity2.height/2)
+                            damage = entity.baseDamage*(entity.owner.inventory.explosionImpactDamageShare)/100
+                            self.hurt(damage, vector, 2, 0, entity.owner, entity2)
+
                 break
 
             if hasattr(entity, "reloadedThisFrame") and entity.reloadedThisFrame : 
@@ -3157,7 +3168,14 @@ def getPlayerBulletImage(facing):
 
 def getColor(hex):
     return int(hex, 16)
-    
+
+def getVector(x1,x2,y1,y2):
+    horizontal = x2-x1
+    vertical = y1-y2
+    norm = math.sqrt(horizontal**2 + vertical**2)
+    cos = horizontal/norm
+    sin = vertical/norm
+    return [cos, sin]
 
 def gameFrozen():
     global freeze_start, freeze_duration
