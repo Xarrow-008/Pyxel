@@ -410,9 +410,6 @@ class InMission:
                 entity.target = (self.player.x,self.player.y)
                 entity.update()
 
-                if not type(entity) == Projectile and not self.player.isInvincible() and collision(self.player.x,self.player.y,entity.x,entity.y,(self.player.width,self.player.height),(entity.width,entity.height)):
-                    self.hurt(5, [0,0], 1, 0, entity, self.player) #TODO CHANGE WHEN BULLETS CAN HIT PLAYER
-
         if self.player.inventory.linkedDamageShare > 0:
             if len([x for x in self.entities if issubclass(type(x), Enemy)]) >= 2:
                 i = 0
@@ -570,9 +567,12 @@ class InMission:
                 
         target.lastHitBy = damagingEntity
 
-        if target.canGetHurt(shot):
+        if target.canGetHurt(shot, damager):
 
             target.sufferDamage(value)
+
+            if type(damager) == Projectile :
+                target.hitByProjectile.append(damager)
             
             if target in self.linkedEnemies:
                 linkedEntity = [entity for entity in self.linkedEnemies if entity != target][0]
@@ -670,34 +670,34 @@ class InMission:
 
                     if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2):
                         
-                        self.hurt(entity1.enemyCollisionEffect[0], entity1.enemyCollisionEffect[1], entity1.enemyCollisionEffect[2], entity1.shot, entity1, entity2)
-                        if entity1.enemyCollisionEffect[3] == 0:
+                        self.hurt(entity1.collisionDamage, entity1.momentum, entity1.collisionKnockbackCoef, entity1.shot, entity1, entity2)
+                        if entity1.collisionPiercing == 0:
                             if issubclass(type(entity1),Enemy):
                                 entity1.health = 0
                             elif type(entity1) == Projectile:
                                 entity1.range = 0
                         else:
-                            entity1.enemyCollisionEffect[3] -= 1
+                            entity1.collisionPiercing -= 1
 
                     if entity2.canCollideWithEnemy() and entity2.collidingWithEnemy(entity1):
     
-                        self.hurt(entity2.enemyCollisionEffect[0], entity2.enemyCollisionEffect[1], entity2.enemyCollisionEffect[2], entity2.shot, entity2, entity1)
-                        if entity2.enemyCollisionEffect[3] == 0:
+                        self.hurt(entity2.collisionDamage, entity2.momentum, entity2.collisionKnockbackCoef, entity2.shot, entity2, entity1)
+                        if entity2.collisionPiercing == 0:
                             if issubclass(type(entity2),Enemy):
                                 entity2.health = 0
                             elif type(entity2) == Projectile:
                                 entity2.range = 0
                         else:
-                            entity2.enemyCollisionEffect[3] -= 1
+                            entity2.collisionPiercing -= 1
 
     def player_collision(self): #Handles collisions with the player by entities
         for entity in self.entities:
             if entity.canCollideWithPlayer() and self.entityCollidingWithPlayer(entity):
-                self.hurt(entity.playerCollisionEffect[0], entity.player_collisionEffect[1], entity.player_collisionEffect[2], entity.shot, entity, self.player)
-                if entity.playerCollisionEffect[3] == 0:
+                self.hurt(entity.collisionDamage, entity.momentum, entity.collisionKnockbackCoef, entity.shot, entity, self.player)
+                if entity.collisionPiercing == 0:
                     entity.dead = True
                 else:
-                    entity.playerCollisionEffect[3] -= 1
+                    entity.collisionPiercing -= 1
 
                 if hasattr(entity, "inventory") and entity.inventory.dashKnockbackStrength >0 and hasattr(entity, "isDashing") and entity.isDashing:
                     direction = random.choice([-1,1])
@@ -768,6 +768,10 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.baseLuck = 0
         self.luck = 0
+
+        self.hitByProjectile = []
+
+        self.shot = 0
 
     def __str__(self):
         if type(self) == Player:
@@ -1201,25 +1205,28 @@ class Entity: #General Entity class with all the methods describing what entitie
         return timer(startFrame, weapon.reloadTime, game_frame) and weapon.magAmmo==0 and weapon.name != "None"
 
 
-    def initCollision(self, wall, enemy, player):
-        self.wallCollisionEffect = wall
-        self.enemyCollisionEffect = enemy
-        self.playerCollisionEffect = player
+    def initCollision(self, damage, piercing, playerCollision, enemyCollision, knockbackCoef, dieOnWall=False):
+        self.collisionDamage = damage
+        self.collisionPiercing = piercing
+        self.collisionKnockbackCoef = knockbackCoef
+
+        self.dieOnMeetingWall = dieOnWall
+
+        self.playerCollision = playerCollision
+        self.enemyCollision = enemyCollision
 
     def wallCollision(self):
-        if self.wallCollisionEffect[3] != -1:
-            if self.collidedWithWall:
-                if self.wallCollisionEffect[0] == 0:
-                    if type(self) == Enemy or type(self) == Player:
-                        self.health = 0
-                    elif type(self) == Projectile:
-                        self.range = 0
+        if self.dieOnMeetingWall and self.collidedWithWall:
+            if type(self) == Enemy or type(self) == Player:
+                self.health = 0
+            elif type(self) == Projectile:
+                self.range = 0
 
     def canCollideWithEnemy(self):
-        return hasattr(self, "enemyCollisionEffect") and self.enemyCollisionEffect[3] != -1
+        return hasattr(self, "enemyCollision") and self.enemyCollision
 
     def canCollideWithPlayer(self):
-        return hasattr(self, "playerCollisionEffect") and self.playerCollisionEffect[3] != -1
+        return hasattr(self, "playerCollision") and self.playerCollision
 
     def collidingWithEnemy(self, entity):
         return issubclass(type(entity),Enemy) and collisionObjects(self, entity)
@@ -1279,8 +1286,8 @@ class Entity: #General Entity class with all the methods describing what entitie
     def isInvincible(self):
         return not timer(self.invincibilityStartFrame, self.invincibilityDuration, game_frame)
 
-    def canGetHurt(self, shot):
-        return not ((hasattr(self, "isHitStun") and self.isHitStun and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible))
+    def canGetHurt(self, shot, damager):
+        return not ((hasattr(self, "isHitStun") and self.isHitStun and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible) or (damager in self.hitByProjectile))
 
     def hitstun(self):
         if hasattr(self, "isHitStun"):
@@ -2022,9 +2029,9 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
 
     def initialiseNewCollisions(self):
         if type(self.owner)==Player:
-            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing], [0, 0, 0, -1])
+            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=True, playerCollision=False)
         elif type(self.owner)==Enemy:
-            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing])
+            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=False, playerCollision=True)
 
     def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
         X = int(self.x//TILE_SIZE)
@@ -2489,6 +2496,7 @@ class Enemy(Entity): #Creates an entity that fights the player
         
         self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+        self.initCollision(damage=5, piercing=-1, knockbackCoef=0, playerCollision=True, enemyCollision=False)
         self.walkMode = 'None'
         self.checked = []
 
