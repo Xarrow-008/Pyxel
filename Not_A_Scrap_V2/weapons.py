@@ -195,4 +195,44 @@ class TEST_2_HANDS(RangedWeapon):
 
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
 
-WEAPON_LIST = [x() for x in (MeleeWeapon.__subclasses__() + RangedWeapon.__subclasses__()) if x!=NO_WEAPON]
+class LANCE_PROJECTILE(RangedWeapon): #Creates the projectile for the "Lance of Hyperion" item
+    def __init__(self, baseDamage):
+        name = ""
+        shortDescription = ""
+        handNumber = 0
+        image = (176,144)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
+
+        mode = ""
+
+        bulletImage = (176,144)
+        bulletWidth = TILE_SIZE
+        bulletHeight = TILE_SIZE
+
+        spread = 0
+        movingSpreadIncrease = 0
+        bulletCount = 1
+
+        bulletSpeed = 3
+
+        range = 12*TILE_SIZE
+        damage = baseDamage
+        piercing = -1 #infinite piercing
+        knockbackCoef = 0
+        fallOffCoef = 0 #Positive = damage decreases with distance / Negative = damage increases with distance
+        noFallOffArea = 1 #This means that there won't be damage fallOff for the first 40% of the projectile's trajectory
+
+        reloadTime = 0
+        attackCooldown = 0
+
+        magAmmo = 0
+        maxAmmo = 0
+        reserveAmmo = 0
+
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+        super().__init__(baseWeaponInfo, rangedWeaponInfo)
+
+WEAPON_LIST = [x() for x in (MeleeWeapon.__subclasses__() + RangedWeapon.__subclasses__()) if (x!=NO_WEAPON and x!=LANCE_PROJECTILE)]

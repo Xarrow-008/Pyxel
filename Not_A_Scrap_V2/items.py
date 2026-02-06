@@ -547,7 +547,7 @@ class LANCE(Item): #Zenith Boss Item, one of its spears
         self.rarity = "boss"
         self.type = "damage"
         self.effects = [
-            {"stat":"spearBaseDamage", "scaling":"arithmetic", "initial_term":30, "reason":30}]
+            {"stat":"spearBaseDamage", "scaling":"arithmetic", "initial_term":50, "reason":50}]
         self.shortDescription = "Periodically send out a heavy-hitting spear."
         self.longDescription = "Every 7s, spawn and throw out a spear with infinite piercing towards the nearest enemy. Its base damage is 50(+50 per stack) and scales with every bunker you've explored."
 

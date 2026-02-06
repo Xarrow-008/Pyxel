@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, TROPHIES()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, LANCE()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -329,6 +329,28 @@ class InMission:
 
 
     def entity_gestion(self):
+        if len([x for x in self.entities if issubclass(type(x), Enemy)]) > 0 and self.player.inventory.spearBaseDamage > 0 and onTick(7*FPS):
+            weapon = LANCE_PROJECTILE(self.player.inventory.spearBaseDamage*(1.5*(1+self.player.inventory.extraWeaponScale/100))**self.level)
+
+            distance = distanceObjects([x for x in self.entities if issubclass(type(x), Enemy)][0], self.player)
+            target = [x for x in self.entities if issubclass(type(x), Enemy)][0]
+
+            for entity in [x for x in self.entities if issubclass(type(x), Enemy)] :
+                if distanceObjects(entity, self.player) < distance :
+                    distance = distanceObjects(entity, self.player)
+                    target = entity
+
+            if distance != 0:
+                cos = (target.x-self.player.x)/distance
+                sin = (target.y-self.player.y)/distance
+            else:
+                cos = 0
+                sin = 0
+            vector = [cos, sin]
+
+            self.entities.append(Projectile(weapon, self.player.x+self.player.width/2, self.player.y+self.player.height/2, vector, self.player, 0))
+
+
         if self.player.bulletList != []:
                 for bullet in self.player.bulletList:
                     self.entities.append(bullet)
@@ -1971,7 +1993,11 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
     def __init__(self, weapon, x, y, vector, owner, shot):
         super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
 
+        self.weapon = weapon
+
         self.momentum = vector
+
+        self.angle = (math.acos(vector[0])*pyxel.sgn(vector[1]))*(180/math.pi)+45
 
         self.image = weapon.bulletImage
 
@@ -2018,16 +2044,19 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
         self.death()
 
     def draw(self):
-        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
+        if type(self.weapon) == LANCE_PROJECTILE:
+            draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11, rotate=self.angle)
+        else:
+            draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
         self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
         self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
 
         if self.range != 0 and self.range < (self.baseRange*self.noFallOffArea):
-            if self.fallOffCoef >= 0 :
+            if self.fallOffCoef > 0 :
                 self.damage = self.baseDamage*self.fallOffCoef*(self.range/(self.baseRange*self.noFallOffArea))
-            else:
+            elif self.fallOffCoef < 0:
                 self.damage = -self.baseDamage*self.fallOffCoef*(2 - self.range/(self.baseRange*self.noFallOffArea))
             self.initialiseNewCollisions()
 
