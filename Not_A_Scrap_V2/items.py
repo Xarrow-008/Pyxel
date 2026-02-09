@@ -561,7 +561,7 @@ class BOOK_BRASIER(Item): #Aegir Boss Item, basically the Celestial equivalent o
             {"stat":"fireRingEffect", "scaling":"arithmetic", "initial_term":1, "reason":1},
             {"stat":"fireHeal", "scaling":"constant", "value":50}]
         self.shortDescription = "Spawn rings of fire randomly and heal from fire."
-        self.longDescription = "Every 10s, randomly spawn a ring of fire on the screen, inflicting 1(+1 per stack) stack of the fire status effect to any one that stands in it. Fire now heals you for 50% of its original damage instead of damaging you."
+        self.longDescription = "Every 2s, randomly spawn a ring of fire on the screen, inflicting 1(+1 per stack) stack of the fire status effect to any one that stands in it. Fire now heals you for 50% of its original damage instead of damaging you."
 
 
 

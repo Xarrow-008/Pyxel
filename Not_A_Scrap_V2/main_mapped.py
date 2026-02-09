@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, LANCE()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, BOOK_BRASIER()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -332,17 +332,17 @@ class InMission:
         if len([x for x in self.entities if issubclass(type(x), Enemy)]) > 0 and self.player.inventory.spearBaseDamage > 0 and onTick(7*FPS):
             weapon = LANCE_PROJECTILE(self.player.inventory.spearBaseDamage*(1.5*(1+self.player.inventory.extraWeaponScale/100))**self.level)
 
-            distance = distanceObjects([x for x in self.entities if issubclass(type(x), Enemy)][0], self.player)
+            distanceTarget = distanceObjects([x for x in self.entities if issubclass(type(x), Enemy)][0], self.player)
             target = [x for x in self.entities if issubclass(type(x), Enemy)][0]
 
             for entity in [x for x in self.entities if issubclass(type(x), Enemy)] :
-                if distanceObjects(entity, self.player) < distance :
-                    distance = distanceObjects(entity, self.player)
+                if distanceObjects(entity, self.player) < distanceTarget :
+                    distanceTarget = distanceObjects(entity, self.player)
                     target = entity
 
-            if distance != 0:
-                cos = (target.x-self.player.x)/distance
-                sin = (target.y-self.player.y)/distance
+            if distanceTarget != 0:
+                cos = (target.x-self.player.x)/distanceTarget
+                sin = (target.y-self.player.y)/distanceTarget
             else:
                 cos = 0
                 sin = 0
@@ -350,6 +350,20 @@ class InMission:
 
             self.entities.append(Projectile(weapon, self.player.x+self.player.width/2, self.player.y+self.player.height/2, vector, self.player, 0))
 
+        if self.player.inventory.fireRingEffect > 0 and onTick(2*FPS):
+            x = random.randint(self.currentRoom.x, self.currentRoom.x+self.currentRoom.width-2*TILE_SIZE)
+            y = random.randint(self.currentRoom.y, self.currentRoom.y+self.currentRoom.height-2*TILE_SIZE)
+            
+            self.player.addAnimation(pos=[x,y,False], settings={"width":2*TILE_SIZE, "height":2*TILE_SIZE, "u":1, "v":5, "imageVector":(0,0)}, lifetime=1.5*FPS)
+
+            for entity in [x for x in self.entities if issubclass(type(x), Enemy)]:
+                if in_perimeter(x, y, entity.x, entity.y, 2*TILE_SIZE):
+                    for i in range(self.player.inventory.fireRingEffect) :
+                        entity.addStatusEffect("fire")
+
+            if in_perimeter(x, y, self.player.x, self.player.y, 2*TILE_SIZE):
+                for i in range(self.player.inventory.fireRingEffect) :
+                    self.player.addStatusEffect("fire")
 
         if self.player.bulletList != []:
                 for bullet in self.player.bulletList:
@@ -956,17 +970,24 @@ class Entity: #General Entity class with all the methods describing what entitie
     def statusEffects(self):
 
         if onTick(FPS):
-            self.storedFireDamage += self.statusEffectStacks["fire"]*self.fireDamage
+            if hasattr(self, "inventory") and self.inventory.fireHeal > 0 :
+                self.heal += self.statusEffectStacks["fire"]*self.fireDamage*self.inventory.fireHeal/100
+            else :
+                self.storedFireDamage += self.statusEffectStacks["fire"]*self.fireDamage
+            
             self.storedPoisonDamage += self.statusEffectStacks["poison"]*self.poisonDamage*self.maxHealth
 
         if self.statusEffectStacks["fire"] > 0 and timer(self.statusEffectFrames["fire"], 2*FPS, game_frame):
             self.statusEffectStacks["fire"] -= 1
+            self.statusEffectFrames["fire"] = game_frame
 
         if self.statusEffectStacks["exposed"] > 0 and timer(self.statusEffectFrames["exposed"], 5*FPS, game_frame):
             self.statusEffectStacks["exposed"] -= 1
+            self.statusEffectFrames["exposed"] = game_frame
 
         if self.statusEffectStacks["poison"] > 0 and timer(self.statusEffectFrames["poison"], 2*FPS, game_frame) :
             self.statusEffectStacks["poison"] -= 1
+            self.statusEffectFrame["poison"] = game_frame
 
     def addStatusEffect(self, effect):
 
