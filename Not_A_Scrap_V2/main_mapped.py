@@ -53,6 +53,8 @@ class Game:
 
         self.camera = [0,0]
         self.margin = 1/4
+        self.camMode = 'followPlayer'
+        self.lockCam = [CAM_WIDTH//2,CAM_HEIGHT//2]
 
         self.level = 0
 
@@ -91,6 +93,24 @@ class Game:
 
     def cameraUpdate(self):
         global camera
+        if not self.player.isDashing:
+            self.camMode = 'followPlayer'
+        else:
+            if self.camMode != 'lockedOnPlayer':
+                self.camLockStart()
+            self.camMode = 'lockedOnPlayer'
+
+        if self.camMode == 'followPlayer':
+            self.camFollowPlayer()
+        elif self.camMode == 'lockedOnPlayer':
+            self.camlockedOnPlayer()
+        
+        self.camera = [round(self.camera[0]),round(self.camera[1])]
+
+        pyxel.camera(*self.camera)
+        camera = copy(self.camera)
+
+    def camFollowPlayer(self):
         if self.player.x  < self.camera[0] + CAM_WIDTH * self.margin and self.camera[0] > 0:
             self.camera[0] = self.player.x - CAM_WIDTH * self.margin
         if self.player.x + TILE_SIZE  > self.camera[0] + CAM_WIDTH * (1-self.margin) and self.camera[0] + CAM_WIDTH < WID *TILE_SIZE:
@@ -100,19 +120,25 @@ class Game:
         if self.player.y + TILE_SIZE  > self.camera[1] + CAM_HEIGHT * (1-self.margin) and self.camera[1] + CAM_HEIGHT < HEI * TILE_SIZE:
             self.camera[1] = self.player.y + TILE_SIZE - CAM_HEIGHT * (1-self.margin)
 
-        if self.camera[0]<0:
+        if self.camera[0] < 0:
             self.camera[0] = 0
         if self.camera[0] + CAM_WIDTH > WID*TILE_SIZE:
             self.camera[0] = WID*TILE_SIZE - CAM_WIDTH
-        if self.camera[1]<0:
+        if self.camera[1] < 0:
             self.camera[1] = 0
         if self.camera[1] - CAM_HEIGHT > HEI*TILE_SIZE:
             self.camera[1] = HEI*TILE_SIZE-CAM_HEIGHT
-        
-        self.camera = [round(self.camera[0]),round(self.camera[1])]
 
-        pyxel.camera(*self.camera)
-        camera = copy(self.camera)
+    def camlockedOnPlayer(self):
+        self.camera[0] = self.player.x - self.lockCam[0]
+        self.camera[1] = self.player.y - self.lockCam[1]
+
+    def camLockStart(self):
+        self.lockCam[0] = self.player.x - self.camera[0]
+        self.lockCam[1] = self.player.y - self.camera[1]
+        print('start', self.lockCam)
+
+    
 
 
     def draw(self):
@@ -1124,6 +1150,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.dashVector = copy(vector)
             self.chainedDashes += 1
             self.anims.append(AnimDust(pos=[self.x,self.y,False])) #dashDust
+            print('in')
 
     def canStartDash(self):
         if hasattr(self, "inventory") and (self.inventory.extraDash != 0 and self.chainedDashes <= self.inventory.extraDash) and (timer(self.dashStartFrame, self.dashCooldown*0.1, game_frame)) and (self.currentActionPriority <= self.dashPriority):
@@ -2171,24 +2198,6 @@ class Pickup:
 
     def draw(self):
         draw(x=self.x, y=self.y, img=0, u=self.pickup.image[0], v=self.pickup.image[1], w=self.width, h=self.height, colkey=11)
-
-class Interactable:
-    def __init__(self, x, y, template):
-        self.x = x
-        self.y = y
-
-        self.width = TILE_SIZE
-        self.height = TILE_SIZE
-
-        self.template = template
-
-        self.interactedWith = False
-
-    def draw(self):
-        if self.interactedWith :
-            pyxel.rect(x=self.x, y=self.y, w=self.width, h=self.height, col=0)
-        else:
-            draw(x=self.x, y=self.y, img=0, u=self.template["image"][0], v=self.template["image"][1], w=self.width, h=self.height, colkey=11)
 
 
 class World:

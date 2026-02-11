@@ -82,7 +82,7 @@ class Roombuild:
 
             self.resetWallsMap()
 
-            self.rooms.append(LoadRoom(room, x, y))
+            self.rooms.append(LoadShip(x, y))
             self.buildWalls()
             self.getFloorTiles()
             self.nbRooms = 1
@@ -219,9 +219,12 @@ class Roombuild:
             x = exitX + 1
             y = exitY
 
-        if side == 'up' or side == 'down':
+        if self.rooms[-2].name == 'ship':
+            self.exits.append(ExitStairs(x,y))
+
+        elif side == 'up' or side == 'down':
             self.exits.append(ExitBaseVertical(x,y))
-        if side == 'left' or side == 'right':
+        elif side == 'left' or side == 'right':
             self.exits.append(ExitBaseHorizontal(x,y))
 
         self.exits[-1].origin = self.roomIndex
@@ -418,9 +421,11 @@ class LoadShip(LoadRoom):
     def __init__(self,x,y):
         path = '../rooms/finished_rooms.toml'
         file = openToml(path)
-        settings = file['presetRooms'][0]
+        settings = file['presetShip']
 
         super().__init__(settings,x,y)
+
+        self.name = 'ship'
         
     def draw(self):
         draw(self.x,self.y,2,0,192,6*TILE_SIZE,4*TILE_SIZE,colkey=11)
@@ -458,6 +463,15 @@ class ExitBaseVertical(Exit):
         self.width = 2*TILE_SIZE
         self.height = 4*TILE_SIZE
 
+class ExitStairs(Exit):
+    def __init__(self,x,y):
+        super().__init__(x=x,y=y)
+        self.direction = 'Vertical'
+    def draw(self):
+        draw(self.x,self.y,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
+        draw(self.x,self.y+TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
+        draw(self.x,self.y+2*TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
+        draw(self.x,self.y+3*TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
 
 class Animation:
     def __init__(self,pos,settings,lifetime):

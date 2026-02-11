@@ -1057,6 +1057,7 @@ class ExitStairs(Exit):
         draw(self.x,self.y,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
         draw(self.x,self.y+TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
         draw(self.x,self.y+2*TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
+        draw(self.x,self.y+3*TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
 
 
 
