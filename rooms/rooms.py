@@ -674,11 +674,10 @@ class Roombuild:
 
     def buildStart(self):
         if len(self.rooms) == 0:
-            room = findNextRoom('down', "room_TVRoom") #might switch this to a special beginning room
             x = self.player.x//TILE_SIZE-1
             y = self.player.y//TILE_SIZE-1
 
-            self.rooms.append(LoadRoom(room, x, y))
+            self.rooms.append(LoadShip(x, y))
             self.nbRooms = 1
             self.isBuilding = True
         else:
@@ -793,9 +792,12 @@ class Roombuild:
             x = exitX + 1
             y = exitY
 
-        if side == 'up' or side == 'down':
+        if self.rooms[-2].name == 'ship':
+            self.exits.append(ExitStairs(x,y))
+
+        elif side == 'up' or side == 'down':
             self.exits.append(ExitBaseVertical(x,y))
-        if side == 'left' or side == 'right':
+        elif side == 'left' or side == 'right':
             self.exits.append(ExitBaseHorizontal(x,y))
 
         addExitWalls(exitX, exitY, side)
@@ -978,7 +980,7 @@ class LoadShip(LoadRoom):
     def __init__(self,x,y):
         path = '../rooms/finished_rooms.toml'
         file = openToml(path)
-        settings = file['presetRooms'][0]
+        settings = file['presetShip']
 
         super().__init__(settings,x,y)
 
@@ -1046,6 +1048,15 @@ class ExitBaseVertical(Exit):
     def draw(self):
         pyxel.rect(self.x,self.y,2*TILE_SIZE,4*TILE_SIZE,2)
         pyxel.rectb(self.x,self.y,2*TILE_SIZE,4*TILE_SIZE+1,6)
+
+class ExitStairs(Exit):
+    def __init__(self,x,y):
+        super().__init__(x=x,y=y)
+        self.direction = 'Vertical'
+    def draw(self):
+        draw(self.x,self.y,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
+        draw(self.x,self.y+TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
+        draw(self.x,self.y+2*TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
 
 
 
@@ -1469,6 +1480,8 @@ def addExitWalls(x, y, side):
     if side == 'down':
         wallsMap[y+2][x-1] = 2
         wallsMap[y+2][x+2] = 2
+        wallsMap[y+1][x-1] = 2
+        wallsMap[y+1][x+2] = 2
         wallsRect(x,y,2,5,0)
 
     if side == 'left':
@@ -1555,8 +1568,19 @@ def findNextRoom(side, roomName):
             roomsList.remove(nextRoom)
     return nextRoom
         
+def getRoom(side, newRoomName):
+    path = 'finished_rooms.toml'
+    file = openToml(path)
+    roomsList = file['presetRooms']
 
+    for room in roomsList:
+        if room['name'] == newRoomName:
+            if side == 'None' or room['exitsPos'][sideInverse(side)] != []:
+                return room
     
+    print('didnt find room / couldnt fit the exits')
+    return findNextRoom(side, newRoomName)
+
 
 
 if __name__ == '__main__':
