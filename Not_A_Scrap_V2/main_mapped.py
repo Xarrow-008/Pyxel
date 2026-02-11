@@ -178,7 +178,7 @@ class InMission:
         #self.fillBasicEnemies()
 
     def requiredFuel(self):
-        return 5+3*self.level
+        return 5+3*self.level - self.player.inventory.shipFuelCostDecrease
 
     def hasWon(self):
         return self.player.fuel >= self.requiredFuel() and self.currentRoom.index == 0
@@ -224,7 +224,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, METAL_SHEET()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, BOOK_BRASIER()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -329,6 +329,42 @@ class InMission:
 
 
     def entity_gestion(self):
+        if len([x for x in self.entities if issubclass(type(x), Enemy)]) > 0 and self.player.inventory.spearBaseDamage > 0 and onTick(7*FPS):
+            weapon = LANCE_PROJECTILE(self.player.inventory.spearBaseDamage*(1.5*(1+self.player.inventory.extraWeaponScale/100))**self.level)
+
+            distanceTarget = distanceObjects([x for x in self.entities if issubclass(type(x), Enemy)][0], self.player)
+            target = [x for x in self.entities if issubclass(type(x), Enemy)][0]
+
+            for entity in [x for x in self.entities if issubclass(type(x), Enemy)] :
+                if distanceObjects(entity, self.player) < distanceTarget :
+                    distanceTarget = distanceObjects(entity, self.player)
+                    target = entity
+
+            if distanceTarget != 0:
+                cos = (target.x-self.player.x)/distanceTarget
+                sin = (target.y-self.player.y)/distanceTarget
+            else:
+                cos = 0
+                sin = 0
+            vector = [cos, sin]
+
+            self.entities.append(Projectile(weapon, self.player.x+self.player.width/2, self.player.y+self.player.height/2, vector, self.player, 0))
+
+        if self.player.inventory.fireRingEffect > 0 and onTick(2*FPS):
+            x = random.randint(self.currentRoom.x, self.currentRoom.x+self.currentRoom.width-2*TILE_SIZE)
+            y = random.randint(self.currentRoom.y, self.currentRoom.y+self.currentRoom.height-2*TILE_SIZE)
+            
+            self.player.addAnimation(pos=[x,y,False], settings={"width":2*TILE_SIZE, "height":2*TILE_SIZE, "u":1, "v":5, "imageVector":(0,0)}, lifetime=1.5*FPS)
+
+            for entity in [x for x in self.entities if issubclass(type(x), Enemy)]:
+                if in_perimeter(x, y, entity.x, entity.y, 2*TILE_SIZE):
+                    for i in range(self.player.inventory.fireRingEffect) :
+                        entity.addStatusEffect("fire")
+
+            if in_perimeter(x, y, self.player.x, self.player.y, 2*TILE_SIZE):
+                for i in range(self.player.inventory.fireRingEffect) :
+                    self.player.addStatusEffect("fire")
+
         if self.player.bulletList != []:
                 for bullet in self.player.bulletList:
                     self.entities.append(bullet)
@@ -345,9 +381,15 @@ class InMission:
             self.heal(self.player.heal, self.player, self.player)
             self.player.heal = 0
 
-        if self.player.statusEffectDamage > 0:
-            self.hurt(self.player.statusEffectDamage, [0,0], 0, 0, self.player, self.player, hitStun=False)
-            self.player.statusEffectDamage = 0
+        if self.player.storedFireDamage > 0:
+            self.hurt(self.player.storedFireDamage, [0,0], 0, 0, self.player, self.player, hitStun=False)
+            self.player.storedFireDamage = 0
+
+        if self.player.storedPoisonDamage > 0:
+            self.hurt(self.player.storedPoisonDamage, [0,0], 0, 0, self.player, self.player, hitStun=False)
+            self.player.poisonDamageReceived += self.player.storedPoisonDamage
+            self.player.storedPoisonDamage = 0
+            
         
 
         for entity in self.entities:
@@ -364,8 +406,20 @@ class InMission:
 
             if entity.dead:
                 self.entities.remove(entity)
+
                 if entity in self.linkedEnemies:
                     self.linkedEnemies.remove(entity)
+
+                if type(entity)==Projectile and hasattr(entity.owner, "inventory") and entity.owner.inventory.explosionImpactRadius > 0 :
+
+                    entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
+
+                    for entity2 in self.entities:
+                        if distanceObjects(entity, entity2) <= entity.owner.inventory.explosionImpactRadius:
+                            vector = getVector(entity.x+entity.width/2, entity2.x+entity2.width/2, entity.y+entity.height/2, entity2.y+entity2.height/2)
+                            damage = entity.baseDamage*(entity.owner.inventory.explosionImpactDamageShare)/100
+                            self.hurt(damage, vector, 2, 0, entity.owner, entity2)
+
                 break
 
             if hasattr(entity, "reloadedThisFrame") and entity.reloadedThisFrame : 
@@ -377,9 +431,18 @@ class InMission:
                 self.heal(entity.heal, entity, entity)
                 entity.heal = 0
 
-            if entity.statusEffectDamage > 0:
-                self.hurt(entity.statusEffectDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
-                entity.statusEffectDamage = 0
+            if entity.storedFireDamage > 0:
+                self.hurt(entity.storedFireDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
+                entity.storedFireDamage = 0
+
+            if entity.storedPoisonDamage > 0:
+                self.hurt(entity.storedPoisonDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
+                entity.poisonDamageReceived += entity.storedPoisonDamage
+                entity.storedPoisonDamage = 0
+
+            if entity.storedLinkedDamage > 0:
+                self.hurt(entity.storedLinkedDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
+                entity.storedLinkedDamage = 0
 
             room = self.findRoom(entity.x,entity.y)
             conditionUpdate = type(entity) == Projectile
@@ -393,9 +456,6 @@ class InMission:
             if conditionUpdate:
                 entity.target = (self.player.x,self.player.y)
                 entity.update()
-
-                if not type(entity) == Projectile and not self.player.isInvincible() and collision(self.player.x,self.player.y,entity.x,entity.y,(self.player.width,self.player.height),(entity.width,entity.height)):
-                    self.hurt(5, [0,0], 1, 0, entity, self.player) #TODO CHANGE WHEN BULLETS CAN HIT PLAYER
 
         if self.player.inventory.linkedDamageShare > 0:
             if len([x for x in self.entities if issubclass(type(x), Enemy)]) >= 2:
@@ -554,18 +614,26 @@ class InMission:
                 
         target.lastHitBy = damagingEntity
 
-        if target.canGetHurt(shot):
+        if target.canGetHurt(shot, damager):
 
             target.sufferDamage(value)
+
+            if type(damager) == Projectile :
+                target.hitByProjectile.append(damager)
             
             if target in self.linkedEnemies:
                 linkedEntity = [entity for entity in self.linkedEnemies if entity != target][0]
-                linkedEntity.statusEffectDamage += value*(self.player.inventory.linkedDamageShare/100)
+                linkedEntity.storedLinkedDamage += value*(self.player.inventory.linkedDamageShare/100)
 
             if crit:
                 damagingEntity.addDamageNumber(target, value, 8)
+
                 if hasattr(damagingEntity, "inventory"):
                     damagingEntity.heal += math.ceil(value*(damagingEntity.inventory.healCriticalHit)/100)
+
+                    if damagingEntity.inventory.healSharePoisonKill > 0 :
+                        target.addStatusEffect("poison")
+
             else:
                 damagingEntity.addDamageNumber(target, value, 7)
 
@@ -607,6 +675,8 @@ class InMission:
                         entity.addStatusEffect("fire")
                         entity.addStatusEffect("fire")
                         enemiesSetOnFire += 1
+
+                damagingEntity.heal += math.ceil(target.poisonDamageReceived * damagingEntity.inventory.healSharePoisonKill/100)
                         
 
 
@@ -618,6 +688,8 @@ class InMission:
 
             if target.health == target.maxHealth :
                 value *= 1+(damager.inventory.fullHealthEnemyDamageBoost)/100
+
+            value *= 1 + damager.inventory.killStreakDamageIncrease * damager.statusEffectStacks["killStreak"]/100
         
         if hasattr(target, "inventory"):
 
@@ -647,34 +719,34 @@ class InMission:
 
                     if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2):
                         
-                        self.hurt(entity1.enemyCollisionEffect[0], entity1.enemyCollisionEffect[1], entity1.enemyCollisionEffect[2], entity1.shot, entity1, entity2)
-                        if entity1.enemyCollisionEffect[3] == 0:
+                        self.hurt(entity1.collisionDamage, entity1.momentum, entity1.collisionKnockbackCoef, entity1.shot, entity1, entity2)
+                        if entity1.collisionPiercing == 0:
                             if issubclass(type(entity1),Enemy):
                                 entity1.health = 0
                             elif type(entity1) == Projectile:
                                 entity1.range = 0
                         else:
-                            entity1.enemyCollisionEffect[3] -= 1
+                            entity1.collisionPiercing -= 1
 
                     if entity2.canCollideWithEnemy() and entity2.collidingWithEnemy(entity1):
     
-                        self.hurt(entity2.enemyCollisionEffect[0], entity2.enemyCollisionEffect[1], entity2.enemyCollisionEffect[2], entity2.shot, entity2, entity1)
-                        if entity2.enemyCollisionEffect[3] == 0:
+                        self.hurt(entity2.collisionDamage, entity2.momentum, entity2.collisionKnockbackCoef, entity2.shot, entity2, entity1)
+                        if entity2.collisionPiercing == 0:
                             if issubclass(type(entity2),Enemy):
                                 entity2.health = 0
                             elif type(entity2) == Projectile:
                                 entity2.range = 0
                         else:
-                            entity2.enemyCollisionEffect[3] -= 1
+                            entity2.collisionPiercing -= 1
 
     def player_collision(self): #Handles collisions with the player by entities
         for entity in self.entities:
             if entity.canCollideWithPlayer() and self.entityCollidingWithPlayer(entity):
-                self.hurt(entity.playerCollisionEffect[0], entity.player_collisionEffect[1], entity.player_collisionEffect[2], entity.shot, entity, self.player)
-                if entity.playerCollisionEffect[3] == 0:
+                self.hurt(entity.collisionDamage, entity.momentum, entity.collisionKnockbackCoef, entity.shot, entity, self.player)
+                if entity.collisionPiercing == 0:
                     entity.dead = True
                 else:
-                    entity.playerCollisionEffect[3] -= 1
+                    entity.collisionPiercing -= 1
 
                 if hasattr(entity, "inventory") and entity.inventory.dashKnockbackStrength >0 and hasattr(entity, "isDashing") and entity.isDashing:
                     direction = random.choice([-1,1])
@@ -745,6 +817,10 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.baseLuck = 0
         self.luck = 0
+
+        self.hitByProjectile = []
+
+        self.shot = 0
 
     def __str__(self):
         if type(self) == Player:
@@ -861,39 +937,61 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.hitCurrentFrame = True
 
+        self.statusEffectStacks["killStreak"] = 0
+
 
     def initStatusEffects(self):
-        self.statusEffectDamage = 0
-
-        self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0}
-        self.statusEffectFrames = {"fire":0, "exposed":0, "linked":0}
+        self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0, "poison":0, "killStreak":0}
+        self.statusEffectFrames = {"fire":0, "exposed":0, "linked":0, "poison":0, "killStreak":0}
 
         self.fireDimensions = (8,10)
         self.fireImage = (0,4)
         self.fireDamage = 5
+        self.storedFireDamage = 0
 
         self.exposedDimensions = (9,9)
         self.exposedImage = (0,5)
         
         self.linkedDimensions = (15,4)
         self.linkedImage = (0,6)
+        self.storedLinkedDamage = 0
+
+        self.poisonDimensions = (9,7)
+        self.poisonImage = (0,7)
+        self.poisonDamage = 0.05
+        self.storedPoisonDamage = 0
+        self.poisonDamageReceived = 0
+
+        self.killStreakDimensions = (11,9)
+        self.killStreakImage = (0,8)
 
         self.ignoreStatusEffectFrame = 0
 
     def statusEffects(self):
 
         if onTick(FPS):
-            self.statusEffectDamage += self.statusEffectStacks["fire"]*self.fireDamage
+            if hasattr(self, "inventory") and self.inventory.fireHeal > 0 :
+                self.heal += self.statusEffectStacks["fire"]*self.fireDamage*self.inventory.fireHeal/100
+            else :
+                self.storedFireDamage += self.statusEffectStacks["fire"]*self.fireDamage
+            
+            self.storedPoisonDamage += self.statusEffectStacks["poison"]*self.poisonDamage*self.maxHealth
 
         if self.statusEffectStacks["fire"] > 0 and timer(self.statusEffectFrames["fire"], 2*FPS, game_frame):
             self.statusEffectStacks["fire"] -= 1
+            self.statusEffectFrames["fire"] = game_frame
 
         if self.statusEffectStacks["exposed"] > 0 and timer(self.statusEffectFrames["exposed"], 5*FPS, game_frame):
             self.statusEffectStacks["exposed"] -= 1
+            self.statusEffectFrames["exposed"] = game_frame
+
+        if self.statusEffectStacks["poison"] > 0 and timer(self.statusEffectFrames["poison"], 2*FPS, game_frame) :
+            self.statusEffectStacks["poison"] -= 1
+            self.statusEffectFrame["poison"] = game_frame
 
     def addStatusEffect(self, effect):
 
-        if hasattr(self, "inventory") and self.inventory.ignoreStatusCooldown != 0 and timer(self.ignoreStatusEffectFrame, self.inventory.ignoreStatusCooldown, game_frame):
+        if effect != "killStreak" and hasattr(self, "inventory") and self.inventory.ignoreStatusCooldown != 0 and timer(self.ignoreStatusEffectFrame, self.inventory.ignoreStatusCooldown, game_frame):
             self.heal = math.ceil(self.maxHealth*(self.inventory.healInsteadOfStatus)/100)
             self.ignoreStatusEffectFrame = game_frame
 
@@ -1120,11 +1218,12 @@ class Entity: #General Entity class with all the methods describing what entitie
                     cos = horizontal/norm
                     sin = vertical/norm
 
-                    spread = (weapon.spread - self.inventory.precisionIncrease)*(math.pi/180)
+                    spread = (weapon.spread - self.inventory.precisionIncrease)
                     if self.momentum != [0,0]:
                         spread += weapon.movingSpreadIncrease - self.inventory.movingPrecisionIncrease
                     if spread < 0:
                         spread = 0
+                    spread *= (math.pi)/180
 
                     angle = math.acos(cos) * pyxel.sgn(sin)
                     lowest_angle = angle - spread
@@ -1167,25 +1266,28 @@ class Entity: #General Entity class with all the methods describing what entitie
         return timer(startFrame, weapon.reloadTime, game_frame) and weapon.magAmmo==0 and weapon.name != "None"
 
 
-    def initCollision(self, wall, enemy, player):
-        self.wallCollisionEffect = wall
-        self.enemyCollisionEffect = enemy
-        self.playerCollisionEffect = player
+    def initCollision(self, damage, piercing, playerCollision, enemyCollision, knockbackCoef, dieOnWall=False):
+        self.collisionDamage = damage
+        self.collisionPiercing = piercing
+        self.collisionKnockbackCoef = knockbackCoef
+
+        self.dieOnMeetingWall = dieOnWall
+
+        self.playerCollision = playerCollision
+        self.enemyCollision = enemyCollision
 
     def wallCollision(self):
-        if self.wallCollisionEffect[3] != -1:
-            if self.collidedWithWall:
-                if self.wallCollisionEffect[0] == 0:
-                    if type(self) == Enemy or type(self) == Player:
-                        self.health = 0
-                    elif type(self) == Projectile:
-                        self.range = 0
+        if self.dieOnMeetingWall and self.collidedWithWall:
+            if type(self) == Enemy or type(self) == Player:
+                self.health = 0
+            elif type(self) == Projectile:
+                self.range = 0
 
     def canCollideWithEnemy(self):
-        return hasattr(self, "enemyCollisionEffect") and self.enemyCollisionEffect[3] != -1
+        return hasattr(self, "enemyCollision") and self.enemyCollision
 
     def canCollideWithPlayer(self):
-        return hasattr(self, "playerCollisionEffect") and self.playerCollisionEffect[3] != -1
+        return hasattr(self, "playerCollision") and self.playerCollision
 
     def collidingWithEnemy(self, entity):
         return issubclass(type(entity),Enemy) and collisionObjects(self, entity)
@@ -1218,7 +1320,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             if item[1] > 0 :
                 self.addAnimation(pos=[startPoint, -getattr(self, item[0]+"Dimensions")[1]-1-yIncrease, True], settings={"u":getattr(self, item[0]+"Image")[0], "v":getattr(self, item[0]+"Image")[1], "width":getattr(self, item[0]+"Dimensions")[0], "height":getattr(self, item[0]+"Dimensions")[1]}, lifetime=1)
                 if item[0] != "linked":
-                    self.addAnimation(pos=[startPoint+4, -getattr(self, item[0]+"Dimensions")[1]+3-yIncrease, True], settings={"width":0, "height":0, "text":(str(item[1]), 6, 0, False)}, lifetime=1)
+                    self.addAnimation(pos=[startPoint+getattr(self, item[0]+"Dimensions")[0]-3, -getattr(self, item[0]+"Dimensions")[1]+3-yIncrease, True], settings={"width":0, "height":0, "text":(str(item[1]), 6, 0, False)}, lifetime=1)
                 startPoint += getattr(self, item[0]+"Dimensions")[0]
 
 
@@ -1245,8 +1347,8 @@ class Entity: #General Entity class with all the methods describing what entitie
     def isInvincible(self):
         return not timer(self.invincibilityStartFrame, self.invincibilityDuration, game_frame)
 
-    def canGetHurt(self, shot):
-        return not ((hasattr(self, "isHitStun") and self.isHitStun and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible))
+    def canGetHurt(self, shot, damager):
+        return not ((hasattr(self, "isHitStun") and self.isHitStun and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible) or (damager in self.hitByProjectile))
 
     def hitstun(self):
         if hasattr(self, "isHitStun"):
@@ -1277,6 +1379,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         if self.enemiesKilled%10 == 0:
             self.heal += math.ceil(self.maxHealth*(self.inventory.healAfter10EnemiesKilled/100))
+
+        if self.inventory.killStreakDamageIncrease > 0 :
+            self.addStatusEffect("killStreak")
 
 
 class Player(Entity): #Creates an entity that's controlled by the player
@@ -1909,7 +2014,11 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
     def __init__(self, weapon, x, y, vector, owner, shot):
         super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
 
+        self.weapon = weapon
+
         self.momentum = vector
+
+        self.angle = (math.acos(vector[0])*pyxel.sgn(vector[1]))*(180/math.pi)+45
 
         self.image = weapon.bulletImage
 
@@ -1956,16 +2065,19 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
         self.death()
 
     def draw(self):
-        draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
+        if type(self.weapon) == LANCE_PROJECTILE:
+            draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11, rotate=self.angle)
+        else:
+            draw(self.x, self.y, 0, self.image[0], self.image[1], self.width, self.height, colkey=11)
 
     def movement(self):
         self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
         self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
 
         if self.range != 0 and self.range < (self.baseRange*self.noFallOffArea):
-            if self.fallOffCoef >= 0 :
+            if self.fallOffCoef > 0 :
                 self.damage = self.baseDamage*self.fallOffCoef*(self.range/(self.baseRange*self.noFallOffArea))
-            else:
+            elif self.fallOffCoef < 0:
                 self.damage = -self.baseDamage*self.fallOffCoef*(2 - self.range/(self.baseRange*self.noFallOffArea))
             self.initialiseNewCollisions()
 
@@ -1988,9 +2100,9 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
 
     def initialiseNewCollisions(self):
         if type(self.owner)==Player:
-            self.initCollision([0, 0, 0, 0], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing], [0, 0, 0, -1])
+            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=True, playerCollision=False)
         elif type(self.owner)==Enemy:
-            self.initCollision([0, 0, 0, 0], [0, 0, 0, -1], [self.damage, self.momentum, self.damageKnockbackCoef, self.piercing])
+            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=False, playerCollision=True)
 
     def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
         X = int(self.x//TILE_SIZE)
@@ -2455,6 +2567,7 @@ class Enemy(Entity): #Creates an entity that fights the player
         
         self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+        self.initCollision(damage=5, piercing=-1, knockbackCoef=0, playerCollision=True, enemyCollision=False)
         self.walkMode = 'None'
         self.checked = []
 
@@ -3115,7 +3228,14 @@ def getPlayerBulletImage(facing):
 
 def getColor(hex):
     return int(hex, 16)
-    
+
+def getVector(x1,x2,y1,y2):
+    horizontal = x2-x1
+    vertical = y1-y2
+    norm = math.sqrt(horizontal**2 + vertical**2)
+    cos = horizontal/norm
+    sin = vertical/norm
+    return [cos, sin]
 
 def gameFrozen():
     global freeze_start, freeze_duration
