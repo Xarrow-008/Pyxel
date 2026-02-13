@@ -188,14 +188,14 @@ class InMission:
         self.rooms = rooms
         self.exits = exits
         self.stairs = []
-        self.level = 0
+        self.levelHeight = 0
         self.closeShip = False
         self.shipDoorState = 'closed'
         self.infoText = ("","","")
         self.isPlayable = True
         self.activeAsset = 'N/A'
         self.currentRoom = self.rooms[0]
-        self.roomFocus = False #if we want other rooms than the one the player is in be darkened
+        self.roomFocus = True #if we want other rooms than the one the player is in be darkened
         self.roomShadow = 0
         self.level = level
         self.nbEnemiesSpawned = 0
@@ -251,7 +251,6 @@ class InMission:
         return self.hasWon() or self.player.dead
 
     def update(self):
-
         self.entity_gestion()
         self.pickup_gestion()
 
@@ -296,9 +295,9 @@ class InMission:
             if collision(stairs.x,stairs.y,self.player.x,self.player.y,(stairs.width*TILE_SIZE,stairs.height*TILE_SIZE),(self.player.width,self.player.height)):
                 y = self.player.y - stairs.y + 16
                 if y < 40:
-                    self.level = stairs.origin
+                    self.levelHeight = stairs.origin
                 else:
-                    self.level = stairs.origin + 1
+                    self.levelHeight = stairs.origin + 1
                 self.roomShadow = y/80
 
     def addEnemiesGradually(self):
@@ -577,7 +576,7 @@ class InMission:
 
     def draw(self):
 
-        if self.level == 0:
+        if self.levelHeight == 0:
             self.roomFocus = True
         else:
             self.roomFocus = False
