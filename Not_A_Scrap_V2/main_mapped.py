@@ -264,7 +264,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, BOOK_BRASIER()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, RUSTY_KNIFE()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -438,10 +438,10 @@ class InMission:
                 for i in range(self.player.inventory.fireRingEffect) :
                     self.player.addStatusEffect("fire")
 
-        if self.player.bulletList != []:
-                for bullet in self.player.bulletList:
+        if self.player.attackList != []:
+                for bullet in self.player.attackList:
                     self.entities.append(bullet)
-                self.player.bulletList = []
+                self.player.attackList = []
 
         if self.player.reloadedThisFrame:
             for entity in self.entities:
@@ -467,10 +467,10 @@ class InMission:
 
         for entity in self.entities:
             
-            if hasattr(entity, "bulletList") and entity.bulletList != []:
-                for bullet in entity.bulletList:
+            if hasattr(entity, "attackList") and entity.attackList != []:
+                for bullet in entity.attackList:
                     self.entities.append(bullet)
-                entity.bulletList = []
+                entity.attackList = []
 
             if hasattr(entity, "spawnedPickups") and entity.spawnedPickups != []:
                 for pickup in entity.spawnedPickups:
@@ -483,7 +483,7 @@ class InMission:
                 if entity in self.linkedEnemies:
                     self.linkedEnemies.remove(entity)
 
-                if type(entity)==Projectile and hasattr(entity.owner, "inventory") and entity.owner.inventory.explosionImpactRadius > 0 :
+                if (type(entity)==Projectile or type(Entity)==MeleeAttack) and hasattr(entity.owner, "inventory") and entity.owner.inventory.explosionImpactRadius > 0 :
 
                     entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
 
@@ -563,9 +563,9 @@ class InMission:
 
                 elif issubclass(type(pickup.pickup), Weapon): 
                     if keyPress("RIGHT_HAND", "btn"):
-                        self.player.inventory.addWeapon(pickup.pickup, "rightHand",1)
+                        self.player.inventory.addWeapon(pickup.pickup, "rightHand",self.level)
                     else:
-                        self.player.inventory.addWeapon(pickup.pickup, "leftHand",1)
+                        self.player.inventory.addWeapon(pickup.pickup, "leftHand",self.level)
 
                 elif issubclass(type(pickup.pickup), Fuel): 
                     self.player.fuel += pickup.pickup.value
@@ -634,6 +634,7 @@ class InMission:
 
 
 
+
     def heal(self, value, healer, target):
 
         if hasattr(healer, "inventory"):
@@ -661,7 +662,7 @@ class InMission:
     def hurt(self, value, vector, knockback_coef, shot, damager, target, hitStun=True):
         global freeze_start, freeze_duration, game_frame
 
-        damagerIsOwned = (type(damager)==Projectile)
+        damagerIsOwned = (type(damager)==Projectile or type(damager)==MeleeAttack)
         if damagerIsOwned :
             damagingEntity = damager.owner
         else:
@@ -700,8 +701,8 @@ class InMission:
 
             target.sufferDamage(value)
 
-            if type(damager) == Projectile :
-                target.hitByProjectile.append(damager)
+            if type(damager) == Projectile or type(damager) == MeleeAttack:
+                target.hitByAttack.append(damager)
             
             if target in self.linkedEnemies:
                 linkedEntity = [entity for entity in self.linkedEnemies if entity != target][0]
@@ -797,7 +798,7 @@ class InMission:
             for j in range(i+1, len(self.entities)):
                 entity2 = self.entities[j]
 
-                if not ((issubclass(type(entity1),Enemy) and entity1.health<=0) or (type(entity1)==Projectile and entity1.range<=0) or (type(entity2)==Enemy and entity2.health<=0) or (type(entity2)==Projectile and entity2.range<=0)):
+                if not ((issubclass(type(entity1),Enemy) and entity1.health<=0) or ((type(entity1)==Projectile or type(entity1)==MeleeAttack) and entity1.range<=0) or (type(entity2)==Enemy and entity2.health<=0) or ((type(entity2)==Projectile or type(entity2)==MeleeAttack) and entity2.range<=0)):
 
                     if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2):
                         
@@ -805,7 +806,7 @@ class InMission:
                         if entity1.collisionPiercing == 0:
                             if issubclass(type(entity1),Enemy):
                                 entity1.health = 0
-                            elif type(entity1) == Projectile:
+                            elif type(entity1) == Projectile or type(entity1) == MeleeAttack:
                                 entity1.range = 0
                         else:
                             entity1.collisionPiercing -= 1
@@ -816,7 +817,7 @@ class InMission:
                         if entity2.collisionPiercing == 0:
                             if issubclass(type(entity2),Enemy):
                                 entity2.health = 0
-                            elif type(entity2) == Projectile:
+                            elif type(entity2) == Projectile or type(entity2) == MeleeAttack:
                                 entity2.range = 0
                         else:
                             entity2.collisionPiercing -= 1
@@ -900,17 +901,19 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.baseLuck = 0
         self.luck = 0
 
-        self.hitByProjectile = []
+        self.hitByAttack = []
 
         self.shot = 0
 
     def __str__(self):
         if type(self) == Player:
             return f"Type : Player, x : {self.x}, y : {self.y}, momentum : {self.momentum}, health : {self.health}"
-        elif type(self) == Enemy:
+        elif issubclass(type(self),Enemy):
             return f"Type : Enemy, x : {self.x}, y : {self.y}, momentum : {self.momentum}, health : {self.health}"
         elif type(self) == Projectile:
             return f"Type : Projectile, x : {self.x}, y : {self.y}, momentum : {self.momentum}, range : {self.range}"
+        elif type(self) == MeleeAttack:
+            return f"Type : Melee Attack, x : {self.x}, y :{self.y}, momentum : {self.momentum}, range : {self.range}"
 
 
     def update(self):
@@ -1249,21 +1252,52 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def initMeleeAttack(self, priority):
         self.meleeAttackPriority = priority
+        self.attackId = 0
         self.isSlashing = False
         self.lastSlashFrame = 0
         self.slashFrameDuration = 25
 
+    def meleeAttack(self, hand, x, y) :
+        if self.canMeleeAttack(hand) :
+            weapon = getattr(self.inventory, hand)
+
+            setattr(self.inventory, hand+"StartFrame", game_frame)
+
+            self.attackId += 1
+            weapon.durability -= 1
+
+            horizontal = x - self.x
+            vertical = y - self.y
+            norm = math.sqrt(horizontal**2 + vertical**2)
+
+            if norm != 0 :
+                cos = horizontal/norm
+                sin = vertical/norm
+            else : 
+                cos = 0
+                sin = 0
+
+
+            attack = MeleeAttack(weapon, self.x+self.width/2, self.y+self.height/2, [cos, sin], self, self.attackId) #TODO : change this so that, like the bullets, it starts in front of where the player is facing instead of inside of them
+            self.attackList.append(attack)
+
+    def canMeleeAttack(self, hand):
+        weapon = getattr(self.inventory, hand)
+        startFrame = getattr(self.inventory, hand+"StartFrame")
+        return self.meleeAttackPriority >= self.currentActionPriority and timer(startFrame, weapon.attackCooldown*(1-(self.inventory.attackSpeedIncrease)/100), game_frame) and (weapon.name=="None" or weapon.durability>0)
+
+
 
     def initRangedAttack(self, priority):
         self.rangedAttackPriority = priority
-        self.shotsFired = 0
+        self.attackId = 0
         self.isShooting = False
         self.lastShotFrame = 0
         self.shootFrameDuration = 25
 
         self.reloadImage = 0
 
-        self.bulletList = []
+        self.attackList = []
 
         self.reloadedThisFrame = False
 
@@ -1276,7 +1310,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             setattr(self.inventory, hand+"StartFrame", game_frame)
 
             weapon.magAmmo -= 1
-            self.shotsFired += 1
+            self.attackId += 1
 
             self.isShooting = True
             self.lastShotFrame = 0
@@ -1320,9 +1354,9 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
 
-                bullet_shot = Projectile(weapon, self.x+bulletPos[0], self.y+bulletPos[1], [cos,sin], self, self.shotsFired)
+                bullet_shot = Projectile(weapon, self.x+bulletPos[0], self.y+bulletPos[1], [cos,sin], self, self.attackId)
 
-                self.bulletList.append(bullet_shot)
+                self.attackList.append(bullet_shot)
 
     def canRangedAttack(self, hand):
         weapon = getattr(self.inventory, hand)
@@ -1362,7 +1396,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         if self.dieOnMeetingWall and self.collidedWithWall:
             if type(self) == Enemy or type(self) == Player:
                 self.health = 0
-            elif type(self) == Projectile:
+            elif type(self) == Projectile or type(self) == MeleeAttack:
                 self.range = 0
 
     def canCollideWithEnemy(self):
@@ -1430,7 +1464,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         return not timer(self.invincibilityStartFrame, self.invincibilityDuration, game_frame)
 
     def canGetHurt(self, shot, damager):
-        return not ((hasattr(self, "isHitStun") and self.isHitStun and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible) or (damager in self.hitByProjectile))
+        return not ((hasattr(self, "isHitStun") and self.isHitStun and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible) or (damager in self.hitByAttack))
 
     def hitstun(self):
         if hasattr(self, "isHitStun"):
@@ -1482,6 +1516,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initWalk(priority=0, maxSpeed=0.8, speedChangeRate=10, knockbackCoef=1)
         self.initDash(priority=1, cooldown=60, speed=3, duration=20, invincibility=1)
         self.initRangedAttack(priority=0)
+        self.initMeleeAttack(priority=0)
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
@@ -1565,22 +1600,24 @@ class Player(Entity): #Creates an entity that's controlled by the player
             sized_text(x=camera[0]+12, y=camera[1]+3, s=str(self.health+self.tempHealth)+"/"+str(self.maxHealth),col=7,size=7)
 
             #Weapons
-            pyxel.rectb(x=camera[0]+CAM_WIDTH-19, y=camera[1]+CAM_HEIGHT-38, w=18, h=18, col=0)
-            pyxel.rect(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-37, w=16, h=16, col=13)
-            draw(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-37, img=0, u=self.inventory.leftHand.image[0], v=self.inventory.leftHand.image[1], w=self.inventory.leftHand.width, h=self.inventory.leftHand.height, colkey=11)
-            if type(self.inventory.leftHand) == RangedWeapon:
-                sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+CAM_HEIGHT-32, s=str(self.inventory.leftHand.magAmmo)+"/"+str(self.inventory.leftHand.maxAmmo)+"("+str(self.inventory.leftHand.reserveAmmo)+")", col=7)
-            else:
-                pass #TODO : melee weapon info
+            if not self.inventory.leftHandOccupied : 
+                pyxel.rectb(x=camera[0]+CAM_WIDTH-19, y=camera[1]+CAM_HEIGHT-38, w=18, h=18, col=0)
+                pyxel.rect(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-37, w=16, h=16, col=13)
+                draw(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-37, img=0, u=self.inventory.leftHand.image[0], v=self.inventory.leftHand.image[1], w=self.inventory.leftHand.width, h=self.inventory.leftHand.height, colkey=11)
+                if type(self.inventory.leftHand) == RangedWeapon:
+                    sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+CAM_HEIGHT-32, s=str(self.inventory.leftHand.magAmmo)+"/"+str(self.inventory.leftHand.maxAmmo)+"("+str(self.inventory.leftHand.reserveAmmo)+")", col=7)
+                elif self.inventory.leftHand.name != "None":
+                    sized_text(x=camera[0]+CAM_WIDTH-30, y=camera[1]+CAM_HEIGHT-32, s=str(self.inventory.leftHand.durability), col=7)
 
-
-            pyxel.rectb(x=camera[0]+CAM_WIDTH-19, y=camera[1]+CAM_HEIGHT-19, w=18, h=18, col=0)
-            pyxel.rect(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-18, w=16, h=16, col=13)
-            draw(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-18, img=0, u=self.inventory.rightHand.image[0], v=self.inventory.rightHand.image[1], w=self.inventory.rightHand.width, h=self.inventory.rightHand.height, colkey=11)
-            if type(self.inventory.rightHand) == RangedWeapon:
-                sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+CAM_HEIGHT-13, s=str(self.inventory.rightHand.magAmmo)+"/"+str(self.inventory.rightHand.maxAmmo)+"("+str(self.inventory.rightHand.reserveAmmo)+")", col=7)
-            else:
-                pass #TODO : melee weapon info
+            if not self.inventory.rightHandOccupied : 
+                pyxel.rectb(x=camera[0]+CAM_WIDTH-19, y=camera[1]+CAM_HEIGHT-19, w=18, h=18, col=0)
+                pyxel.rect(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-18, w=16, h=16, col=13)
+                draw(x=camera[0]+CAM_WIDTH-18, y=camera[1]+CAM_HEIGHT-18, img=0, u=self.inventory.rightHand.image[0], v=self.inventory.rightHand.image[1], w=self.inventory.rightHand.width, h=self.inventory.rightHand.height, colkey=11)
+                if type(self.inventory.rightHand) == RangedWeapon:
+                    sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+CAM_HEIGHT-13, s=str(self.inventory.rightHand.magAmmo)+"/"+str(self.inventory.rightHand.maxAmmo)+"("+str(self.inventory.rightHand.reserveAmmo)+")", col=7)
+                elif self.inventory.rightHand.name != "None":
+                    sized_text(x=camera[0]+CAM_WIDTH-30, y=camera[1]+CAM_HEIGHT-13, s=str(self.inventory.rightHand.durability), col=7)
+            
 
             #Combat Indicator #(You should probably change how it looks, this mostly for debug purposes so that I can know when the player is or isn't in combat)
             if self.inCombat:
@@ -1632,11 +1669,14 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
 
     def controlInventory(self):
+        global keyBeingHeld
         #Allows the player to switch weapons between backpack and handheld
         if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count):
             self.inventory.switchWeapon("leftHand")
+            keyBeingHeld = None
         if holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count):
             self.inventory.switchWeapon("rightHand")
+            keyBeingHeld = None
 
         if keyPress("INVENTORY","btnp"):
             self.inInventory = not self.inInventory
@@ -1790,15 +1830,19 @@ class Player(Entity): #Creates an entity that's controlled by the player
                     pyxel.pset(x=x+69, y=y+29, col=7)
 
 
-
-            sized_text(x=x+4, y=y+34, s=f"Damage : {weapon.damage}", col=7)
-            sized_text(x=x+4, y=y+41, s=f"Piercing : {weapon.piercing}", col=7)
-            sized_text(x=x+4, y=y+48, s=f"Attack speed : {round(FPS/(weapon.attackCooldown),2)} ATK/s", col=7)
-            sized_text(x=x+4, y=y+55, s=f"Reload time : {round((weapon.reloadTime)/FPS,2)}s", col=7)
-            sized_text(x=x+4, y=y+62, s=f"Ammo : {weapon.magAmmo}/{weapon.maxAmmo} ({weapon.reserveAmmo})", col=7)
-            sized_text(x=x+4, y=y+69, s=f"Bullet count : {weapon.bulletCount}", col=7)
-            sized_text(x=x+4, y=y+76, s=f"Spread : {weapon.spread}°", col=7)
-            sized_text(x=x+4, y=y+83, s=f"Range : {round(weapon.range/TILE_SIZE,2)}T", col=7)
+            if type(weapon) == RangedWeapon :
+                sized_text(x=x+4, y=y+34, s=f"Damage : {weapon.damage}", col=7)
+                sized_text(x=x+4, y=y+41, s=f"Piercing : {weapon.piercing}", col=7)
+                sized_text(x=x+4, y=y+48, s=f"Attack speed : {round(FPS/(weapon.attackCooldown),2)} ATK/s", col=7)
+                sized_text(x=x+4, y=y+55, s=f"Reload time : {round((weapon.reloadTime)/FPS,2)}s", col=7)
+                sized_text(x=x+4, y=y+62, s=f"Ammo : {weapon.magAmmo}/{weapon.maxAmmo} ({weapon.reserveAmmo})", col=7)
+                sized_text(x=x+4, y=y+69, s=f"Bullet count : {weapon.bulletCount}", col=7)
+                sized_text(x=x+4, y=y+76, s=f"Spread : {weapon.spread}°", col=7)
+                sized_text(x=x+4, y=y+83, s=f"Range : {round(weapon.range/TILE_SIZE,2)}T", col=7)
+            else :
+                sized_text(x=x+4, y=y+34, s=f"Damage : {weapon.damage}", col=7)
+                sized_text(x=x+4, y=y+41, s=f"Piercing : {weapon.piercing}", col=7)
+                sized_text(x=x+4, y=y+48, s=f"Range : {round(weapon.range/TILE_SIZE,2)}T", col=7)
         else:
             sized_text(x=x+25, y=y+18, s=f"{weapon.name}", col=7)
 
@@ -1939,6 +1983,11 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
             self.reloadWeapon("leftHand")
 
+        if type(self.inventory.leftHand) == MeleeWeapon :
+
+            if keyPress("ATTACK_LEFT", "btnp") :
+                self.meleeAttack("leftHand", camera[0]+pyxel.mouse_x, camera[1]+pyxel.mouse_y)
+
         if type(self.inventory.rightHand) == RangedWeapon:
 
             if keyPress("ATTACK_RIGHT", "btn"):
@@ -1955,6 +2004,10 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
             self.reloadWeapon("rightHand")
 
+        if type(self.inventory.rightHand) == MeleeWeapon :
+
+            if keyPress("ATTACK_RIGHT", "btnp") :
+                self.meleeAttack("rightHand", camera[0]+pyxel.mouse_x, camera[1]+pyxel.mouse_y)
 
     def imageGestion(self):
         self.isWalking = False
@@ -2237,6 +2290,145 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
                 self.collidedWithWall = True
                 self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
+class MeleeAttack(Entity) :
+    def __init__(self, weapon, x, y, vector, owner, shot) :
+        self.mode = weapon.mode
+        self.owner = owner
+
+        self.range = weapon.range
+
+        if self.mode == "thrust" : 
+            super().__init__(x=x, y=y, width=weapon.attackWidth, height=weapon.attackHeight)
+            self.normalVector = [-vector[1], vector[0]]
+            self.hitBoxWidth = weapon.hitBoxWidth
+        else :
+            super().__init__(x=self.owner.x+self.owner.width/2, y=self.owner.y+self.owner.height/2, width=0, height=0)
+            self.baseAngle = (math.acos(vector[0])*pyxel.sgn(vector[1]))*(180/math.pi) - weapon.maxAngle/2
+            self.targetAngle = self.baseAngle + weapon.maxAngle
+
+            cos = pyxel.cos(self.baseAngle)
+            sin = pyxel.sin(self.baseAngle)
+            self.direction = [cos, sin]
+
+        self.momentum = vector
+
+        self.distanceTravelled = 0
+
+        self.getSecondCoordinates()
+
+        self.weapon = weapon
+        
+        self.base_x = x #These aren't used, but I assume you'll need them for the animation
+        self.base_y = y
+
+        self.shot = shot
+
+        self.image = weapon.attackImage
+
+        self.damage = weapon.damage
+        self.piercing = weapon.piercing
+        self.damageKnockbackCoef = weapon.knockbackCoef
+
+        self.initWalk(priority=0, maxSpeed=weapon.attackSpeed, speedChangeRate=0, knockbackCoef=0)
+        self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
+        self.initialiseNewCollisions()
+
+    def update(self):
+        self.movement()
+        self.collision()
+        self.death()
+
+    def initialiseNewCollisions(self):
+        if type(self.owner)==Player:
+            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=True, playerCollision=False)
+        elif type(self.owner)==Enemy:
+            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=False, playerCollision=True)
+
+
+    def movement(self):
+        if self.mode == "thrust" :
+            print(self.momentum)
+            print(self.maxSpeed)
+            self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
+            self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
+            self.getSecondCoordinates()
+        else:
+            self.angle = (math.acos(self.direction[0])*pyxel.sgn(self.direction[1]))*(180/math.pi)
+            self.angle += self.maxSpeed
+            self.distanceTravelled += self.maxSpeed
+            cos = pyxel.cos(self.angle)
+            sin = pyxel.sin(self.angle)
+            self.direction = [cos, sin]
+            self.width = self.x2-self.x
+            self.height = self.y2-self.y
+            self.getSecondCoordinates()
+
+    def death(self):
+        if self.range <= 0 or (self.mode=="cut" and self.distanceTravelled>=self.weapon.maxAngle):
+            self.dead = True
+
+
+    def getSecondCoordinates(self):
+        if self.mode == "thrust" :
+            self.x2 = self.x + self.normalVector[0]*self.hitBoxWidth
+            self.y2 = self.y + self.normalVector[1]*self.hitBoxWidth
+        else:
+            self.x2 = self.x + self.direction[0]*self.range
+            self.y2 = self.y + self.direction[1]*self.range
+
+    def draw(self) : #TODO : replace this with an animation for the melee attack
+        pyxel.line(x1=self.x, y1=self.y, x2=self.x2, y2=self.y2, col=7)
+
+    def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
+        X = int(self.x//TILE_SIZE)
+        Y = int(self.y//TILE_SIZE)
+
+        #We handle horizontal and vertical movement separatly to make problem solving easier
+
+        #Calculate the new position
+        new_x = self.x + vector[0]
+        new_X = X+pyxel.sgn(vector[0])
+
+        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
+            new_x = new_X*TILE_SIZE
+
+        if vector[0]!=0:
+            next_X_1 = wallsMap[Y][new_X]
+            if self.y != Y*TILE_SIZE:
+                next_X_2 = wallsMap[Y+1][new_X]
+            else:
+                next_X_2 = 0
+            #If there's enough space for the entity to move, it moves unimpeded
+            if (next_X_1 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+                self.x = new_x
+            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
+            elif (next_X_1 == 2 or next_X_2 == 2) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+                self.collidedWithWall = True
+                self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
+        
+        X = int(self.x//TILE_SIZE)
+
+        #We calculate vertical movement in the same way we do horizontal movement
+
+        new_y = self.y + vector[1]
+        new_Y = Y+pyxel.sgn(vector[1])
+        
+        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
+            new_y = new_Y*TILE_SIZE
+
+        
+        if vector[1]!=0:
+            next_Y_1 = wallsMap[new_Y][X]
+            if self.x != X*TILE_SIZE:
+                next_Y_2 = wallsMap[new_Y][X+1]
+            else:
+                next_Y_2 = 0
+            
+            if (next_Y_1 != 2 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 != 2 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+                self.y = new_y
+            elif (next_Y_1 == 2 or next_Y_2 == 2) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+                self.collidedWithWall = True
+                self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
 
 class Pickup:
@@ -2348,19 +2540,22 @@ class Inventory:
     def addWeapon(self, weapon, hand, level): #Function used when the player picks up a weapon
 
         damage = math.ceil(weapon.damage*((weapon.scaling*(1+self.extraWeaponScale/100))**level))
-        maxAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
-        magAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
-        reserveAmmo = math.ceil(weapon.reserveAmmo*(1+self.extraAmmo/100))
-        reloadTime = weapon.reloadTime*(1-self.extraReloadSpeed/100)
         piercing = weapon.piercing+(self.extraPiercing)
+        if issubclass(type(weapon), RangedWeapon):
+            maxAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
+            magAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
+            reserveAmmo = math.ceil(weapon.reserveAmmo*(1+self.extraAmmo/100))
+            reloadTime = weapon.reloadTime*(1-self.extraReloadSpeed/100)
 
         new_weapon = weapon.copy()
         new_weapon.damage = damage
-        new_weapon.maxAmmo = maxAmmo
-        new_weapon.magAmmo = magAmmo
-        new_weapon.reserveAmmo = reserveAmmo
-        new_weapon.reloadTime = reloadTime
         new_weapon.piercing = piercing
+        if type(weapon) == RangedWeapon :
+            new_weapon.maxAmmo = maxAmmo
+            new_weapon.magAmmo = magAmmo
+            new_weapon.reserveAmmo = reserveAmmo
+            new_weapon.reloadTime = reloadTime
+        
 
         setattr(self, hand, new_weapon.copy())
         setattr(self, hand+"Level", level)
@@ -2493,12 +2688,12 @@ class Inventory:
                 
 
                 setattr(self, self.equivalentHand(hand), getattr(self, hand))
-                setattr(self, self.equivalentHand(hand)+"Level", getattr(self, hand)+"Level")
+                setattr(self, self.equivalentHand(hand)+"Level", getattr(self, hand+"Level"))
                 setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
-                setattr(self, self.equivalentHand(self.oppositeHand(hand))+"Level", getattr(self, self.oppositeHand(hand))+"Level")
+                setattr(self, self.equivalentHand(self.oppositeHand(hand))+"Level", getattr(self, self.oppositeHand(hand)+"Level"))
 
                 setattr(self, hand, weapon)
-                setattr(self, hand, level)
+                setattr(self, hand+"Level", level)
 
                 setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                 setattr(self, self.oppositeHand(hand)+"Level", 0)
@@ -2523,7 +2718,7 @@ class Inventory:
                 setattr(self, self.equivalentHand(self.oppositeHand(hand)), getattr(self, self.oppositeHand(hand)))
                 setattr(self, self.equivalentHand(self.oppositeHand(hand))+"Level", getattr(self, self.oppositeHand(hand)+"Level"))
                 setattr(self, hand, weapon)
-                setattr(self, hand, level)
+                setattr(self, hand+"Level", level)
 
                 setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                 setattr(self, self.oppositeHand(hand)+"Level", 0)

@@ -49,14 +49,34 @@ class RangedWeapon(Weapon):
         return RangedWeapon(self.baseWeaponInfo, [self.mode, self.bulletImage, self.bulletWidth, self.bulletHeight, self.spread, self.movingSpreadIncrease, self.bulletCount, self.bulletSpeed, self.range, self.damage, self.piercing, self.knockbackCoef, self.fallOffCoef, self.noFallOffArea, self.reloadTime, self.attackCooldown, self.magAmmo, self.maxAmmo, self.reserveAmmo])
 
 class MeleeWeapon(Weapon):
-    def __init__(self, baseWeaponInfo):
+    def __init__(self, baseWeaponInfo, meleeWeaponInfo):
         super().__init__(*baseWeaponInfo)
+
+        self.mode = meleeWeaponInfo[0]
+
+        self.attackImage = meleeWeaponInfo[1]
+        self.attackWidth = meleeWeaponInfo[2]
+        self.attackHeight = meleeWeaponInfo[3]
+
+        self.hitBoxWidth = meleeWeaponInfo[4]
+        self.range = meleeWeaponInfo[5]
+        self.maxAngle = meleeWeaponInfo[6]
+
+        self.attackSpeed = meleeWeaponInfo[7]
+
+        self.damage = meleeWeaponInfo[8]
+        self.piercing = meleeWeaponInfo[9]
+        self.knockbackCoef = meleeWeaponInfo[10]
+
+        self.attackCooldown = meleeWeaponInfo[11]
+
+        self.durability = meleeWeaponInfo[12]
 
         self.baseWeaponInfo = baseWeaponInfo
         #TODO, complete this when we implement melee weapons
 
     def copy(self):
-        return MeleeWeapon(self.baseWeaponInfo)
+        return MeleeWeapon(self.baseWeaponInfo, [self.mode, self.attackImage, self.attackWidth, self.attackHeight, self.hitBoxWidth, self.range, self.maxAngle, self.attackSpeed, self.damage, self.piercing, self.knockbackCoef, self.attackCooldown, self.durability])
 
 
 
@@ -70,12 +90,70 @@ class NO_WEAPON(MeleeWeapon):
         height = TILE_SIZE
 
         baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
-        super().__init__(baseWeaponInfo)
+
+        mode = "thrust"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = TILE_SIZE
+        range = TILE_SIZE
+        maxAngle = 0
+
+        attackSpeed = 1
+
+        damage = 5
+        piercing = 1
+        knockbackCoef = 3
+
+        attackCooldown = 0.2*FPS
+
+        durability = 0
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class RUSTY_KNIFE(MeleeWeapon):
+    def __init__(self):
+        name = "Rusty Knife"
+        shortDescription = "A basic knife"
+        handNumber = 1
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
+
+        mode = "cut"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = TILE_SIZE
+        range = 1.75*TILE_SIZE
+        maxAngle = 180
+
+        attackSpeed = 10
+
+        damage = 30
+        piercing = 1
+        knockbackCoef = 1
+
+        attackCooldown = 0.2*FPS
+
+        durability = 120
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
     
 class RUSTY_PISTOL(RangedWeapon):
     def __init__(self):
         name = "Rusty Pistol"
-        shortDescription = "A basic weapon"
+        shortDescription = "A basic gun"
         handNumber = 1
         image = (0,112)
         width = TILE_SIZE
