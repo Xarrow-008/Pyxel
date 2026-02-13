@@ -9,6 +9,8 @@ HEI = 256
 CAM_WIDTH = TILE_SIZE*20
 CAM_HEIGHT = TILE_SIZE*20
 
+FPS = 120
+
 
 KEYBINDS = {'zqsd':'zqsd', 'wasd':'wasd','arrows':['UP','LEFT','DOWN','RIGHT']}
 
@@ -1405,6 +1407,41 @@ class BarrelSide(Asset):
         self.width = 1*TILE_SIZE
         self.height = 1*TILE_SIZE
 
+class ShipChair(Asset):
+    name = 'ShipChair'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (11,5)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class ShipTrapDoor(Asset):
+    name = 'ShipTrapDoor'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (11,7)
+        self.width = 2*TILE_SIZE
+        self.height = 2*TILE_SIZE
+        self.function = ["open/close", {'walls':((0,2),(1,2))}]
+        self.interactTime = 1
+        self.description = "Opens/closes ship entrance"
+        self.coolDown = FPS/2
+        self.lastUsed = -self.coolDown
+        self.state = 'closed'
+
+    def draw(self):
+        if not self.interactable:
+            pyxel.pal(7,0)
+
+        if self.state == 'closed':
+            stateImg = [0,0]
+        else:
+            stateImg = [0,32]
+
+        pyxel.blt(self.x,self.y,2, self.img[0]*TILE_SIZE + stateImg[0], self.img[1]*TILE_SIZE + stateImg[1], self.width * self.coeff(),self.height,11)
+
+        pyxel.pal()
+
 
 
 
@@ -1414,11 +1451,13 @@ class Menu:
                         ClosetFront, Dressing, WallTelevision, WallShelf, BedVertical, ClosetBack,
                         WallHorizontalInside,  WallHorizontalStart, WallHorizontalEnd,
                         WallVerticalInside, WallVerticalStart, WallVerticalEnd, BarrelFront, BarrelSide,
-                        FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp]
+                        FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp,
+                        ShipTrapDoor, ShipChair]
 
         self.assetsList = [DoorHorizontal, ChairFront, ChairBack, BarrelFront, BarrelSide, TableVertical, ClosetFront, TableHorizontal, BedVertical, ClosetBack,
                         WallHorizontalInside, FloorLamp, 
-                        WallVerticalInside, DoorVertical, WallShelf, ShelfStorage, CounterTopDrawer, CounterTop, CounterTopSide]
+                        WallVerticalInside, DoorVertical, WallShelf, ShelfStorage, CounterTopDrawer, CounterTop, CounterTopSide,
+                        ShipTrapDoor, ShipChair]
 
         self.allAssetsNames = [asset.name for asset in self.allAssets]
         self.assetsNames = [asset.name for asset in self.assetsList]
@@ -1457,7 +1496,7 @@ def getIndex(tab, value):
     for i in range(len(tab)):
         if tab[i] == value:
             return i
-    return None
+    raise TypeError(str(tab) + str(value))
 
 def get_color(hex):
     return int(hex, 16)

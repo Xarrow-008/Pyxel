@@ -634,13 +634,19 @@ right = [ 11, 6,]
 name = "ship"
 width = 96
 height = 64
-assets = []
+
+[[presetShip.assets]]
+name = "ShipTrapDoor"
+relativeX = 0
+relativeY = 16
+reversed = true
 
 [presetShip.walls]
-highWalls = [ [ -1, 0,], [ 0, 0,], [ 1, 0,], [ 2, 0,], [ 3, 0,], [ 4, 0,], [ 5, 0,], [ -1, 1,], [ 5, 1,], [ -1, 2,], [ 5, 2,], [ -1, 3,], [ 2, 3,], [ 3, 3,], [ 4, 3,], [ 5, 3,],]
+highWalls = [ [ -1, 0,], [ 0, 0,], [ 1, 0,], [ 2, 0,], [ 3, 0,], [ 4, 0,], [ 5, 0,], [ -1, 1,], [ 5, 1,], [ -1, 2,], [ 5, 2,], [ -1, 3,], [ 0, 3,], [ 1, 3,], [ 2, 3,], [ 3, 3,], [ 4, 3,], [ 5, 3,],]
 lowWalls = []
+
 [presetShip.exitsPos]
 up = []
-down = [0,2,]
+down = [ 0, 2,]
 left = []
 right = []

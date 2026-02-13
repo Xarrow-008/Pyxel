@@ -136,7 +136,6 @@ class Game:
     def camLockStart(self):
         self.lockCam[0] = self.player.x - self.camera[0]
         self.lockCam[1] = self.player.y - self.camera[1]
-        print('start', self.lockCam)
 
     
 
@@ -185,23 +184,35 @@ class InMission:
     def __init__(self, player, rooms, exits, level):
         self.entities = []
         self.pickups = []
-        self.interactables = []
         self.player = player
         self.rooms = rooms
         self.exits = exits
+        self.stairs = []
+        self.level = 0
+        self.closeShip = False
+        self.shipDoorState = 'closed'
         self.infoText = ("","","")
         self.isPlayable = True
         self.activeAsset = 'N/A'
         self.currentRoom = self.rooms[0]
         self.roomFocus = False #if we want other rooms than the one the player is in be darkened
-        self.roomShadow = 0.2
+        self.roomShadow = 0
         self.level = level
         self.nbEnemiesSpawned = 0
 
         self.linkedEnemies = []
 
         self.createInteractables()
+        self.placeStairsLeveled()
         #self.fillBasicEnemies()
+
+    def placeStairsLeveled(self):
+        ship = self.rooms[0]
+        x = ship.x + ship.exitsPos['down'][0]*TILE_SIZE
+        y = ship.y + ship.exitsPos['down'][1]*TILE_SIZE + TILE_SIZE
+        self.stairs.append(Stairs(0,x,y,2,4))
+
+
 
     def requiredFuel(self):
         return 5+3*self.level - self.player.inventory.shipFuelCostDecrease
@@ -231,6 +242,10 @@ class InMission:
                 if asset.name in ['ClosetFront', 'ClosetBack']:
                     if random.randint(0,1) == 0:
                         asset.interactable = True
+
+        for asset in self.rooms[0].assets:
+            if asset.name == 'ShipTrapDoor':
+                asset.interactable = True
 
     def exitCondition(self): #for when we come back
         return self.hasWon() or self.player.dead
@@ -274,6 +289,18 @@ class InMission:
 
         self.addEnemiesGradually()
 
+        self.levelsUpdate()
+
+    def levelsUpdate(self):
+        for stairs in self.stairs:
+            if collision(stairs.x,stairs.y,self.player.x,self.player.y,(stairs.width*TILE_SIZE,stairs.height*TILE_SIZE),(self.player.width,self.player.height)):
+                y = self.player.y - stairs.y + 16
+                if y < 40:
+                    self.level = stairs.origin
+                else:
+                    self.level = stairs.origin + 1
+                self.roomShadow = y/80
+
     def addEnemiesGradually(self):
         for room in self.rooms:
             if not room.hasSpawnedEnemies and room.index >= 2 and self.rooms[room.previousRoom].previousRoom <= self.currentRoom.index:
@@ -293,7 +320,6 @@ class InMission:
             if pointInside(x, y, exit.x, exit.y, exit.width, exit.height):
                 return self.rooms[exit.origin]
 
-        print('no room')
 
 
     def furnitureUpdate(self):
@@ -301,14 +327,14 @@ class InMission:
         if self.activeAsset == 'N/A':
             for asset in room.assets:
                 if asset.interactable:
-                    if collision(asset.x-TILE_SIZE,asset.y-TILE_SIZE,self.player.x,self.player.y,(asset.width+2*TILE_SIZE,asset.height+2*TILE_SIZE),(TILE_SIZE,TILE_SIZE)):
+                    if asset.collision(self.player.x,self.player.y,(TILE_SIZE,TILE_SIZE)):
                         self.activeAsset = asset
                         break
                     else:
                         asset.anim = [0,0]
         else:
             asset = self.activeAsset
-            if collision(asset.x-TILE_SIZE,asset.y-TILE_SIZE,self.player.x,self.player.y,(asset.width+2*TILE_SIZE,asset.height+2*TILE_SIZE),(TILE_SIZE,TILE_SIZE)):
+            if asset.collision(self.player.x,self.player.y,(TILE_SIZE,TILE_SIZE)):
                 self.playerInteract()
             else:
                 self.activeAsset.interactProgress = 0
@@ -332,20 +358,42 @@ class InMission:
             asset.anim[1] = 2
 
         if asset.interactProgress >= holdDuration:
+            if asset.function[0] == 'drop':
+                self.assetDropPickup(asset)
+            elif asset.function[0] == 'open/close':
+                self.assetUse(asset)
 
-            asset.used = True
-            asset.interactable = False
-            self.activeAsset = 'N/A'
+    def assetDropPickup(self,asset):
+        asset.used = True
+        asset.interactable = False
+        self.activeAsset = 'N/A'
 
-            if self.player.inventory.increasedRarity > 0:
-                pickup = increaseRarity(asset.function[1]).pickRandom(self.player.luck)
-                if issubclass(type(pickup),Item):
-                    self.player.inventory.increasedRarity -= 1
-            else:
-                pickup = asset.function[1].pickRandom(self.player.luck)
-            pickupObject = Pickup(asset.x + asset.dropPos[0], asset.y + asset.dropPos[1], pickup)
-            self.pickups.append(pickupObject)
+        if self.player.inventory.increasedRarity > 0:
+            pickup = increaseRarity(asset.function[1]).pickRandom(self.player.luck)
+            if issubclass(type(pickup),Item):
+                self.player.inventory.increasedRarity -= 1
+        else:
+            pickup = asset.function[1].pickRandom(self.player.luck)
+        pickupObject = Pickup(asset.x + asset.dropPos[0], asset.y + asset.dropPos[1], pickup)
+        self.pickups.append(pickupObject)
 
+    def assetUse(self,asset):
+        global wallsMap
+        self.activeAsset = 'N/A'
+        if asset.lastUsed + asset.coolDown < game_frame:
+            asset.lastUsed = game_frame
+            for wall in asset.function[1]['walls']:
+                x = asset.x//TILE_SIZE + wall[0]
+                y = asset.y//TILE_SIZE + wall[1]
+                if wallsMap[y][x] == 0:
+                    wallsMap[y][x] = 2
+                    asset.state = 'closed'
+                else:
+                    wallsMap[y][x] = 0
+                    asset.state = 'open'
+            
+            if asset.name == 'ShipTrapDoor':
+                self.shipDoorState = asset.state
 
     def updateAllEntityAnims(self):
         for entity in self.entities:
@@ -528,22 +576,16 @@ class InMission:
                 self.pickups.remove(pickup)
 
     def draw(self):
+
+        if self.level == 0:
+            self.roomFocus = True
+        else:
+            self.roomFocus = False
+
+
         self.drawWorld()
         
-        for interactable in self.interactables:
-            interactable.draw()
-
-        for pickup in self.pickups:
-            if not pickup.pickedUp:
-                pickup.draw()
-
-        for entity in self.entities:
-            if not entity.dead:
-                entity.draw()
-
-        for entity in self.entities:
-            if not entity.dead:
-                entity.drawOver()
+        self.drawObjects()
         
 
         self.player.draw()
@@ -567,16 +609,31 @@ class InMission:
             if shadeCondition:
                 pyxel.dither(1)
 
-        
-        for exit in self.exits:
-            shadeCondition = self.currentRoom.index not in [exit.origin, exit.destination] and self.roomFocus
-            if shadeCondition:
-                pyxel.dither(self.roomShadow)
+        if self.shipDoorState == 'open':
+            for exit in self.exits:
+                shadeCondition = self.currentRoom.index not in [exit.origin, exit.destination] and self.roomFocus
+                if shadeCondition:
+                    pyxel.dither(self.roomShadow)
 
-            exit.draw()
+                exit.draw()
 
-            if shadeCondition:
-                pyxel.dither(1)
+                if shadeCondition:
+                    pyxel.dither(1)
+
+    def drawObjects(self):
+        for pickup in self.pickups:
+            if not pickup.pickedUp:
+                pickup.draw()
+
+        for entity in self.entities:
+            if not entity.dead and (self.shipDoorState != 'closed' or self.findRoom(entity.x,entity.y).name == 'ship'):
+                entity.draw()
+
+        for entity in self.entities:
+            if not entity.dead:
+                entity.drawOver()
+
+
 
     def heal(self, value, healer, target):
 
@@ -1150,7 +1207,6 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.dashVector = copy(vector)
             self.chainedDashes += 1
             self.anims.append(AnimDust(pos=[self.x,self.y,False])) #dashDust
-            print('in')
 
     def canStartDash(self):
         if hasattr(self, "inventory") and (self.inventory.extraDash != 0 and self.chainedDashes <= self.inventory.extraDash) and (timer(self.dashStartFrame, self.dashCooldown*0.1, game_frame)) and (self.currentActionPriority <= self.dashPriority):

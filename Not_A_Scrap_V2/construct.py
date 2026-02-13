@@ -76,7 +76,6 @@ class Roombuild:
 
     def buildStart(self):
         if len(self.rooms) == 0:
-            room = findNextRoom('down', "room_TVRoom") #might switch this to a special beginning room
             x = self.playerPos[0]//TILE_SIZE-1
             y = self.playerPos[1]//TILE_SIZE-1
 
@@ -167,7 +166,8 @@ class Roombuild:
                 self.rooms[-1].index = len(self.rooms)-1
                 self.rooms[-1].depth = self.rooms[self.roomIndex].depth + 1
 
-                self.addDoors(exitX,exitY,entryX,entryY, side)
+                if self.rooms[self.roomIndex].name != 'ship':
+                    self.addDoors(exitX,exitY,entryX,entryY, side)
                 
                 self.addExit(exitX, exitY, side)
 
@@ -238,23 +238,26 @@ class Roombuild:
             self.wallsMap[y-3][x-1] = 1
             self.wallsMap[y-3][x+2] = 1
             self.wallsRect(x,y,2,-5,0)
-        if side == 'down':
+        elif side == 'down':
             self.wallsMap[y+2][x-1] = 1
             self.wallsMap[y+2][x+2] = 1
             self.wallsRect(x,y,2,5,0)
 
-        if side == 'left':
+        elif side == 'left':
             self.wallsMap[y-1][x-2] = 1
             self.wallsMap[y-1][x-3] = 1
             self.wallsMap[y+2][x-2] = 1
             self.wallsMap[y+2][x-3] = 1
             self.wallsRect(x,y,-5,2,0)
-        if side == 'right':
+        elif side == 'right':
             self.wallsMap[y-1][x+2] = 1
             self.wallsMap[y-1][x+3] = 1
             self.wallsMap[y+2][x+2] = 1
             self.wallsMap[y+2][x+3] = 1
             self.wallsRect(x,y,5,2,0)
+
+        if self.rooms[-2].name == 'ship':
+            self.wallsRect(x,y+1,2,1,2)
 
     
     def wallsRect(self,x,y,w,h,wall):
@@ -472,6 +475,17 @@ class ExitStairs(Exit):
         draw(self.x,self.y+TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
         draw(self.x,self.y+2*TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
         draw(self.x,self.y+3*TILE_SIZE,2,208,192,2*TILE_SIZE,1*TILE_SIZE)
+
+class Stairs:
+    def __init__(self,origin,x,y,w,h):
+        self.origin = origin
+        self.x = x
+        self.y = y
+        self.width = w
+        self.height = h
+
+
+
 
 class Animation:
     def __init__(self,pos,settings,lifetime):

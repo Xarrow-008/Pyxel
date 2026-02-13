@@ -1,5 +1,6 @@
 import pyxel
 from lootTables import *
+from utility import *
 
 TILE_SIZE = 16
 FPS = 120
@@ -50,6 +51,9 @@ class Asset:
             return -1
         else:
             return 1
+
+    def collision(self,x,y,size):
+        return collision(self.x-TILE_SIZE,self.y-TILE_SIZE,x,y,(self.width+2*TILE_SIZE,self.height+2*TILE_SIZE),size)
 
 
 
@@ -288,6 +292,45 @@ class BarrelSide(Asset):
         self.width = 1*TILE_SIZE
         self.height = 1*TILE_SIZE
 
+class ShipChair(Asset):
+    name = 'ShipChair'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (11,5)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class ShipTrapDoor(Asset):
+    name = 'ShipTrapDoor'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (11,7)
+        self.width = 2*TILE_SIZE
+        self.height = 2*TILE_SIZE
+        self.function = ["open/close", {'walls':((0,2),(1,2))}]
+        self.interactTime = 1
+        self.description = "Opens/closes ship entrance"
+        self.coolDown = FPS/2
+        self.lastUsed = -self.coolDown
+        self.state = 'closed'
+
+    def draw(self):
+        if not self.interactable:
+            pyxel.pal(7,0)
+
+        if self.state == 'closed':
+            stateImg = [0,0]
+        else:
+            stateImg = [0,32]
+
+        pyxel.blt(self.x,self.y,2, self.img[0]*TILE_SIZE + stateImg[0], self.img[1]*TILE_SIZE + stateImg[1], self.width * self.coeff(),self.height,11)
+
+        pyxel.pal()
+    
+    
+    def collision(self,x,y,size):
+        return collision(self.x,self.y-TILE_SIZE+1,x,y,(self.width,self.height),size)
+
 
 class Menu:
     def __init__(self):
@@ -295,7 +338,8 @@ class Menu:
                         ClosetFront, Dressing, WallTelevision, WallShelf, BedVertical, ClosetBack,
                         WallHorizontalInside,  WallHorizontalStart, WallHorizontalEnd,
                         WallVerticalInside, WallVerticalStart, WallVerticalEnd,
-                        FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp, BarrelFront, BarrelSide]
+                        FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp, BarrelFront, BarrelSide,
+                        ShipTrapDoor, ShipChair]
 
         self.assetsList = [DoorHorizontal, ChairFront, ChairBack, CouchFront, CouchBack, TableVertical, ClosetFront, TableHorizontal, BedVertical, ClosetBack,
                         WallHorizontalInside, FloorLamp, 
