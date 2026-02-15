@@ -2359,9 +2359,9 @@ class MeleeAttack(Entity) :
             cos = pyxel.cos(self.angle)
             sin = pyxel.sin(self.angle)
             self.direction = [cos, sin]
+            self.getSecondCoordinates()
             self.width = self.x2-self.x
             self.height = self.y2-self.y
-            self.getSecondCoordinates()
 
     def death(self):
         if self.range <= 0 or (self.mode=="cut" and self.distanceTravelled>=self.weapon.maxAngle):
@@ -3294,8 +3294,16 @@ def draw_screen(u, v,camx,camy):
 def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are colliding with each other
     return x1+size1[0]>x2 and x2+size2[0]>x1 and y1+size1[1]>y2 and y2+size2[1]>y1
 
-def collisionObjects(object1, object2):
-    return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y
+def collisionObjects(object1, object2): #As multiples cases because melee attacks can technically have negative height and width
+    if object1.width < 0 :
+        if object1.height < 0 :
+            return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x+object1.width and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y+object1.height
+        else:
+            return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x+object1.width and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y
+    elif object1.height < 0 :
+        return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y+object1.height
+    else :
+        return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y
 
 def show(x,y,img,colkey=11,save=0):
     pyxel.blt(x,y,save,img[0]*16,img[1]*16,16,16,colkey=colkey)
