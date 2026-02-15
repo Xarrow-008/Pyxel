@@ -133,7 +133,7 @@ class SQUEAKY_TOY(Item):
         self.type = "support"
         self.effects = [
             {"stat":"rangedKnockback","scaling":"arithmetic", "initial_term":10, "reason":10},
-            {"stat":"meleeKnockback", "scaling":"arithmetic", "initial_term":15, "reason":15}] #TODO : Implement this one when we implement melee weapons
+            {"stat":"meleeKnockback", "scaling":"arithmetic", "initial_term":15, "reason":15}] 
         self.shortDescription = "Deal increased knockback"
         self.longDescription = "Increases knockback with ranged weapons by 10% (+10% per stack). Increases knockback with melee weapons by 15% (+15% per stack)"
 
@@ -189,7 +189,7 @@ class PAMPHLET(Item):
         self.rarity = "common"
         self.type = "support"
         self.effects = [
-            {"stat":"ressourceKillEffect","scaling":"geometric", "initial_term":5, "reason":0.6}] #TODO : make this work with melee weapons
+            {"stat":"ressourceKillEffect","scaling":"geometric", "initial_term":5, "reason":0.6}]
         self.shortDescription = "Chance to get ressources back on kill"
         self.longDescription = "You have a 10% chance to get 5% of your amunitions and durability back on kill. Every stack gives 3/5th of the last ones effect."
 
@@ -222,7 +222,7 @@ class BADGES(Item):
         self.rarity = "common"
         self.type = "damage"
         self.effects = [
-            {"stat":"lowRessourcesDamageIncrease","scaling":"arithmetic", "initial_term":15, "reason":15}] #TODO : make this work for melee weapons
+            {"stat":"lowRessourcesDamageIncrease","scaling":"arithmetic", "initial_term":15, "reason":15}]
         self.shortDescription = "Increases damage when low on ressources"
         self.longDescription = "Melee weapons deal 15% (+15% per stack) more damage when under 10% durability. Ranged weapons deal 15% (+15% per stack) more damage on the last shot before reloading. Does not affect weapons who only have one shot before reloading."
 
@@ -233,7 +233,7 @@ class PUZZLE_CUBE(Item):
         self.rarity = "common"
         self.type = "damage"
         self.effects = [
-            {"stat":"attackSpeedIncrease","scaling":"geometric", "initial_term":15, "reason":5/6}] #TODO : make this work for melee weapons
+            {"stat":"attackSpeedIncrease","scaling":"geometric", "initial_term":15, "reason":5/6}]
         self.shortDescription = "Increases attack speed"
         self.longDescription = "Reduces the time between two attacks by 15%. Each stack gives 5/6th of the last ones effect."
 
@@ -255,7 +255,7 @@ class BINOCULAR(Item):
         self.rarity = "common"
         self.type = "damage"
         self.effects = [
-            {"stat":"rangeIncrease","scaling":"arithmetic", "initial_term":10, "reason":10}] #TODO : make this work for melee weapons
+            {"stat":"rangeIncrease","scaling":"arithmetic", "initial_term":10, "reason":10}] 
         self.shortDescription = "Increased range"
         self.longDescription = "Bullets can go 10% (+10% per stack) further. Melee attacks have 15% (+15% per stack) more range"
 
@@ -368,9 +368,9 @@ class BANDOLIER(Item):
         self.effects = [
             {"stat":"extraAmmo","scaling":"arithmetic", "initial_term":15, "reason":15},
             {"stat":"extraReloadSpeed", "scaling":"arithmetic", "initial_term":10, "reason":5},
-            {"stat":"extraDurability", "scaling":"arithmetic", "initial_term":35, "reason":35}] #TODO : implement this with melee weapons
+            {"stat":"extraDurability", "scaling":"arithmetic", "initial_term":35, "reason":35}]
         self.shortDescription = "Increased durability, ammo capacity and reload speed"
-        self.longDescription = "Increases the ammount of ammo in clips and in the reserve by 15%(+15% per stack). Increases reload speed by 10(+5% per stack). Increases the durability of melee weapons by 35%(+35% per stack). Does not affect the weapons you currently have equipped."
+        self.longDescription = "Increases the amount of ammo in clips and in the reserve by 15%(+15% per stack). Increases reload speed by 10(+5% per stack). Increases the durability of melee weapons by 35%(+35% per stack). Does not affect the weapons you currently have equipped."
 
 
 class IDOL(Item): #A glass figurine used by the Celestials for prayer. #Because they're obsessed with light, they use mirrors to trap sunlight inside the idols
@@ -392,7 +392,7 @@ class SHRAPNEL(Item):
         self.rarity = "rare"
         self.type = "damage"
         self.effects = [
-            {"stat":"extraPiercing","scaling":"arithmetic", "initial_term":1, "reason":1}] #TODO : make this work for melee weapons
+            {"stat":"extraPiercing","scaling":"arithmetic", "initial_term":1, "reason":1}]
         self.shortDescription = "Increases piercing"
         self.longDescription = "Increases piercing by 1 (+ 1 per stack). Does not affect the weapons you currently have equipped."
 
@@ -486,7 +486,7 @@ class DUPLICATOR(Item): #It uses small-scale time travel (I imagine large-scale 
         self.type = "damage"
         self.effects = [
             {"stat":"bulletCountCoef", "scaling":"arithmetic", "initial_term":100, "reason":100},
-            {"stat":"extraMeleeAttack", "scaling":"arithmetic", "initial_term":1, "reason":1}] #TODO : make this work once melee weapons are a thing
+            {"stat":"extraMeleeAttack", "scaling":"arithmetic", "initial_term":1, "reason":1}]
         self.shortDescription = "Weapons attack more times"
         self.longDescription = "Ranged weapons fire 100%(+100% per stack) more bullets. Melee weapons attack 1(+1 per stack) extra time."
 
@@ -512,7 +512,7 @@ class ERUDITE_TUMOR(Item): #Entropy Boss Item, one of the many tumors that compo
         self.rarity = "boss"
         self.type = "damage"
         self.effects = [
-            {"stat":"explosionImpactDamageShare", "scaling":"arithmetic", "initial_term":75, "reason":50}, #TODO : make this work for melee weapons
+            {"stat":"explosionImpactDamageShare", "scaling":"arithmetic", "initial_term":75, "reason":50},
             {"stat":"explosionImpactRadius", "scaling":"arithmetic", "initial_term":2*TILE_SIZE, "reason":1*TILE_SIZE}]
         self.shortDescription = "Attacks explode"
         self.longDescription = "You attack create an explosion on impact, dealing 75%(+50%) damage in a 2T(+1T per stack radius)"

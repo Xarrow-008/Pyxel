@@ -71,12 +71,13 @@ class MeleeWeapon(Weapon):
         self.attackCooldown = meleeWeaponInfo[11]
 
         self.durability = meleeWeaponInfo[12]
+        self.baseDurability = meleeWeaponInfo[13]
 
         self.baseWeaponInfo = baseWeaponInfo
         #TODO, complete this when we implement melee weapons
 
     def copy(self):
-        return MeleeWeapon(self.baseWeaponInfo, [self.mode, self.attackImage, self.attackWidth, self.attackHeight, self.hitBoxWidth, self.range, self.maxAngle, self.attackSpeed, self.damage, self.piercing, self.knockbackCoef, self.attackCooldown, self.durability])
+        return MeleeWeapon(self.baseWeaponInfo, [self.mode, self.attackImage, self.attackWidth, self.attackHeight, self.hitBoxWidth, self.range, self.maxAngle, self.attackSpeed, self.damage, self.piercing, self.knockbackCoef, self.attackCooldown, self.durability, self.baseDurability])
 
 
 
@@ -110,8 +111,9 @@ class NO_WEAPON(MeleeWeapon):
         attackCooldown = 0.2*FPS
 
         durability = 0
+        baseDurability = 0
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability]
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -145,8 +147,9 @@ class RUSTY_KNIFE(MeleeWeapon):
         attackCooldown = 0.2*FPS
 
         durability = 120
+        baseDurability = 120
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability]
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
     

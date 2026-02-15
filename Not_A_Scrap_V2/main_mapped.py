@@ -264,6 +264,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
+            self.pickups.append(Pickup(self.player.x, self.player.y, SQUEAKY_TOY()))
             self.pickups.append(Pickup(self.player.x, self.player.y, RUSTY_KNIFE()))
             
         if pyxel.btnp(pyxel.KEY_O):
@@ -483,13 +484,23 @@ class InMission:
                 if entity in self.linkedEnemies:
                     self.linkedEnemies.remove(entity)
 
-                if (type(entity)==Projectile or type(Entity)==MeleeAttack) and hasattr(entity.owner, "inventory") and entity.owner.inventory.explosionImpactRadius > 0 :
+                if type(entity)==Projectile and entity.owner.inventory.explosionImpactRadius > 0 :
 
                     entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
 
                     for entity2 in self.entities:
                         if distanceObjects(entity, entity2) <= entity.owner.inventory.explosionImpactRadius:
                             vector = getVector(entity.x+entity.width/2, entity2.x+entity2.width/2, entity.y+entity.height/2, entity2.y+entity2.height/2)
+                            damage = entity.baseDamage*(entity.owner.inventory.explosionImpactDamageShare)/100
+                            self.hurt(damage, vector, 2, 0, entity.owner, entity2)
+                
+                if type(Entity)==MeleeAttack and entity.owner.inventory.explosionImpactRadius > 0 :
+
+                    entity.owner.addAnimation(pos=[entity.x2, entity.y2, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
+
+                    for entity2 in self.entities:
+                        if distance(entity.x2, entity.y2, entity2.x, entity2.y) <= entity.owner.inventory.explosionImpactRadius:
+                            vector = getVector(entity.x2, entity2.x+entity2.width/2, entity.y2, entity2.y+entity2.height/2)
                             damage = entity.baseDamage*(entity.owner.inventory.explosionImpactDamageShare)/100
                             self.hurt(damage, vector, 2, 0, entity.owner, entity2)
 
@@ -1266,20 +1277,22 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.attackId += 1
             weapon.durability -= 1
 
-            horizontal = x - self.x
-            vertical = y - self.y
-            norm = math.sqrt(horizontal**2 + vertical**2)
+            for i in range(1+self.inventory.extraMeleeAttack) :
 
-            if norm != 0 :
-                cos = horizontal/norm
-                sin = vertical/norm
-            else : 
-                cos = 0
-                sin = 0
+                horizontal = x - self.x
+                vertical = y - self.y
+                norm = math.sqrt(horizontal**2 + vertical**2)
+
+                if norm != 0 :
+                    cos = horizontal/norm
+                    sin = vertical/norm
+                else : 
+                    cos = 0
+                    sin = 0
 
 
-            attack = MeleeAttack(weapon, self.x+self.width/2, self.y+self.height/2, [cos, sin], self, self.attackId) #TODO : change this so that, like the bullets, it starts in front of where the player is facing instead of inside of them
-            self.attackList.append(attack)
+                attack = MeleeAttack(weapon, self.x+self.width/2, self.y+self.height/2, [cos, sin], self, self.attackId) #TODO : change this so that, like the bullets, it starts in front of where the player is facing instead of inside of them
+                self.attackList.append(attack)
 
     def canMeleeAttack(self, hand):
         weapon = getattr(self.inventory, hand)
@@ -1484,12 +1497,12 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         if random.randint(1,100) <= 10:
             if type(self.inventory.leftHand) == MeleeWeapon:
-                pass #TODO : Implement this once we implement melee weapons
+                self.inventory.leftHand.durability = math.ceil(self.inventory.leftHand.durability*(1+self.inventory.ressourceKillEffect/100))
             else:
                 self.inventory.leftHand.reserveAmmo = math.ceil(self.inventory.leftHand.reserveAmmo*(1+self.inventory.ressourceKillEffect/100))
             
             if type(self.inventory.rightHand) == MeleeWeapon:
-                pass #TODO : Implement this once we implement melee weapons
+                self.inventory.rightHand.durability = math.ceil(self.inventory.rightHand.durability*(1+self.inventory.ressourceKillEffect/100))
             else:
                 self.inventory.rightHand.reserveAmmo = math.ceil(self.inventory.rightHand.reserveAmmo*(1+self.inventory.ressourceKillEffect/100))
 
@@ -1686,12 +1699,12 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         if not self.inventoryIsMoving:
 
-            if self.moveInventoryLeft(): #TODO might wanna change this misleading name
+            if self.inventoryMovingLeft(): 
                 self.inventoryStartFrame = pyxel.frame_count
                 self.inventoryIsMoving = True
                 self.inventoryDirection = -1
 
-            if self.moveInventoryRight():
+            if self.inventoryMovingRight():
                 self.inventoryStartFrame = pyxel.frame_count
                 self.inventoryIsMoving = True
                 self.inventoryDirection = 1
@@ -1699,10 +1712,10 @@ class Player(Entity): #Creates an entity that's controlled by the player
         else:
             self.moveInventory()
 
-    def moveInventoryLeft(self):
+    def inventoryMovingLeft(self):
         return self.inventoryPosition != 0 and (keyPress("LEFT","btnp") or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=1 and pyxel.mouse_x<=7 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
 
-    def moveInventoryRight(self):
+    def inventoryMovingRight(self):
         return self.inventoryPosition != 2*CAM_WIDTH and (keyPress("RIGHT", "btnp") or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=WID-8 and pyxel.mouse_x<=WID-2 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
 
     def moveInventory(self):
@@ -2167,6 +2180,7 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
 
         if weapon.magAmmo == 0 and weapon.maxAmmo != 1:
             self.baseDamage *= 1 + owner.inventory.lowRessourcesDamageIncrease/100
+            self.damage *= 1+ owner.inventory.lowRessourcesDamageIncrease/100
 
         self.piercing = weapon.piercing
 
@@ -2181,10 +2195,7 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
 
         self.shot = shot
 
-        if hasattr(owner, "inventory"):
-            self.damageKnockbackCoef = weapon.knockbackCoef*(1+owner.inventory.rangedKnockback/100)
-        else:
-            self.damageKnockbackCoef = weapon.knockbackCoef
+        self.damageKnockbackCoef = weapon.knockbackCoef*(1+owner.inventory.rangedKnockback/100)
 
         self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0)
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
@@ -2295,7 +2306,7 @@ class MeleeAttack(Entity) :
         self.mode = weapon.mode
         self.owner = owner
 
-        self.range = weapon.range
+        self.range = weapon.range * (1+owner.inventory.rangeIncrease/100)
 
         if self.mode == "thrust" : 
             super().__init__(x=x, y=y, width=weapon.attackWidth, height=weapon.attackHeight)
@@ -2326,8 +2337,16 @@ class MeleeAttack(Entity) :
         self.image = weapon.attackImage
 
         self.damage = weapon.damage
+
+        if weapon.durability < math.ceil(weapon.baseDurability/10) and weapon.baseDurability != 0 :
+            self.damage *= 1+ self.owner.inventory.lowRessourcesDamageIncrease/100
+
         self.piercing = weapon.piercing
-        self.damageKnockbackCoef = weapon.knockbackCoef
+        
+        if hasattr(owner, "inventory"):
+            self.damageKnockbackCoef = weapon.knockbackCoef*(1+owner.inventory.meleeKnockback/100)
+        else:
+            self.damageKnockbackCoef = weapon.knockbackCoef
 
         self.initWalk(priority=0, maxSpeed=weapon.attackSpeed, speedChangeRate=0, knockbackCoef=0)
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
@@ -2347,8 +2366,6 @@ class MeleeAttack(Entity) :
 
     def movement(self):
         if self.mode == "thrust" :
-            print(self.momentum)
-            print(self.maxSpeed)
             self.walk([self.momentum[0]*self.maxSpeed, self.momentum[1]*self.maxSpeed])
             self.range -= math.sqrt((self.momentum[0]*self.maxSpeed)**2 + (self.momentum[1]*self.maxSpeed)**2)
             self.getSecondCoordinates()
@@ -2541,11 +2558,15 @@ class Inventory:
 
         damage = math.ceil(weapon.damage*((weapon.scaling*(1+self.extraWeaponScale/100))**level))
         piercing = weapon.piercing+(self.extraPiercing)
+
         if issubclass(type(weapon), RangedWeapon):
             maxAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
             magAmmo = math.ceil(weapon.maxAmmo*(1+self.extraAmmo/100))
             reserveAmmo = math.ceil(weapon.reserveAmmo*(1+self.extraAmmo/100))
             reloadTime = weapon.reloadTime*(1-self.extraReloadSpeed/100)
+        elif issubclass(type(weapon), MeleeWeapon) :
+            durability = math.ceil(weapon.durability*(1+self.extraDurability/100))
+            baseDurability = math.ceil(weapon.baseDurability*(1+self.extraDurability))
 
         new_weapon = weapon.copy()
         new_weapon.damage = damage
@@ -2555,6 +2576,9 @@ class Inventory:
             new_weapon.magAmmo = magAmmo
             new_weapon.reserveAmmo = reserveAmmo
             new_weapon.reloadTime = reloadTime
+        elif type(weapon) == MeleeWeapon :
+            new_weapon.durability = durability
+            new_weapon.baseDurability = baseDurability
         
 
         setattr(self, hand, new_weapon.copy())
