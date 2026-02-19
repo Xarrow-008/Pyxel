@@ -191,6 +191,7 @@ class InMission:
         self.levelHeight = 0
         self.closeShip = False
         self.shipDoorState = 'closed'
+        self.depart = False
         self.infoText = ("","","")
         self.isPlayable = True
         self.activeAsset = 'N/A'
@@ -218,7 +219,7 @@ class InMission:
         return 5+3*self.level - self.player.inventory.shipFuelCostDecrease
 
     def hasWon(self):
-        return self.player.fuel >= self.requiredFuel() and self.currentRoom.index == 0
+        return self.player.fuel >= self.requiredFuel() and self.currentRoom.index == 0 and self.depart
 
     def fillBasicEnemies(self):
         for room in self.rooms:
@@ -244,7 +245,7 @@ class InMission:
                         asset.interactable = True
 
         for asset in self.rooms[0].assets:
-            if asset.name == 'ShipTrapDoor':
+            if asset.name == 'ShipTrapDoor' or asset.name == 'ShipCommandBoard':
                 asset.interactable = True
 
     def exitCondition(self): #for when we come back
@@ -289,7 +290,24 @@ class InMission:
 
         self.addEnemiesGradually()
 
+        self.playerRoomsActions()
+
+    def playerRoomsActions(self):
         self.levelsUpdate()
+
+        self.shipButtonsUpdate()
+
+    def shipButtonsUpdate(self):
+        anchor = self.rooms[0].getAsset('ShipCommandBoard')
+        if anchor.collision(self.player.x,self.player.y,(TILE_SIZE,TILE_SIZE)):
+            if keyPress('INTERACT','btn'):
+                if self.player.fuel >= self.requiredFuel():
+                    self.depart = True
+                else:
+                    self.infoText = (anchor.name, 'Not Enough Fuel', ("Hold","interact"))
+
+
+
 
     def levelsUpdate(self):
         for stairs in self.stairs:
@@ -319,6 +337,7 @@ class InMission:
         for exit in self.exits:
             if pointInside(x, y, exit.x, exit.y, exit.width, exit.height):
                 return self.rooms[exit.origin]
+        return None
 
 
 
@@ -636,8 +655,10 @@ class InMission:
                 pickup.draw()
 
         for entity in self.entities:
-            if not entity.dead and (self.shipDoorState != 'closed' or self.findRoom(entity.x,entity.y).name == 'ship'):
-                entity.draw()
+            room = self.findRoom(entity.x,entity.y)
+            if room != None:
+                if not entity.dead and (self.shipDoorState != 'closed' or room.name == 'ship'):
+                    entity.draw()
 
         for entity in self.entities:
             if not entity.dead:

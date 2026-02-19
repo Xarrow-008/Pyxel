@@ -374,6 +374,13 @@ class Room:
     def isExitUsable(self,side):
         return self.exitsPos[side] != [] and self.exitsFree[side] and not self.isLeaf
 
+    def getAsset(self,name):
+        for asset in self.assets:
+            if asset.name == name:
+                return asset
+
+        return None
+
 
 
 class NewRoom(Room):

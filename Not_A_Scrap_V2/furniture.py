@@ -300,6 +300,20 @@ class ShipChair(Asset):
         self.width = 1*TILE_SIZE
         self.height = 2*TILE_SIZE
 
+class ShipCommandBoard(Asset):
+    name = 'ShipCommandBoard'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (12,5)
+        self.width = 1*TILE_SIZE
+        self.height = 2*TILE_SIZE
+        self.function = ["end"]
+        self.interactTime = 1
+        self.description = "departs from current bunker to continue"
+
+    def draw(self):
+        pyxel.blt(self.x,self.y,2, self.img[0]*TILE_SIZE, self.img[1]*TILE_SIZE, self.width * self.coeff(),self.height,11)
+
 class ShipTrapDoor(Asset):
     name = 'ShipTrapDoor'
     def __init__(self,x,y,reversed=False):
@@ -339,7 +353,7 @@ class Menu:
                         WallHorizontalInside,  WallHorizontalStart, WallHorizontalEnd,
                         WallVerticalInside, WallVerticalStart, WallVerticalEnd,
                         FridgeFront, ShelfStorage, CounterTop, CounterTopDrawer,CounterTopSide, ChairFront, ChairBack, FloorLamp, BarrelFront, BarrelSide,
-                        ShipTrapDoor, ShipChair]
+                        ShipTrapDoor, ShipChair, ShipCommandBoard]
 
         self.assetsList = [DoorHorizontal, ChairFront, ChairBack, CouchFront, CouchBack, TableVertical, ClosetFront, TableHorizontal, BedVertical, ClosetBack,
                         WallHorizontalInside, FloorLamp, 
