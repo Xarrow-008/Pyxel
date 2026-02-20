@@ -1,0 +1,3 @@
+Fix linked effect
+Make weapons drop instead of disappearing
+Add timer

@@ -265,8 +265,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, SQUEAKY_TOY()))
-            self.pickups.append(Pickup(self.player.x, self.player.y, RUSTY_KNIFE()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, PUZZLE_CUBE()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -1407,7 +1406,6 @@ class Entity: #General Entity class with all the methods describing what entitie
             else:
                 weapon.magAmmo = weapon.reserveAmmo
                 weapon.reserveAmmo = 0
-                setattr(self.inventory, hand+"CanNoLongerReload", True)
             self.reloadedThisFrame = True
             
     def canReloadWeapon(self, hand):
@@ -1705,10 +1703,10 @@ class Player(Entity): #Creates an entity that's controlled by the player
     def controlInventory(self):
         global keyBeingHeld
         #Allows the player to switch weapons between backpack and handheld
-        if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count):
+        if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count) and not self.isReloading():
             self.inventory.switchWeapon("leftHand")
             keyBeingHeld = None
-        if holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count):
+        if holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count) and not self.isReloading():
             self.inventory.switchWeapon("rightHand")
             keyBeingHeld = None
 
@@ -1736,8 +1734,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
     def inventoryMovingLeft(self):
         return self.inventoryPosition != 0 and (keyPress("LEFT","btnp") or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=1 and pyxel.mouse_x<=7 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
 
-    def inventoryMovingRight(self):
-        return self.inventoryPosition != 2*CAM_WIDTH and (keyPress("RIGHT", "btnp") or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=WID-8 and pyxel.mouse_x<=WID-2 and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
+    def moveInventoryRight(self):
+        return self.inventoryPosition != 2*CAM_WIDTH and (keyPress("RIGHT", "btnp") or (pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT) and pyxel.mouse_x>=CAM_WIDTH-10 and pyxel.mouse_x<=CAM_WIDTH and pyxel.mouse_y>=123 and pyxel.mouse_y<=130))
 
     def moveInventory(self):
         inventoryFrame = pyxel.frame_count - self.inventoryStartFrame
@@ -2006,12 +2004,12 @@ class Player(Entity): #Creates an entity that's controlled by the player
             if keyPress("ATTACK_LEFT", "btn"):
                 self.rangedAttack("leftHand", camera[0]+pyxel.mouse_x, camera[1]+pyxel.mouse_y)
 
-            if keyPress("LEFT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
+            if keyPress("LEFT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.leftHandIsReloading and self.inventory.leftHand.reserveAmmo != 0:
                 self.inventory.leftHand.magAmmo = 0
                 self.inventory.leftHandStartFrame = game_frame
                 self.inventory.leftHandIsReloading = True
 
-            if self.inventory.leftHand.magAmmo == 0 and not self.inventory.leftHandIsReloading and not self.inventory.leftHandCanNoLongerReload:
+            if self.inventory.leftHand.magAmmo == 0 and not self.inventory.leftHandIsReloading and self.inventory.leftHand.reserveAmmo != 0:
                 self.inventory.leftHandStartFrame = game_frame
                 self.inventory.leftHandIsReloading = True
 
@@ -2027,12 +2025,12 @@ class Player(Entity): #Creates an entity that's controlled by the player
             if keyPress("ATTACK_RIGHT", "btn"):
                 self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y)
 
-            if keyPress("RIGHT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
+            if keyPress("RIGHT_HAND","btn") and keyPress("RELOAD","btn") and not self.inventory.rightHandIsReloading and self.inventory.rightHand.reserveAmmo != 0:
                 self.inventory.rightHand.magAmmo = 0
                 self.inventory.rightHandStartFrame = game_frame
                 self.inventory.rightHandIsReloading = True
 
-            if self.inventory.rightHand.magAmmo == 0 and not self.inventory.rightHandIsReloading and not self.inventory.rightHandCanNoLongerReload:
+            if self.inventory.rightHand.magAmmo == 0 and not self.inventory.rightHandIsReloading and self.inventory.rightHand.reserveAmmo != 0:
                 self.inventory.rightHandStartFrame = game_frame
                 self.inventory.rightHandIsReloading = True
 
@@ -2543,14 +2541,12 @@ class Inventory:
         self.leftHandOccupied = False
         self.leftHandStartFrame = 0
         self.leftHandIsReloading = False
-        self.leftHandCanNoLongerReload = False
         self.leftHandLevel = 0
 
         self.rightHand = NO_WEAPON().copy()
         self.rightHandOccupied = False
         self.rightHandStartFrame = 0
         self.rightHandIsReloading = False
-        self.rightHandCanNoLongerReload = False
         self.rightHandLevel = 0
 
         self.backpack1 = NO_WEAPON().copy()
@@ -2604,6 +2600,7 @@ class Inventory:
 
         setattr(self, hand, new_weapon.copy())
         setattr(self, hand+"Level", level)
+        setattr(self, hand+"IsReloading", False)
 
 
         #We can almost definitely make this more efficient but this works and is understandable
@@ -2620,11 +2617,13 @@ class Inventory:
                     if getattr(self, self.oppositeHand(hand)).handNumber==2:
                         setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                         setattr(self, self.oppositeHand(hand)+"Level", 0)
+                        setattr(self, self.oppositeHand(hand)+"IsReloading", False)
 
                 elif weapon.handNumber==2:
                     setattr(self, self.oppositeHand(hand)+"Occupied", True)
                     setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                     setattr(self, self.oppositeHand(hand)+"Level", 0)
+                    setattr(self, self.oppositeHand(hand)+"IsReloading", False)
 
             elif self.backpack1.handNumber==2:
 
@@ -2637,6 +2636,7 @@ class Inventory:
                         setattr(self, self.oppositeHand(hand)+"Occupied", True)
                         setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                         setattr(self, self.oppositeHand(hand)+"Level", 0)
+                        setattr(self, self.oppositeHand(hand)+"IsReloading", False)
 
                 else:
                     setattr(self, hand+"Occupied", False)
@@ -2644,6 +2644,7 @@ class Inventory:
                         setattr(self, self.oppositeHand(hand)+"Occupied", True)
                         setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                         setattr(self, self.oppositeHand(hand)+"Level", 0)
+                        setattr(self, self.oppositeHand(hand)+"IsReloading", False)
                         self.backpack1 = NO_WEAPON().copy()
                         self.backpack1Level = 0
 
@@ -2655,11 +2656,13 @@ class Inventory:
                 if getattr(self, self.oppositeHand(hand)).handNumber==2:
                     setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                     setattr(self, self.oppositeHand(hand)+"Level", 0)
+                    setattr(self, self.oppositeHand(hand)+"IsReloading", False)
 
             elif weapon.handNumber==2:
                 setattr(self, self.oppositeHand(hand)+"Occupied", True)
                 setattr(self, self.oppositeHand(hand), NO_WEAPON().copy())
                 setattr(self, self.oppositeHand(hand)+"Level", 0)
+                setattr(self, self.oppositeHand(hand)+"IsReloading", False)
 
     def switchWeapon(self, hand): #Function used to switch hand-held weapons with ones stored in the backpack
         
