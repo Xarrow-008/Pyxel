@@ -1,3 +1,5 @@
-Fix linked effect
-Make weapons drop instead of disappearing
+Make weapons go into empty slots + simplify inventory by having every stat related to a hand be in a class
+Add ranged weapons
+Add melee weapons
+Add enemies
 Add timer
