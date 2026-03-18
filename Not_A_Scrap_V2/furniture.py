@@ -346,6 +346,24 @@ class ShipTrapDoor(Asset):
         return collision(self.x,self.y-TILE_SIZE+1,x,y,(self.width,self.height),size)
 
 
+class StandingTree(Asset):
+    name = 'StandingTree'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (10,13)
+        self.width = 2*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+class DeadTree(Asset):
+    name = 'DeadTree'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (12,13)
+        self.width = 2*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
+
+
 class Menu:
     def __init__(self):
         self.allAssets = [DoorHorizontal, DoorVertical, CouchFront, CouchBack, TableVertical, TableHorizontal, 

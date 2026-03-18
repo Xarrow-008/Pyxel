@@ -188,6 +188,7 @@ class InMission:
         self.rooms = rooms
         self.exits = exits
         self.stairs = []
+        self.outsideAssets = []
         self.levelHeight = 0
         self.closeShip = False
         self.shipDoorState = 'closed'
@@ -205,6 +206,7 @@ class InMission:
 
         self.createInteractables()
         self.placeStairsLeveled()
+        self.createOutsideAssets()
         #self.fillBasicEnemies()
 
     def placeStairsLeveled(self):
@@ -247,6 +249,21 @@ class InMission:
         for asset in self.rooms[0].assets:
             if asset.name == 'ShipTrapDoor' or asset.name == 'ShipCommandBoard':
                 asset.interactable = True
+
+    def createOutsideAssets(self):
+        baseX = self.rooms[0].x - 260
+        baseY = self.rooms[0].y - 30
+        for i in range(200):
+            x = baseX + random.randint(0,80)*10
+            y = baseY + random.randint(0,25)*10
+            rev = chance(1/2)
+            if chance(1/4) or (y <= baseY+80 and y >= baseY+20 and x < baseX+340):
+                TreeType = DeadTree
+            else:
+                TreeType = StandingTree
+
+
+            self.outsideAssets.append(TreeType(x,y,rev))
 
     def exitCondition(self): #for when we come back
         return self.hasWon() or self.player.dead
@@ -630,6 +647,10 @@ class InMission:
             sized_text(x=self.player.x-29, y=self.player.y-9, s=f"{self.infoText[2][0]} [F] to {self.infoText[2][1]}", col=7, size=6, background=True)
 
     def drawWorld(self):
+        if self.levelHeight == 0:
+            self.drawOutsideWorld()
+
+
         for room in self.rooms:
             shadeCondition = room != self.currentRoom and self.roomFocus
             if shadeCondition:
@@ -650,6 +671,23 @@ class InMission:
 
                 if shadeCondition:
                     pyxel.dither(1)
+
+    def drawOutsideWorld(self):
+        room = self.rooms[0]
+        pyxel.dither(1-self.roomShadow-0.4)
+
+
+        pyxel.rect(room.x-250,room.y-160,700,150, 2)
+
+
+        pyxel.dither(1-self.roomShadow-0.6)
+        pyxel.rect(room.x-250,room.y-10,700,250, 1)
+
+
+        pyxel.dither(1)
+        for asset in self.outsideAssets:
+            asset.draw()
+    
 
     def drawObjects(self):
         for pickup in self.pickups:
@@ -3469,6 +3507,9 @@ def getVector(x1,x2,y1,y2):
 def gameFrozen():
     global freeze_start, freeze_duration
     return not timer(freeze_start, freeze_duration, pyxel.frame_count)
+
+def chance(fraction):
+    return random.random() <= fraction
 
 
 App()
