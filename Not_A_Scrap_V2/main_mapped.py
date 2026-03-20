@@ -189,6 +189,7 @@ class InMission:
         self.exits = exits
         self.stairs = []
         self.outsideAssets = []
+        self.mountains = []
         self.levelHeight = 0
         self.closeShip = False
         self.shipDoorState = 'closed'
@@ -199,6 +200,7 @@ class InMission:
         self.currentRoom = self.rooms[0]
         self.roomFocus = True #if we want other rooms than the one the player is in be darkened
         self.roomShadow = 0
+        self.dither = 1
         self.level = level
         self.nbEnemiesSpawned = 0
 
@@ -251,19 +253,39 @@ class InMission:
                 asset.interactable = True
 
     def createOutsideAssets(self):
-        baseX = self.rooms[0].x - 260
+        room = self.rooms[0]
+        self.horizon = room.y-60
+
+        baseX = self.rooms[0].x - 250
         baseY = self.rooms[0].y - 30
         for i in range(200):
-            x = baseX + random.randint(0,80)*10
-            y = baseY + random.randint(0,25)*10
+            x = baseX + random.randint(0,55)*10
+            y = baseY + random.randint(0,24)*10
             rev = chance(1/2)
-            if chance(1/4) or (y <= baseY+80 and y >= baseY+20 and x < baseX+340):
+            if chance(1/4) or (y <= baseY+80 and y >= baseY+20 and x < baseX+360):
                 TreeType = DeadTree
             else:
                 TreeType = StandingTree
 
 
             self.outsideAssets.append(TreeType(x,y,rev))
+        
+        x = room.x - 32
+        y = room.y + 32
+        self.outsideAssets.append(ShipTrail(x,y))
+        self.outsideAssets.append(ShipTrail(x-random.randint(20,80),y))
+
+        self.outsideAssets.append(ShipTrail(x,y+20))
+        self.outsideAssets.append(ShipTrail(x-random.randint(20,80),y+20))
+
+
+        
+        for i in range(20):
+            x = baseX + 20 + 40 * i
+            y = random.randint(2,25)
+            size = random.randint(20,40)
+
+            self.mountains.append((x,y,size))
 
     def exitCondition(self): #for when we come back
         return self.hasWon() or self.player.dead
@@ -676,17 +698,41 @@ class InMission:
         room = self.rooms[0]
         pyxel.dither(1-self.roomShadow-0.4)
 
+        pyxel.rect(room.x-250,room.y-160,700,self.horizon-room.y+160, 2)
 
-        pyxel.rect(room.x-250,room.y-160,700,150, 2)
 
-
-        pyxel.dither(1-self.roomShadow-0.6)
-        pyxel.rect(room.x-250,room.y-10,700,250, 1)
+        self.dither = 1-self.roomShadow-0.4
+        pyxel.dither(self.dither)
+        pyxel.rect(room.x-250,self.horizon,700,room.y-20-self.horizon, 0)
+        pyxel.dither(1-self.roomShadow-0.8)
+        pyxel.rect(room.x-250,self.horizon,700,room.y-20-self.horizon, 1)
+        
+        pyxel.dither(self.dither)
+        pyxel.rect(room.x-250,room.y-20,700,250, 1)
+        self.drawMountains()
 
 
         pyxel.dither(1)
         for asset in self.outsideAssets:
             asset.draw()
+
+    def drawMountains(self):
+        room = self.rooms[0]
+        for peak in self.mountains:
+            x = peak[0]
+            y = self.horizon-peak[1]
+            size = peak[2]
+            pyxel.rect(x,y,3,3,1)
+
+            posLineLeft = posLineFilled(x,y,x-size,self.horizon)
+            posLineRight = posLineFilled(x,y,x+size,self.horizon)
+
+            for pos in posLineLeft+posLineRight:
+                pyxel.line(pos[0],pos[1],pos[0],self.horizon,1)
+            for pos in posLineRight:
+                pyxel.pset(*pos,1)
+
+
     
 
     def drawObjects(self):

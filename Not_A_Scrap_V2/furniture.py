@@ -362,6 +362,14 @@ class DeadTree(Asset):
         self.width = 2*TILE_SIZE
         self.height = 2*TILE_SIZE
 
+class ShipTrail(Asset):
+    name = 'ShipTrail'
+    def __init__(self,x,y,reversed=False):
+        super().__init__(x,y,reversed=reversed)
+        self.img = (14,13)
+        self.width = 2*TILE_SIZE
+        self.height = 2*TILE_SIZE
+
 
 
 class Menu:
