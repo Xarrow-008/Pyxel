@@ -3305,6 +3305,12 @@ class AnimBoostBottom(Animation):
                         settings={'u':11,'v':9,'length':5,'duration':6,'colkey':3,'overPlayer':True},
                         lifetime=lifetime)
 
+class AnimSlash(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':1,'v':7,'length':6,'duration':6,'colkey':3,'overPlayer':True},
+                        lifetime=lifetime)
+
 
 def distance(x1, y1, x2, y2):
     return math.sqrt((x2-x1)**2 + (y2-y1)**2)
