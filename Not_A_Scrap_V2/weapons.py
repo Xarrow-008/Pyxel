@@ -3,13 +3,14 @@ TILE_SIZE = 16
 FPS = 120
 
 class Weapon:
-    def __init__(self, name, description, handNumber, image, width, height):
+    def __init__(self, name, description, handNumber, image, width, height, specialEffects):
         self.name = name
         self.shortDescription = description
         self.handNumber = handNumber
         self.image = image
         self.width = width
         self.height = height
+        self.specialEffects = specialEffects
 
         self.scaling = 1.5
 
@@ -46,7 +47,7 @@ class RangedWeapon(Weapon):
         self.rangedWeaponInfo = rangedWeaponInfo
 
     def copy(self):
-        return RangedWeapon(self.baseWeaponInfo, [self.mode, self.bulletImage, self.bulletWidth, self.bulletHeight, self.spread, self.movingSpreadIncrease, self.bulletCount, self.bulletSpeed, self.range, self.damage, self.piercing, self.knockbackCoef, self.fallOffCoef, self.noFallOffArea, self.reloadTime, self.attackCooldown, self.magAmmo, self.maxAmmo, self.reserveAmmo])
+        return RangedWeapon(self.baseWeaponInfo, [self.mode, self.bulletImage, self.bulletWidth, self.bulletHeight, self.spread, self.movingSpreadIncrease, self.bulletCount, self.bulletSpeed, self.range, self.damage, self.piercing, self.knockbackCoef, self.fallOffCoef, self.noFallOffArea, self.reloadTime, self.attackCooldown, self.magAmmo, self.maxAmmo, self.reserveAmmo, self.specialEffects])
 
 class MeleeWeapon(Weapon):
     def __init__(self, baseWeaponInfo, meleeWeaponInfo):
@@ -90,7 +91,11 @@ class NO_WEAPON(MeleeWeapon):
         width = TILE_SIZE
         height = TILE_SIZE
 
-        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
+        specialEffects = {
+            "none":{"description":"No special effects"}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
 
         mode = "thrust"
 
@@ -126,7 +131,11 @@ class RUSTY_KNIFE(MeleeWeapon):
         width = TILE_SIZE
         height = TILE_SIZE
 
-        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
+        specialEffects = {
+            "none":{"description":"No special effects"}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
 
         mode = "cut"
 
@@ -162,7 +171,11 @@ class RUSTY_PISTOL(RangedWeapon):
         width = TILE_SIZE
         height = TILE_SIZE
 
-        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
+        specialEffects = {
+            "none":{"description":"No special effects"}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
 
         mode = "automatic"
 
@@ -190,6 +203,8 @@ class RUSTY_PISTOL(RangedWeapon):
         maxAmmo = 20
         reserveAmmo = 120
 
+        
+
         rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
 
@@ -203,7 +218,11 @@ class SNIPER(RangedWeapon): #just a test, you can erase it if you want
         width = TILE_SIZE
         height = TILE_SIZE
 
-        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
+        specialEffects = {
+            "standingStillEffect":{"description":"Stand still to increase damage.","initialCoef":0.3}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
 
         mode = "manual"
 
@@ -231,20 +250,73 @@ class SNIPER(RangedWeapon): #just a test, you can erase it if you want
         maxAmmo = 10
         reserveAmmo = 50
 
+        
+
         rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
 
 
-class TEST_2_HANDS(RangedWeapon):
+class SHOTGUN(RangedWeapon):
     def __init__(self):
-        name = "2HANDS"
-        shortDescription = "A basic weapon"
+        name = "Shotgun"
+        shortDescription = "Multi-pellet weapon"
         handNumber = 2
         image = (64,112)
         width = TILE_SIZE
         height = TILE_SIZE
 
-        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
+        specialEffects = {
+            "selfKnockback":{"description":"Attacks deals knockback to you too.", "strength":40}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "manual"
+
+        bulletImage = (32,64)
+        bulletWidth = 4
+        bulletHeight = 4
+
+        spread = 40
+        movingSpreadIncrease = 20
+        bulletCount = 6
+
+        bulletSpeed = 0.5
+
+        range = 3.5*TILE_SIZE
+        damage = 8
+        piercing = 0
+        knockbackCoef = 1
+        fallOffCoef = 2
+        noFallOffArea = 1-0.4
+
+        reloadTime = 3*FPS
+        attackCooldown = 0.25*FPS
+
+        magAmmo = 6
+        maxAmmo = 6
+        reserveAmmo = 36
+
+        
+
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+
+        super().__init__(baseWeaponInfo, rangedWeaponInfo)
+
+class FLARE_GUN(RangedWeapon):
+    def __init__(self):
+        name = "Flare Gun"
+        shortDescription = "Single-fires fire projectiles"
+        handNumber = 1
+        image = (64,112)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "onHitFire":{"description":"Deals fire on hit", "stacks":3}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
 
         mode = "automatic"
 
@@ -253,24 +325,216 @@ class TEST_2_HANDS(RangedWeapon):
         bulletHeight = 4
 
         spread = 0
-        movingSpreadIncrease = 0
+        movingSpreadIncrease = 20
         bulletCount = 1
 
-        bulletSpeed = 0.5
+        bulletSpeed = 0.25
 
-        range = 6*TILE_SIZE
-        damage = 40
+        range = 8*TILE_SIZE
+        damage = 25
         piercing = 0
-        knockbackCoef = 1
-        fallOffCoef = 1
-        noFallOffArea = 1-0.4
+        knockbackCoef = 0
+        fallOffCoef = 0
+        noFallOffArea = 1-0
 
         reloadTime = 3*FPS
         attackCooldown = 0.25*FPS
 
-        magAmmo = 20
-        maxAmmo = 20
-        reserveAmmo = 120
+        magAmmo = 8
+        maxAmmo = 8
+        reserveAmmo = 48
+
+        
+
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+
+        super().__init__(baseWeaponInfo, rangedWeaponInfo)
+
+class FLAMETHROWER(RangedWeapon):
+    def __init__(self):
+        name = "Flamethrower"
+        shortDescription = "Rapidly fires flames"
+        handNumber = 2
+        image = (64,112)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "repeatedHitFire":{"description":"Deals fire on hit", "stacks":2, "hitNumber":20},
+            "continuousFiringFire":{"description":"Firing too long puts you on fire", "stacks":2, "duration":3*FPS}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "automatic"
+
+        bulletImage = (32,64)
+        bulletWidth = 4
+        bulletHeight = 4
+
+        spread = 20
+        movingSpreadIncrease = 0
+        bulletCount = 1
+
+        bulletSpeed = 0.50
+
+        range = 2.5*TILE_SIZE
+        damage = 1
+        piercing = 1
+        knockbackCoef = 0
+        fallOffCoef = 0
+        noFallOffArea = 1-0
+
+        reloadTime = 5*FPS
+        attackCooldown = 0.05*FPS
+
+        magAmmo = 200
+        maxAmmo = 200
+        reserveAmmo = 800
+
+        
+
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+
+        super().__init__(baseWeaponInfo, rangedWeaponInfo)
+
+class GRENADES(RangedWeapon):
+    def __init__(self):
+        name = "Grenades"
+        shortDescription = "Explosive projectiles"
+        handNumber = 1
+        image = (64,112)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "explosionHit":{"description":"Projectiles explode on hit.", "radius":1*TILE_SIZE}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "manual"
+
+        bulletImage = (32,64)
+        bulletWidth = 4
+        bulletHeight = 4
+
+        spread = 10
+        movingSpreadIncrease = 50
+        bulletCount = 1
+
+        bulletSpeed = 1
+
+        range = 10*TILE_SIZE
+        damage = 40
+        piercing = 0
+        knockbackCoef = 1
+        fallOffCoef = 0
+        noFallOffArea = 1-0
+
+        reloadTime = 0*FPS
+        attackCooldown = 0.5*FPS
+
+        magAmmo = 30
+        maxAmmo = 30
+        reserveAmmo = 0
+
+        
+
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+
+        super().__init__(baseWeaponInfo, rangedWeaponInfo)
+
+class TAZER(RangedWeapon):
+    def __init__(self):
+        name = "Tazer"
+        shortDescription = "Fires electric projectiles"
+        handNumber = 1
+        image = (64,112)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "redirect":{"description":"Lightning redirects towards other enemies"}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "manual"
+
+        bulletImage = (32,64)
+        bulletWidth = 4
+        bulletHeight = 4
+
+        spread = 5
+        movingSpreadIncrease = 20
+        bulletCount = 1
+
+        bulletSpeed = 3
+
+        range = 12*TILE_SIZE
+        damage = 20
+        piercing = 2
+        knockbackCoef = 1
+        fallOffCoef = 0.5
+        noFallOffArea = 1-0.4
+
+        reloadTime = 3*FPS
+        attackCooldown = 0.5*FPS
+
+        magAmmo = 12
+        maxAmmo = 12
+        reserveAmmo = 48
+
+        
+
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+
+        super().__init__(baseWeaponInfo, rangedWeaponInfo)
+
+class MINIGUN(RangedWeapon):
+    def __init__(self):
+        name = "Minigun"
+        shortDescription = "Increasingly fast weapon"
+        handNumber = 2
+        image = (64,112)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "continuousFiringSpeed":{"description":"Holding fire increases firing speed", "coef":0.5, "duration":3*FPS},
+            "firingSlowDown":{"description":"You move slower while firing", "slowDown":0.5}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "automatic"
+
+        bulletImage = (32,64)
+        bulletWidth = 4
+        bulletHeight = 4
+
+        spread = 10
+        movingSpreadIncrease = 5
+        bulletCount = 1
+
+        bulletSpeed = 0.7
+
+        range = 7*TILE_SIZE
+        damage = 3
+        piercing = 0
+        knockbackCoef = 0.2
+        fallOffCoef = 1
+        noFallOffArea = 1-0.4
+
+        reloadTime = 3*FPS
+        attackCooldown = 0.3*FPS
+
+        magAmmo = 100
+        maxAmmo = 100
+        reserveAmmo = 300
+
+        
 
         rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
 
@@ -285,7 +549,11 @@ class LANCE_PROJECTILE(RangedWeapon): #Creates the projectile for the "Lance of 
         width = TILE_SIZE
         height = TILE_SIZE
 
-        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height]
+        specialEffects = {
+            "none":{"description":"No special effects"}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
 
         mode = ""
 
@@ -312,6 +580,8 @@ class LANCE_PROJECTILE(RangedWeapon): #Creates the projectile for the "Lance of 
         magAmmo = 0
         maxAmmo = 0
         reserveAmmo = 0
+
+        
 
         rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
         super().__init__(baseWeaponInfo, rangedWeaponInfo)

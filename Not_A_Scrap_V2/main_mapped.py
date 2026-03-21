@@ -552,10 +552,21 @@ class InMission:
                     entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
 
                     for entity2 in self.entities:
-                        if distanceObjects(entity, entity2) <= entity.owner.inventory.explosionImpactRadius:
+                        if issubclass(type(entity2), Enemy) and distanceObjects(entity, entity2) <= entity.owner.inventory.explosionImpactRadius:
                             vector = getVector(entity.x+entity.width/2, entity2.x+entity2.width/2, entity.y+entity.height/2, entity2.y+entity2.height/2)
                             damage = entity.baseDamage*(entity.owner.inventory.explosionImpactDamageShare)/100
                             self.hurt(damage, vector, 2, 0, entity.owner, entity2)
+
+                if type(entity)==Projectile and "explosionHit" in entity.weapon.specialEffects.keys() :
+
+                    entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
+
+                    for entity2 in self.entities:
+                        if issubclass(type(entity2), Enemy) and distanceObjects(entity, entity2) <= entity.weapon.specialEffects["explosionHit"]["radius"]:
+                            vector = getVector(entity.x+entity.width/2, entity2.x+entity2.width/2, entity.y+entity.height/2, entity2.y+entity2.height/2)
+                            damage = entity.baseDamage
+                            self.hurt(damage, vector, 2, 0, entity.owner, entity2)
+       
                 
                 if type(Entity)==MeleeAttack and entity.owner.inventory.explosionImpactRadius > 0 :
 
@@ -919,9 +930,16 @@ class InMission:
 
                 if not ((issubclass(type(entity1),Enemy) and entity1.health<=0) or ((type(entity1)==Projectile or type(entity1)==MeleeAttack) and entity1.range<=0) or (type(entity2)==Enemy and entity2.health<=0) or ((type(entity2)==Projectile or type(entity2)==MeleeAttack) and entity2.range<=0)):
 
-                    if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2):
+                    if entity1.canCollideWithEnemy() and entity1.collidingWithEnemy(entity2) and entity1 not in entity2.hitByAttack:
                         
                         self.hurt(entity1.collisionDamage, entity1.momentum, entity1.collisionKnockbackCoef, entity1.shot, entity1, entity2)
+                        if entity1.statusEffectsCollision != None:
+                            entity2.statusEffectHits[entity1.statusEffectsCollision[0]] += 1
+                            print(entity2.statusEffectHits[entity1.statusEffectsCollision[0]])
+                            if entity2.statusEffectHits[entity1.statusEffectsCollision[0]] % entity1.statusEffectsCollision[2] == 0:
+                                for i in range(entity1.statusEffectsCollision[1]):
+                                    entity2.addStatusEffect(entity1.statusEffectsCollision[0])
+
                         if entity1.collisionPiercing == 0:
                             if issubclass(type(entity1),Enemy):
                                 entity1.health = 0
@@ -930,9 +948,35 @@ class InMission:
                         else:
                             entity1.collisionPiercing -= 1
 
-                    if entity2.canCollideWithEnemy() and entity2.collidingWithEnemy(entity1):
+
+                            if type(entity1)==Projectile and "redirect" in entity1.weapon.specialEffects.keys():
+                                print("a")
+                                target = [0,0]
+                                distance = 99*TILE_SIZE
+                                for entity3 in self.entities:
+                                    if issubclass(type(entity3), Enemy) and distanceObjects(entity1, entity3) <= distance and entity1 not in entity3.hitByAttack:
+                                        distance = distanceObjects(entity1, entity3)
+                                        target = [entity3.x, entity3.y]
+                                if target != [0,0] :
+                                    vector = [target[0]-entity1.x, target[1]-entity1.y]
+                                    norm = math.sqrt(vector[0]**2+vector[1]**2)
+                                    cos = vector[0]/norm
+                                    sin = vector[1]/norm
+                                    entity1.momentum = [cos, sin]
+
+
+                            
+
+
+                    if entity2.canCollideWithEnemy() and entity2.collidingWithEnemy(entity1) and entity2 not in entity1.hitByAttack:
     
                         self.hurt(entity2.collisionDamage, entity2.momentum, entity2.collisionKnockbackCoef, entity2.shot, entity2, entity1)
+                        if entity2.statusEffectsCollision != None:
+                            entity1.statusEffectHits[entity2.statusEffectsCollision[0]] += 1
+                            if entity1.statusEffectHits[entity2.statusEffectsCollision[0]] % entity2.statusEffectsCollision[2] == 0:
+                                for i in range(entity2.statusEffectsCollision[1]):
+                                    entity1.addStatusEffect(entity2.statusEffectsCollision[0])
+                        
                         if entity2.collisionPiercing == 0:
                             if issubclass(type(entity2),Enemy):
                                 entity2.health = 0
@@ -941,10 +985,32 @@ class InMission:
                         else:
                             entity2.collisionPiercing -= 1
 
+                            if type(entity2)==Projectile and "redirect" in entity2.weapon.specialEffects.keys():
+                                print("a")
+                                target = [0,0]
+                                distance = 99*TILE_SIZE
+                                for entity3 in self.entities:
+                                    if issubclass(type(entity3), Enemy) and distanceObjects(entity2, entity3) < distance and entity2 not in entity3.hitByAttack:
+                                        distance = distanceObjects(entity2, entity3)
+                                        target = [entity3.x, entity3.y]
+                                if target != [0,0] :
+                                    vector = [target[0]-entity2.x, target[1]-entity2.y]
+                                    norm = math.sqrt(vector[0]**2+vector[1]**2)
+                                    cos = vector[0]/norm
+                                    sin = vector[1]/norm
+                                    entity2.momentum = [cos, sin]
+
     def player_collision(self): #Handles collisions with the player by entities
         for entity in self.entities:
             if entity.canCollideWithPlayer() and self.entityCollidingWithPlayer(entity):
+
                 self.hurt(entity.collisionDamage, entity.momentum, entity.collisionKnockbackCoef, entity.shot, entity, self.player)
+                if entity.statusEffectsCollision != None:
+                    self.player.statusEffectHits[entity.statusEffectsCollision[0]] += 1
+                    if self.player.statusEffectHits[entity.statusEffectsCollision[0]] % entity.statusEffectsCollision[2] == 0:
+                        for i in range(entity.statusEffectsCollision[1]):
+                            self.player.addStatusEffect(entity.statusEffectsCollision[0])
+
                 if entity.collisionPiercing == 0:
                     entity.dead = True
                 else:
@@ -1008,6 +1074,10 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.combatStartFrame = 0
 
         self.lowHealth = False
+
+        self.moving = False
+        self.stoppedMoving3s = False
+        self.stoppedMovingFrame = 0
 
         self.lastHitBy = None
 
@@ -1103,6 +1173,17 @@ class Entity: #General Entity class with all the methods describing what entitie
         if hasattr(self, "hitCurrentFrame"):
             self.hitCurrentFrame = False
 
+        if self.momentum == [0,0] and self.moving:
+            self.moving = False
+            self.stoppedMovingFrame = pyxel.frame_count()
+        elif self.momentum == [0,0] and timer(start_frame=self.stoppedMovingFrame, duration=1.5*FPS, counter=game_frame):
+            self.stoppedMoving = True
+        elif self.momentum != [0,0]:
+            self.moving == True
+            self.stoppedMovingFrame = game_frame
+            self.stoppedMoving = False
+
+
     def getNewStats(self):
         
         oldMaxHealth = self.maxHealth
@@ -1149,6 +1230,7 @@ class Entity: #General Entity class with all the methods describing what entitie
     def initStatusEffects(self):
         self.statusEffectStacks = {"fire":0, "exposed":0, "linked":0, "poison":0, "killStreak":0}
         self.statusEffectFrames = {"fire":0, "exposed":0, "linked":0, "poison":0, "killStreak":0}
+        self.statusEffectHits = {"fire":0, "exposed":0, "linked":0, "poison":0, "killStreak":0}
 
         self.fireDimensions = (8,10)
         self.fireImage = (0,4)
@@ -1424,6 +1506,8 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.reloadedThisFrame = False
 
+        self.continuousFiringDuration = 0
+
     def rangedAttack(self, hand, x, y):
         if self.canRangedAttack(hand):
             weapon = getattr(self.inventory, hand).weapon
@@ -1434,6 +1518,19 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             weapon.magAmmo -= 1
             self.attackId += 1
+
+            if self.isShooting:
+                if "continuousFiringSpeed" in weapon.specialEffects.keys() and (self.continuousFiringDuration >= weapon.specialEffects["continuousFiringSpeed"]["duration"]):
+                    self.continuousFiringDuration += weapon.attackCooldown*(1-(self.inventory.attackSpeedIncrease)/100)*weapon.specialEffects["continuousFiringSpeed"]["coef"]
+                else:
+                    self.continuousFiringDuration += weapon.attackCooldown*(1-(self.inventory.attackSpeedIncrease)/100)
+            else:
+                self.continuousFiringDuration = 0
+
+            if "continuousFiringFire" in weapon.specialEffects.keys() and (self.continuousFiringDuration >= weapon.specialEffects["continuousFiringFire"]["duration"]):
+                for i in range(weapon.specialEffects["continuousFiringFire"]["stacks"]):
+                    self.addStatusEffect("fire")
+                self.continuousFiringDuration = 0
 
             self.isShooting = True
             self.lastShotFrame = 0
@@ -1481,10 +1578,17 @@ class Entity: #General Entity class with all the methods describing what entitie
 
                 self.attackList.append(bullet_shot)
 
+            if "selfKnockback" in weapon.specialEffects.keys():
+                self.momentum[0] -= cos*weapon.specialEffects["selfKnockback"]["strength"]
+                self.momentum[1] -= sin*weapon.specialEffects["selfKnockback"]["strength"]
+
     def canRangedAttack(self, hand):
         weapon = getattr(self.inventory, hand).weapon
         startFrame = getattr(self.inventory, hand).startFrame
-        return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon.attackCooldown*(1-(self.inventory.attackSpeedIncrease)/100), game_frame) and weapon.magAmmo>0
+        if "continuousFiringSpeed" in weapon.specialEffects.keys() and (self.continuousFiringDuration >= weapon.specialEffects["continuousFiringSpeed"]["duration"]):
+            return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon.attackCooldown*(1-(self.inventory.attackSpeedIncrease)/100)*weapon.specialEffects["continuousFiringSpeed"]["coef"], game_frame) and weapon.magAmmo>0
+        else:
+            return self.rangedAttackPriority >= self.currentActionPriority and timer(startFrame, weapon.attackCooldown*(1-(self.inventory.attackSpeedIncrease)/100), game_frame) and weapon.magAmmo>0
 
     def reloadWeapon(self, hand):
         weapon = getattr(self.inventory, hand).weapon
@@ -1504,7 +1608,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         return getattr(self.inventory, hand).isReloading and timer(startFrame, weapon.reloadTime, game_frame) and weapon.name != "None"
 
 
-    def initCollision(self, damage, piercing, playerCollision, enemyCollision, knockbackCoef, dieOnWall=False):
+    def initCollision(self, damage, piercing, playerCollision, enemyCollision, knockbackCoef, dieOnWall=False, statusEffects=None):
         self.collisionDamage = damage
         self.collisionPiercing = piercing
         self.collisionKnockbackCoef = knockbackCoef
@@ -1513,6 +1617,8 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.playerCollision = playerCollision
         self.enemyCollision = enemyCollision
+
+        self.statusEffectsCollision = statusEffects
 
     def wallCollision(self):
         if self.dieOnMeetingWall and self.collidedWithWall:
@@ -1605,12 +1711,12 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.tempHealth = self.maxHealth
 
         if random.randint(1,100) <= 10:
-            if type(self.inventory.leftHand.weapon) == MeleeWeapon:
+            if type(self.inventory.leftHand.weapon) == MeleeWeapon or issubclass(type(self.inventory.leftHand.weapon), MeleeWeapon):
                 self.inventory.leftHand.weapon.durability = math.ceil(self.inventory.leftHand.weapon.durability*(1+self.inventory.ressourceKillEffect/100))
             else:
                 self.inventory.leftHand.weapon.reserveAmmo = math.ceil(self.inventory.leftHand.weapon.reserveAmmo*(1+self.inventory.ressourceKillEffect/100))
             
-            if type(self.inventory.rightHand.weapon) == MeleeWeapon:
+            if type(self.inventory.rightHand.weapon) == MeleeWeapon or issubclass(type(self.inventory.rightHand.weapon), MeleeWeapon):
                 self.inventory.rightHand.weapon.durability = math.ceil(self.inventory.rightHand.weapon.durability*(1+self.inventory.ressourceKillEffect/100))
             else:
                 self.inventory.rightHand.weapon.reserveAmmo = math.ceil(self.inventory.rightHand.weapon.reserveAmmo*(1+self.inventory.ressourceKillEffect/100))
@@ -1642,7 +1748,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
-        self.inventory.addWeapon(RUSTY_PISTOL(), 0, self)
+        self.inventory.addWeapon(MINIGUN(), 0, self)
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -1922,13 +2028,13 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
     def drawInventoryWeaponScreen(self, x):
         self.drawSlot(x+10+camera[0], 5+camera[1], "leftHand")
-        self.drawSlot(x+160+camera[0], 5+camera[1], "rightHand")
+        self.drawSlot(x+178+camera[0], 5+camera[1], "rightHand")
         
         if self.inventory.canHaveTwoWeaponsInBackPack:
-            self.drawSlot(x+10+camera[0], 98+camera[1], "backpack1")
-            self.drawSlot(x+160+camera[0], 98+camera[1], "backpack2")
+            self.drawSlot(x+10+camera[0], 131+camera[1], "backpack1")
+            self.drawSlot(x+178+camera[0], 131+camera[1], "backpack2")
         else:
-            self.drawSlot(x+79+camera[0], 98+camera[1], "backpack1")
+            self.drawSlot(x+79+camera[0], 131+camera[1], "backpack1")
 
     def drawWeaponSlot(self, x, y, hand):
         weapon = getattr(self.inventory, hand).weapon
@@ -1951,7 +2057,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         pyxel.rect(x=x+4, y=y+13, w=18, h=18, col=7)
         draw(x=x+5, y=y+14, img=0, u=weapon.image[0], v=weapon.image[1], w=TILE_SIZE, h=TILE_SIZE, colkey=11)
         if weapon.name != "None":
-            sized_text(x=x+25, y=y+18, s=f"{weapon.name} (LVL {level})", col=7) #We'll have to change this part once we add scaling to the weapons
+            sized_text(x=x+25, y=y+18, s=f"{weapon.name} (LVL {level})", col=7)
             
             if "backpack" not in hand and getattr(self.inventory, hand).isReloading:
                 sized_text(x=x+25, y=y+25, s="Reloading", col=7)
@@ -1977,12 +2083,20 @@ class Player(Entity): #Creates an entity that's controlled by the player
                 sized_text(x=x+4, y=y+34, s=f"Damage : {weapon.damage}", col=7)
                 sized_text(x=x+4, y=y+41, s=f"Piercing : {weapon.piercing}", col=7)
                 sized_text(x=x+4, y=y+48, s=f"Range : {round(weapon.range/TILE_SIZE,2)}T", col=7)
+
+            sized_text(x=x+4, y=y+90, s=f"Special Attributes :")
+            pyxel.rectb(x=x+2, y=y+97, w=160, h=24, col=7)
+            extra_y = y+99
+            for effect in weapon.specialEffects.values():
+                sized_text(x=x+4, y=extra_y, s=effect["description"])
+                extra_y += 7
         else:
             sized_text(x=x+25, y=y+18, s=f"{weapon.name}", col=7)
+            
 
     def drawOccupiedSlot(self, x, y):
-        w = 147
-        h = 90
+        w = 162
+        h = 121
 
         pyxel.line(x1=x, y1=y, x2=x+w,y2=y+h, col=7)
         pyxel.line(x1=x, y1=y+h, x2=x+w, y2=y, col=7)
@@ -1997,8 +2111,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
         sized_text(x=inner_rect_x+2, y=inner_rect_y+7, s="This slot is occupied by a two-handed weapon in another slot", col=7, limit=inner_rect_x+inner_rect_width-1, camInLimit=True)
 
     def drawSlot(self, x, y, hand):
-        pyxel.rectb(x=x, y=y, w=148, h=91, col=7)
-        pyxel.rect(x=x+1, y=y+1, w=146, h=89, col=0)
+        pyxel.rectb(x=x, y=y, w=164, h=123, col=7)
+        pyxel.rect(x=x+1, y=y+1, w=162, h=121, col=0)
         if getattr(self.inventory, hand).occupied:
             self.drawOccupiedSlot(x,y)
         else:
@@ -2094,6 +2208,10 @@ class Player(Entity): #Creates an entity that's controlled by the player
         if self.direction == [0,0]:
             self.direction = self.lastDirection.copy()
 
+        if self.isShooting and "firingSlowDown" in self.inventory.leftHand.weapon.specialEffects.keys():
+            self.momentum[0] *= self.inventory.leftHand.weapon.specialEffects["firingSlowDown"]["slowDown"]
+            self.momentum[1] *= self.inventory.leftHand.weapon.specialEffects["firingSlowDown"]["slowDown"]
+
     def dash(self):
         if self.isDashing:
             self.dashMovement()
@@ -2120,7 +2238,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         if type(self.inventory.rightHand.weapon) == RangedWeapon:
 
             if keyPress("ATTACK_RIGHT", "btn"):
-                self.rangedAttack("rightHand", pyxel.mouse_x, pyxel.mouse_y)
+                self.rangedAttack("rightHand", camera[0]+pyxel.mouse_x, camera[1]+pyxel.mouse_y)
 
             if (keyPress("RIGHT_HAND","btn") and keyPress("RELOAD","btn") or self.inventory.rightHand.weapon.magAmmo == 0) and not self.inventory.rightHand.isReloading and self.inventory.rightHand.weapon.reserveAmmo != 0:
                 self.inventory.rightHand.startFrame = game_frame
@@ -2273,6 +2391,8 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
     def __init__(self, weapon, x, y, vector, owner, shot):
         super().__init__(x=x, y=y, width=weapon.bulletWidth, height=weapon.bulletHeight)
 
+        self.owner = owner
+
         self.weapon = weapon
 
         self.momentum = vector
@@ -2284,14 +2404,17 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
         
         if owner is Enemy:
             self.baseDamage = weapon.damage*owner.scale
-            self.damage = weapon.damage*owner.scale
         else:
             self.baseDamage = weapon.damage
-            self.damage = weapon.damage
 
         if weapon.magAmmo == 0 and weapon.maxAmmo != 1:
             self.baseDamage *= 1 + owner.inventory.lowRessourcesDamageIncrease/100
-            self.damage *= 1+ owner.inventory.lowRessourcesDamageIncrease/100
+
+        if "standingStillEffect" in weapon.specialEffects.keys() and not self.owner.stoppedMoving:
+            self.baseDamage *= weapon.specialEffects["standingStillEffect"]["initialCoef"]
+
+        self.damage = self.baseDamage
+
 
         self.piercing = weapon.piercing
 
@@ -2301,8 +2424,6 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
 
         self.fallOffCoef = weapon.fallOffCoef
         self.noFallOffArea = weapon.noFallOffArea
-
-        self.owner = owner
 
         self.shot = shot
 
@@ -2337,6 +2458,7 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
             elif self.fallOffCoef < 0:
                 self.damage = -self.baseDamage*self.fallOffCoef*(2 - self.range/(self.baseRange*self.noFallOffArea))
             self.initialiseNewCollisions()
+        print(self.momentum)
 
 
     def dash(self):
@@ -2356,10 +2478,17 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
             self.dead = True
 
     def initialiseNewCollisions(self):
+        if "onHitFire" in self.weapon.specialEffects.keys():
+            statusEffects = ["fire", self.weapon.specialEffects["onHitFire"]["stacks"], 1]
+        elif "repeatedHitFire" in self.weapon.specialEffects.keys():
+            statusEffects = ["fire", self.weapon.specialEffects["repeatedHitFire"]["stacks"], self.weapon.specialEffects["repeatedHitFire"]["hitNumber"]]
+        else:
+            statusEffects = None
+
         if type(self.owner)==Player:
-            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=True, playerCollision=False)
+            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=True, playerCollision=False, statusEffects=statusEffects)
         elif type(self.owner)==Enemy:
-            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=False, playerCollision=True)
+            self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=False, playerCollision=True, statusEffects=statusEffects)
 
     def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
         X = int(self.x//TILE_SIZE)
@@ -2701,7 +2830,7 @@ class Inventory:
             self.leftHand.addWeapon(new_weapon.copy(), level)
 
             if self.leftHand.weapon.handNumber == 2 :
-                self.putWeaponinBackpack(self.rightHand, owner)
+                self.putWeaponInBackpack(self.rightHand, owner)
                 self.rightHand.occupied = True
 
         elif self.rightHand.isEmpty() :
@@ -2752,7 +2881,7 @@ class Inventory:
             if self.leftHand.weapon.handNumber == 2 :
                 tempHand = [backpack1.weapon, backpack1.level]
                 backpack1.addWeapon(NO_WEAPON().copy(), 0)
-                self.putWeaponInBackPack(self.leftHand, owner)
+                self.putWeaponInBackpack(self.leftHand, owner)
                 self.leftHand.addWeapon(*tempHand)
             elif self.leftHand.weapon.handNumber == 1 :
                 tempHand = [backpack1.weapon, backpack1.level]
@@ -2783,7 +2912,7 @@ class Inventory:
                 backpack1.addWeapon(NO_WEAPON().copy(), 0)
                 backpack2.addWeapon(NO_WEAPON().copy(), 0)
                 self.putWeaponInBackpack(self.leftHand, owner)
-                self.leftHand.addWeapon(*temphand1)
+                self.leftHand.addWeapon(*tempHand1)
                 self.rightHand.addWeapon(*temphand2)
                 self.rightHand.occupied = False
             elif self.leftHand.weapon.handNumber == 1 :
@@ -3077,6 +3206,12 @@ class Enemy(Entity): #Creates an entity that fights the player
             self.momentum[0] = 0
         if abs(self.momentum[1]) <= 0.01:
             self.momentum[1] = 0
+
+        if hasattr(self, "isShooting") and self.isShooting and "firingSlowDown" in self.inventory.leftHand.weapon.specialEffects.keys():
+            self.momentum[0] *= self.inventory.leftHand.weapon.specialEffects["firingSlowDown"]["slowDown"]
+            self.momentum[1] *= self.inventory.leftHand.weapon.specialEffects["firingSlowDown"]["slowDown"]
+
+        
 
     def dash(self):
         pass
