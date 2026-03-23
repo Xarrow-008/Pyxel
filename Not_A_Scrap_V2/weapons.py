@@ -161,7 +161,287 @@ class RUSTY_KNIFE(MeleeWeapon):
         meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
-    
+
+class PARRYING_DAGGER(MeleeWeapon):
+    def __init__(self):
+        name = "Parrying Dagger"
+        shortDescription = "A defensive melee weapon"
+        handNumber = 1
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "deflect":{"description":"Stops melee attacks and deflects projectiles"}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "cut"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = TILE_SIZE
+        range = 2*TILE_SIZE
+        maxAngle = 140
+
+        attackSpeed = 20
+
+        damage = 25
+        piercing = 1
+        knockbackCoef = 1
+
+        attackCooldown = 1*FPS
+
+        durability = 120
+        baseDurability = 120
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class SYRINGE(MeleeWeapon):
+    def __init__(self):
+        name = "Syringe"
+        shortDescription = "A poisonous melee weapon"
+        handNumber = 1
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "onHitPoison":{"description":"Poisons enemies on hit.", "stacks":1}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "thrust"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = 8
+        range = 2*TILE_SIZE
+        maxAngle = 180
+
+        attackSpeed = 15
+
+        damage = 30
+        piercing = 0
+        knockbackCoef = 1
+
+        attackCooldown = 0.3*FPS
+
+        durability = 70
+        baseDurability = 70
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class MACE(MeleeWeapon):
+    def __init__(self):
+        name = "Mace"
+        shortDescription = "A slow, powerful melee weapon"
+        handNumber = 1
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "extraHitstun":{"description":"Enemies are hitstun for longer", "coef":2.5}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "thrust"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = TILE_SIZE+4
+        range = 1.5*TILE_SIZE
+        maxAngle = 180
+
+        attackSpeed = 1
+
+        damage = 80
+        piercing = 4
+        knockbackCoef = 2
+
+        attackCooldown = 1*FPS
+
+        durability = 140
+        baseDurability = 140
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class STAFF(MeleeWeapon):
+    def __init__(self):
+        name = "Staff"
+        shortDescription = "A long range melee weapon"
+        handNumber = 2
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "extraHitstun":{"description":"Enemies are hitstun for longer", "coef":1.5}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "thrust"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = 4
+        range = 4*TILE_SIZE
+        maxAngle = 180
+
+        attackSpeed = 25
+
+        damage = 30
+        piercing = 2
+        knockbackCoef = 1
+
+        attackCooldown = 0.4*FPS
+
+        durability = 100
+        baseDurability = 100
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class GREATSWORD(MeleeWeapon):
+    def __init__(self):
+        name = "Greatsword"
+        shortDescription = "Powerful melee weapon with circular attacks"
+        handNumber = 2
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "repeatedHits":{"description":"Attacking continuously will eventually slow you and prevent you from attacking.", "duration":3*FPS, "slowDown":0.5}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "cut"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = TILE_SIZE
+        range = 2*TILE_SIZE
+        maxAngle = 360
+
+        attackSpeed = 15
+
+        damage = 40
+        piercing = 3
+        knockbackCoef = 1
+
+        attackCooldown = 0.4*FPS
+
+        durability = 160
+        baseDurability = 160
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class HALBERD(MeleeWeapon):
+    def __init__(self):
+        name = "Halberd"
+        shortDescription = "Melee weapon to deal with multiple enemies"
+        handNumber = 2
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "onHitDamage":{"description":"Hitting an enemy causes the attack to increase in damage.", "extraDamage":10}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "cut"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = TILE_SIZE
+        range = 3*TILE_SIZE
+        maxAngle = 160
+
+        attackSpeed = 5
+
+        damage = 25
+        piercing = 4
+        knockbackCoef = 1
+
+        attackCooldown = 0.8*FPS
+
+        durability = 130
+        baseDurability = 130
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class GAUNTLETS(MeleeWeapon):
+    def __init__(self):
+        name = "Gauntlets"
+        shortDescription = "Fast melee weapon to combo enemies"
+        handNumber = 2
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "combo":{"description":"Does not hitstun, but damage increases for every time you've hit an enemy.", "extraDamage":5}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "thrust"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = TILE_SIZE
+        range = 1.75*TILE_SIZE
+        maxAngle = 180
+
+        attackSpeed = 10
+
+        damage = 20
+        piercing = 0
+        knockbackCoef = 10
+
+        attackCooldown = 0.3*FPS
+
+        durability = 120
+        baseDurability = 120
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
 class RUSTY_PISTOL(RangedWeapon):
     def __init__(self):
         name = "Rusty Pistol"
@@ -208,7 +488,6 @@ class RUSTY_PISTOL(RangedWeapon):
         rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
 
-
 class SNIPER(RangedWeapon): #just a test, you can erase it if you want
     def __init__(self):
         name = "Sniper"
@@ -254,7 +533,6 @@ class SNIPER(RangedWeapon): #just a test, you can erase it if you want
 
         rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
-
 
 class SHOTGUN(RangedWeapon):
     def __init__(self):
