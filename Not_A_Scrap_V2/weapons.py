@@ -488,7 +488,7 @@ class RUSTY_PISTOL(RangedWeapon):
         rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
 
-class SNIPER(RangedWeapon): #just a test, you can erase it if you want
+class SNIPER(RangedWeapon):
     def __init__(self):
         name = "Sniper"
         shortDescription = "Long-range precision weapon"
@@ -865,3 +865,83 @@ class LANCE_PROJECTILE(RangedWeapon): #Creates the projectile for the "Lance of 
         super().__init__(baseWeaponInfo, rangedWeaponInfo)
 
 WEAPON_LIST = [x() for x in (MeleeWeapon.__subclasses__() + RangedWeapon.__subclasses__()) if (x!=NO_WEAPON and x!=LANCE_PROJECTILE)]
+
+class CLAW_WEAPON(MeleeWeapon):
+    def __init__(self):
+        name = "Claw"
+        shortDescription = "Enemy claw attack"
+        handNumber = 1
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "none":{"description":"No special effects"}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "cut"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = TILE_SIZE
+        range = 1.75*TILE_SIZE
+        maxAngle = 180
+
+        attackSpeed = 20
+
+        damage = 10
+        piercing = 0
+        knockbackCoef = 2
+
+        attackCooldown = 0.2*FPS
+
+        durability = 999
+        baseDurability = 999
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class BITE(MeleeWeapon):
+    def __init__(self):
+        name = "Bite"
+        shortDescription = "Enemy bite attack"
+        handNumber = 1
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "none":{"description":"No special effects"}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "thrust"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = 12
+        range = 1.75*TILE_SIZE
+        maxAngle = 180
+
+        attackSpeed = 20
+
+        damage = 20
+        piercing = 0
+        knockbackCoef = 2
+
+        attackCooldown = 0.2*FPS
+
+        durability = 999
+        baseDurability = 999
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)

@@ -234,7 +234,7 @@ class InMission:
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
     def spawnRandomEnemy(self,x,y):
-        EnemyClass = random.choice([EarthLing, HeavyHitter, MomoNextBot])
+        EnemyClass = random.choice([Spider, Bulwark, Pouncer])
         self.spawn(EnemyClass,x=x,y=y,level=self.level)
 
     def spawn(self,EnemyClass, x, y, level=0):
@@ -859,7 +859,7 @@ class InMission:
                 target.addStatusEffect("exposed")
 
 
-            if hitStun and not(damagerIsOwned and "combo" in damager.weapon.specialEffects.keys()):
+            if hasattr(target, "isHitStun") and hitStun and not(damagerIsOwned and "combo" in damager.weapon.specialEffects.keys()):
                 target.isHitStun = True
 
                 if damagerIsOwned and "extraHitstun" in damager.weapon.specialEffects.keys():
@@ -1039,7 +1039,10 @@ class InMission:
                 else:
                     entity.collisionPiercing -= 1
 
-                if hasattr(entity, "inventory") and entity.inventory.dashKnockbackStrength >0 and hasattr(entity, "isDashing") and entity.isDashing:
+            if hasattr(entity, "isDashing") and entity.isDashing and self.entityCollidingWithPlayer(entity):
+                self.hurt(entity.dashDamage, entity.dashVector, 1, entity.shot, entity, self.player)
+
+                if hasattr(entity, "inventory") and entity.inventory.dashKnockbackStrength >0 :
                     direction = random.choice([-1,1])
 
                     horizontalKnockback = -entity.dashVector[1]*direction
@@ -1069,7 +1072,7 @@ class InMission:
 
 
     def entityCollidingWithPlayer(self, entity):
-        return collisionObjects(self.player, entity) and not self.player.isHitStun
+        return collisionObjects(entity, self.player) and not self.player.isHitStun
 
 
 class Entity: #General Entity class with all the methods describing what entities can do
@@ -1120,6 +1123,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.shot = 0
 
         self.spawnedPickups = []
+        self.attackList = []
 
     def __str__(self):
         if type(self) == Player:
@@ -1152,7 +1156,8 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             self.movement()
 
-            self.dash()
+            if hasattr(self, "isDashing"):
+                self.dash()
 
             self.collision()
 
@@ -1410,7 +1415,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.applyVector(vector)
 
 
-    def initDash(self, priority, cooldown, speed, duration, invincibility): #Gets the parameters of the "dash" action, and initialises the related variables
+    def initDash(self, priority, cooldown, speed, duration, invincibility, damage=0): #Gets the parameters of the "dash" action, and initialises the related variables
         self.dashPriority = priority
         self.baseDashCooldown = cooldown
         self.dashCooldown = cooldown
@@ -1426,6 +1431,8 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.isDashInvincible = False
         self.dashInvincibilityDuration = invincibility
+
+        self.dashDamage = damage
 
     def startDash(self, vector): #Used for dashing/lunging
         if self.canStartDash():
@@ -1478,7 +1485,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.dead = False
 
 
-    def initMeleeAttack(self, priority):
+    def initMeleeAttack(self, priority, freeze=0):
         self.meleeAttackPriority = priority
         self.attackId = 0
         self.isSlashing = False
@@ -1488,8 +1495,15 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.continuousAttackDuration = 0
         self.stopAttackFrame = -2*FPS
 
+        self.meleeAttackFreezeFrame = 0
+        self.meleeAttackFreezeDuration = freeze
+        self.isMeleeFrozen = False
+
     def meleeAttack(self, hand, x, y) :
         if self.canMeleeAttack(hand) :
+
+            self.currentActionPriority = 0
+            
             weapon = getattr(self.inventory, hand).weapon
 
             getattr(self.inventory, hand).startFrame = game_frame
@@ -1737,10 +1751,10 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.invincibilityStartFrame = 0
 
     def isInvincible(self):
-        return not timer(self.invincibilityStartFrame, self.invincibilityDuration, game_frame)
+        return (not timer(self.invincibilityStartFrame, self.invincibilityDuration, game_frame))
 
     def canGetHurt(self, shot, damager):
-        return not ((hasattr(self, "isHitStun") and self.isHitStun and self.hitBy != shot) or (hasattr(self, "isInvincible") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible) or (damager in self.hitByAttack))
+        return not ((hasattr(self, "invincibilityStartFrame") and self.isInvincible()) or (hasattr(self, "isDashInvincible") and self.isDashInvincible) or (damager in self.hitByAttack))
 
     def hitstun(self):
         if hasattr(self, "isHitStun"):
@@ -1796,7 +1810,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
-        self.inventory.addWeapon(GAUNTLETS(), 0, self)
+        self.inventory.addWeapon(RUSTY_PISTOL(), 0, self)
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -2663,7 +2677,7 @@ class MeleeAttack(Entity) :
 
         if type(self.owner)==Player:
             self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=True, playerCollision=False, statusEffects=statusEffects)
-        elif type(self.owner)==Enemy:
+        elif issubclass(type(self.owner), Enemy) or type(self.owner) == Enemy:
             self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=False, playerCollision=True, statusEffects=statusEffects)
 
 
@@ -3057,14 +3071,11 @@ class Enemy(Entity): #Creates an entity that fights the player
 
         self.inventory = Inventory()
 
-        self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1)
         self.initPath()
         self.id = id
         self.target = (self.x,self.y)
         
         self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
-        self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
-        self.initCollision(damage=5, piercing=-1, knockbackCoef=0, playerCollision=True, enemyCollision=False)
         self.walkMode = 'None'
         self.checked = []
 
@@ -3280,13 +3291,26 @@ class Enemy(Entity): #Creates an entity that fights the player
         
 
     def dash(self):
-        pass
+        if self.isDashing:
+            self.dashMovement()
+        elif distance(self.x, self.y, self.target[0], self.target[1]) <= self.dashSpeed*self.dashDuration*0.7:
+            vector = getVector(self.x, self.target[0], self.y, self.target[1])
+            self.startDash(vector)
 
     def collision(self):
         pass
 
     def attack(self):
-        pass
+        if hasattr(self, "meleeAttackPriority") :
+            if not self.isMeleeFrozen and distance(self.x, self.y, self.target[0], self.target[1]) <= self.inventory.leftHand.weapon.range*0.7 and timer(self.meleeAttackFreezeFrame, self.meleeAttackFreezeDuration, game_frame):
+                self.currentActionPriority = self.meleeAttackPriority
+                self.meleeAttackFreezeFrame = game_frame
+                self.isMeleeFrozen = True
+            if self.isMeleeFrozen and timer(self.meleeAttackFreezeFrame, self.meleeAttackFreezeDuration, game_frame):
+                self.isMeleeFrozen = False
+                self.currentActionPriority = 0
+                self.meleeAttack("leftHand", self.target[0], self.target[1])
+        
 
     def imageGestion(self):
         if self.canDoActions():
@@ -3342,10 +3366,10 @@ class Dummy(Enemy):
 
         self.scaling = 1.5
 
-class EarthLing(Enemy):
+class Spider(Enemy):
     def __init__(self, x ,y, level=0, id=0):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
-        self.name = 'Earthling'
+        self.name = 'Spider'
         self.originalImage = (32,80)
         self.image = (32,80)
 
@@ -3354,28 +3378,33 @@ class EarthLing(Enemy):
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1)
-        self.initMeleeAttack(priority=2)
 
+        self.inventory = Inventory()
+        self.inventory.leftHand.addWeapon(CLAW_WEAPON(), level)
+        self.initMeleeAttack(priority=1, freeze=0.75*FPS)
 
-class HeavyHitter(Enemy):
+        self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+
+class Bulwark(Enemy):
     def __init__(self, x ,y, level=0,id=0):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
-        self.name = 'HeavyHitter'
+        self.name = 'Bulwark'
         self.originalImage = (64,80)
         self.image = (64,80)
 
-        self.health = 120
-        self.maxHealth = 120
+        self.health = 150
+        self.maxHealth = 150
 
         self.scaling = 1.5
-        self.initWalk(priority=0, maxSpeed=0.8, speedChangeRate=10, knockbackCoef=1)
-        self.initMeleeAttack(priority=2)
+        self.initWalk(priority=0, maxSpeed=0.25, speedChangeRate=10, knockbackCoef=0)
+        self.inventory = Inventory()
+        self.inventory.leftHand.addWeapon(BITE(), level)
+        self.initMeleeAttack(priority=1, freeze=1*FPS)
 
-
-class MomoNextBot(Enemy):
+class Pouncer(Enemy):
     def __init__(self, x ,y, level=0,id=0):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
-        self.name = 'MomoNextBot'
+        self.name = 'Pouncer'
         self.originalImage = (32,96)
         self.image = (32,96)
 
@@ -3383,8 +3412,11 @@ class MomoNextBot(Enemy):
         self.maxHealth = 200
 
         self.scaling = 1.5
-        self.initWalk(priority=0, maxSpeed=0.45, speedChangeRate=10, knockbackCoef=1)
-        self.initMeleeAttack(priority=2)
+        self.initWalk(priority=0, maxSpeed=0.2, speedChangeRate=10, knockbackCoef=1)
+        self.initDash(priority=1, cooldown=2*FPS, speed=2, duration=0.5*FPS, invincibility=False, damage=15)
+
+        self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+
 
 
 
@@ -3556,11 +3588,11 @@ def collision(x1, y1, x2, y2, size1, size2): #Checks if object1 and object2 are 
 def collisionObjects(object1, object2): #As multiples cases because melee attacks can technically have negative height and width
     if object1.width < 0 :
         if object1.height < 0 :
-            return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x+object1.width and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y+object1.height
+            return object1.x>object2.x and object2.x+object2.width>object1.x+object1.width and object1.y>object2.y and object2.y+object2.height>object1.y+object1.height
         else:
-            return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x+object1.width and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y
+            return object1.x>object2.x and object2.x+object2.width>object1.x+object1.width and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y
     elif object1.height < 0 :
-        return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y+object1.height
+        return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x and object1.y>object2.y and object2.y+object2.height>object1.y+object1.height
     else :
         return object1.x+object1.width>object2.x and object2.x+object2.width>object1.x and object1.y+object1.height>object2.y and object2.y+object2.height>object1.y
 
@@ -3757,7 +3789,7 @@ def getColor(hex):
 
 def getVector(x1,x2,y1,y2):
     horizontal = x2-x1
-    vertical = y1-y2
+    vertical = y2-y1
     norm = math.sqrt(horizontal**2 + vertical**2)
     cos = horizontal/norm
     sin = vertical/norm
