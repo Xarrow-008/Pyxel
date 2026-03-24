@@ -1558,12 +1558,9 @@ class Entity: #General Entity class with all the methods describing what entitie
                     cos = 0
                     sin = 0
 
-                if type(self) == Player:
-                    x = self.x+self.width/2 + self.facing[0]*self.width/2
-                    y = self.y+self.height/2 + self.facing[1]*self.height/2
-                else:
-                    x = self.x+self.width/2
-                    y = self.y+self.height/2
+                x = self.x+self.width/2
+                y = self.y+self.height/2
+                    
                 attack = MeleeAttack(weapon, x, y, [cos, sin], self, self.attackId) #TODO : change this so that, like the bullets, it starts in front of where the player is facing instead of inside of them
                 self.attackList.append(attack)
 
@@ -3348,7 +3345,7 @@ class Enemy(Entity): #Creates an entity that fights the player
                 self.rangedAttack("leftHand", self.target[0], self.target[1])
         
     
-    def isAttacking(self): #TODO eliott change this all to make it real
+    def isAttacking(self): #TODO eliott change this all to make it so it is true before attacking (maybe even change the name)
         if hasattr(self,'isSlashing'):
             return self.isSlashing
         if hasattr(self,'isDashing'):
