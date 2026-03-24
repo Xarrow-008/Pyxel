@@ -234,7 +234,7 @@ class InMission:
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
     def spawnRandomEnemy(self,x,y):
-        EnemyClass = random.choice([Broodmother])
+        EnemyClass = random.choice([Spider, Bulwark, Pouncer, Broodmother])
         self.spawn(EnemyClass,x=x,y=y,level=self.level)
 
     def spawn(self,EnemyClass, x, y, level=0, spawned=False):
@@ -2940,6 +2940,7 @@ class Inventory:
             if new_weapon.handNumber == 1 :
                 self.putWeaponInBackpack(self.leftHand, owner)
                 self.leftHand.addWeapon(new_weapon.copy(), level)
+                self.rightHand.occupied = False
             
             elif new_weapon.handNumber == 2 :
                 self.putWeaponInBackpack(self.leftHand, owner)
