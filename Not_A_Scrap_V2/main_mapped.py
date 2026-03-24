@@ -234,7 +234,7 @@ class InMission:
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
     def spawnRandomEnemy(self,x,y):
-        EnemyClass = random.choice([Spider, Bulwark, Pouncer, Broodmother])
+        EnemyClass = random.choice([Burrower])
         self.spawn(EnemyClass,x=x,y=y,level=self.level)
 
     def spawn(self,EnemyClass, x, y, level=0, spawned=False):
@@ -304,8 +304,8 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x+10, self.player.y, GAUNTLETS()))
-            self.pickups.append(Pickup(self.player.x+20, self.player.y, GRENADES()))
+            self.pickups.append(Pickup(self.player.x+10, self.player.y, FLAMETHROWER()))
+            self.pickups.append(Pickup(self.player.x+20, self.player.y, SACK()))
             self.pickups.append(Pickup(self.player.x, self.player.y, NANOBOT()))
             
         if pyxel.btnp(pyxel.KEY_O):
@@ -597,6 +597,7 @@ class InMission:
             if entity.heal > 0:
                 self.heal(entity.heal, entity, entity)
                 entity.heal = 0
+                print("a")
 
             if entity.storedFireDamage > 0:
                 self.hurt(entity.storedFireDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
@@ -608,7 +609,7 @@ class InMission:
                 entity.storedPoisonDamage = 0
 
             if entity.storedLinkedDamage > 0:
-                self.hurt(entity.storedLinkedDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
+                self.hurt(entity.storedLinkedDamage, [0,0], 0, 0, self.player, entity, hitStun=False, linked=True)
                 entity.storedLinkedDamage = 0
 
             room = self.findRoom(entity.x,entity.y)
@@ -797,7 +798,7 @@ class InMission:
 
         target.addDamageNumber(target, value, 11)
 
-    def hurt(self, value, vector, knockback_coef, shot, damager, target, hitStun=True):
+    def hurt(self, value, vector, knockback_coef, shot, damager, target, hitStun=True, linked=False):
         global freeze_start, freeze_duration, game_frame
 
         damagerIsOwned = (type(damager)==Projectile or type(damager)==MeleeAttack)
@@ -845,7 +846,7 @@ class InMission:
             if type(damager) == Projectile or type(damager) == MeleeAttack:
                 target.hitByAttack.append(damager)
             
-            if target in self.linkedEnemies:
+            if target in self.linkedEnemies and not linked:
                 linkedEntity = [entity for entity in self.linkedEnemies if entity != target][0]
                 linkedEntity.storedLinkedDamage += value*(self.player.inventory.linkedDamageShare/100)
 
@@ -1076,8 +1077,9 @@ class InMission:
                     entity.momentum[0] += horizontalKnockback*self.player.inventory.dashKnockbackStrength
                     entity.momentum[1] += verticalKnockback*self.player.inventory.dashKnockbackStrength
 
-                    entity.isHitStun = True
-                    entity.hitStunStartFrame = game_frame
+                    if hasattr(entity, "isHitStun"):
+                        entity.isHitStun = True
+                        entity.hitStunStartFrame = game_frame
 
 
     def entityCollidingWithPlayer(self, entity):
@@ -1233,6 +1235,8 @@ class Entity: #General Entity class with all the methods describing what entitie
         oldMaxHealth = self.maxHealth
         self.maxHealth = self.baseHealth + self.inventory.flatMaxHealth
         if oldMaxHealth < self.maxHealth:
+            print(oldMaxHealth)
+            print(self.maxHealth)
             self.heal += self.maxHealth-oldMaxHealth
 
         if hasattr(self, "maxSpeed"):
@@ -1381,12 +1385,12 @@ class Entity: #General Entity class with all the methods describing what entitie
             if self.y != Y*TILE_SIZE:
                 next_X_2 = wallsMap[Y+1][new_X]
             else:
-                next_X_2 = 0
+                next_X_2 = self.canWalk[0]
             #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 == 0 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 == 0 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+            if (next_X_1 in self.canWalk or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 in self.canWalk or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
                 self.x = new_x
             #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
-            elif (next_X_1 != 0 or next_X_2 != 0) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
+            elif (next_X_1 not in self.canWalk or next_X_2 not in self.canWalk) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
                 self.collidedWithWall = True
                 self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
         
@@ -1406,11 +1410,11 @@ class Entity: #General Entity class with all the methods describing what entitie
             if self.x != X*TILE_SIZE:
                 next_Y_2 = wallsMap[new_Y][X+1]
             else:
-                next_Y_2 = 0
+                next_Y_2 = self.canWalk[0]
             
-            if (next_Y_1 == 0 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 == 0 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
+            if (next_Y_1 in self.canWalk or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 in self.canWalk or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
                 self.y = new_y
-            elif (next_Y_1 != 0 or next_Y_2 != 0) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
+            elif (next_Y_1 not in self.canWalk or next_Y_2 not in self.canWalk) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
                 self.collidedWithWall = True
                 self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
 
@@ -1420,12 +1424,13 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.deathSpawn = deathSpawn
 
 
-    def initWalk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
+    def initWalk(self, priority, maxSpeed, speedChangeRate, knockbackCoef, canWalk=[0]): #Gets the parameters of the "walk" action
         self.walkPriority = priority
         self.baseSpeed = maxSpeed
         self.maxSpeed = maxSpeed
         self.speedChangeRate = speedChangeRate
         self.knockbackCoef = knockbackCoef
+        self.canWalk = canWalk
 
     def walk(self, vector): #Used for regular walking.
         if self.currentActionPriority <= self.walkPriority:
@@ -1808,6 +1813,8 @@ class Entity: #General Entity class with all the methods describing what entitie
         if self.inventory.killStreakDamageIncrease > 0 :
             self.addStatusEffect("killStreak")
 
+    def isInWall(self):
+        return (wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)] == 2) or (self.x % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)+1][int(self.y//TILE_SIZE)] == 2) or (self.y % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)+1] == 2)
 
 class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self, playerPos):
@@ -2522,7 +2529,7 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
 
         self.damageKnockbackCoef = weapon.knockbackCoef*(1+owner.inventory.rangedKnockback/100)
 
-        self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0)
+        self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0, canWalk=[0,1])
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         self.initialiseNewCollisions()
         
@@ -2582,57 +2589,6 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
         elif type(self.owner)==Enemy or issubclass(type(self.owner), Enemy):
             self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=False, playerCollision=True, statusEffects=statusEffects)
 
-    def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
-        X = int(self.x//TILE_SIZE)
-        Y = int(self.y//TILE_SIZE)
-
-        #We handle horizontal and vertical movement separatly to make problem solving easier
-
-        #Calculate the new position
-        new_x = self.x + vector[0]
-        new_X = X+pyxel.sgn(vector[0])
-
-        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
-            new_x = new_X*TILE_SIZE
-
-        if vector[0]!=0:
-            next_X_1 = wallsMap[Y][new_X]
-            if self.y != Y*TILE_SIZE:
-                next_X_2 = wallsMap[Y+1][new_X]
-            else:
-                next_X_2 = 0
-            #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
-                self.x = new_x
-            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
-            elif (next_X_1 == 2 or next_X_2 == 2) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
-                self.collidedWithWall = True
-                self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
-        
-        X = int(self.x//TILE_SIZE)
-
-        #We calculate vertical movement in the same way we do horizontal movement
-
-        new_y = self.y + vector[1]
-        new_Y = Y+pyxel.sgn(vector[1])
-        
-        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
-            new_y = new_Y*TILE_SIZE
-
-        
-        if vector[1]!=0:
-            next_Y_1 = wallsMap[new_Y][X]
-            if self.x != X*TILE_SIZE:
-                next_Y_2 = wallsMap[new_Y][X+1]
-            else:
-                next_Y_2 = 0
-            
-            if (next_Y_1 != 2 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 != 2 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
-                self.y = new_y
-            elif (next_Y_1 == 2 or next_Y_2 == 2) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
-                self.collidedWithWall = True
-                self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
-
 class MeleeAttack(Entity) :
     def __init__(self, weapon, x, y, vector, owner, shot) :
         self.mode = weapon.mode
@@ -2680,7 +2636,7 @@ class MeleeAttack(Entity) :
         else:
             self.damageKnockbackCoef = weapon.knockbackCoef
 
-        self.initWalk(priority=0, maxSpeed=weapon.attackSpeed, speedChangeRate=0, knockbackCoef=0)
+        self.initWalk(priority=0, maxSpeed=weapon.attackSpeed, speedChangeRate=0, knockbackCoef=0, canWalk=[0,1])
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         self.initialiseNewCollisions()
 
@@ -2732,58 +2688,6 @@ class MeleeAttack(Entity) :
 
     def draw(self) : #TODO : replace this with an animation for the melee attack
         pyxel.line(x1=self.x, y1=self.y, x2=self.x2, y2=self.y2, col=7)
-
-    def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
-        X = int(self.x//TILE_SIZE)
-        Y = int(self.y//TILE_SIZE)
-
-        #We handle horizontal and vertical movement separatly to make problem solving easier
-
-        #Calculate the new position
-        new_x = self.x + vector[0]
-        new_X = X+pyxel.sgn(vector[0])
-
-        if new_x*pyxel.sgn(vector[0]) > new_X*TILE_SIZE*pyxel.sgn(vector[0]): #If its going faster than 1T/f, reduce its speed to exactly 1T/f
-            new_x = new_X*TILE_SIZE
-
-        if vector[0]!=0:
-            next_X_1 = wallsMap[Y][new_X]
-            if self.y != Y*TILE_SIZE:
-                next_X_2 = wallsMap[Y+1][new_X]
-            else:
-                next_X_2 = 0
-            #If there's enough space for the entity to move, it moves unimpeded
-            if (next_X_1 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_X_2 != 2 or not collision(new_x, self.y, new_X*TILE_SIZE, (Y+1)*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
-                self.x = new_x
-            #Else If the movement puts the entity in the wall, we snap it back to the border to prevent clipping.
-            elif (next_X_1 == 2 or next_X_2 == 2) and new_x+self.width>X*TILE_SIZE and (X+1)*TILE_SIZE>new_x:
-                self.collidedWithWall = True
-                self.x = (new_X-pyxel.sgn(vector[0]))*TILE_SIZE
-        
-        X = int(self.x//TILE_SIZE)
-
-        #We calculate vertical movement in the same way we do horizontal movement
-
-        new_y = self.y + vector[1]
-        new_Y = Y+pyxel.sgn(vector[1])
-        
-        if new_y*pyxel.sgn(vector[1]) > new_Y*TILE_SIZE*pyxel.sgn(vector[1]):
-            new_y = new_Y*TILE_SIZE
-
-        
-        if vector[1]!=0:
-            next_Y_1 = wallsMap[new_Y][X]
-            if self.x != X*TILE_SIZE:
-                next_Y_2 = wallsMap[new_Y][X+1]
-            else:
-                next_Y_2 = 0
-            
-            if (next_Y_1 != 2 or not collision(self.x, new_y, X*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])) and (next_Y_2 != 2 or not collision(self.x, new_y, (X+1)*TILE_SIZE, new_Y*TILE_SIZE, [self.width, self.height], [TILE_SIZE, TILE_SIZE])):
-                self.y = new_y
-            elif (next_Y_1 == 2 or next_Y_2 == 2) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
-                self.collidedWithWall = True
-                self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
-
 
 class Pickup:
     def __init__(self, x, y, pickup):
@@ -3086,10 +2990,6 @@ class Enemy(Entity): #Creates an entity that fights the player
 
         self.level = level
 
-        self.health = 100+10*level
-        self.baseHealth = 100+10*level
-        self.maxHealth = 100+10*level
-
         self.inventory = Inventory()
 
         self.initPath()
@@ -3121,7 +3021,7 @@ class Enemy(Entity): #Creates an entity that fights the player
         blockBetweenPlayer = posLineFilled(*myPos, *targetPos)
 
         for pos in blockBetweenPlayer:
-            if wallsMap[pos[1]][pos[0]] != 0:
+            if wallsMap[pos[1]][pos[0]] not in self.canWalk:
                 return True
 
         return False
@@ -3163,7 +3063,7 @@ class Enemy(Entity): #Creates an entity that fights the player
                     newPos = (pos[0]+addon[0],pos[1]+addon[1])
                     if newPos not in checked:
                         if is_inside_map(newPos, wallsMap):
-                            if wallsMap[newPos[1]][newPos[0]] == 0:
+                            if wallsMap[newPos[1]][newPos[0]] in self.canWalk:
                                 if newPos not in newBorder:
                                     newBorder.append(newPos)
                                     pathOrigin[newPos[1]][newPos[0]] = pos
@@ -3418,8 +3318,9 @@ class Dummy(Enemy):
         self.originalImage = (32,48)
         self.image = (32,48)
 
-        self.health = 100
-        self.maxHealth = 100
+        self.health = 100+10*level
+        self.baseHealth = 100+10*level
+        self.maxHealth = 100+10*level
 
         self.scaling = 1.5
 
@@ -3430,8 +3331,9 @@ class Spider(Enemy):
         self.originalImage = (0,0)
         self.image = (0,0)
 
-        self.health = 100
-        self.maxHealth = 100
+        self.health = 100+10*level
+        self.baseHealth = 100+10*level
+        self.maxHealth = 100+10*level
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1)
@@ -3449,8 +3351,9 @@ class Bulwark(Enemy):
         self.originalImage = (0,16)
         self.image = (0,16)
 
-        self.health = 150
-        self.maxHealth = 150
+        self.health = 150+10*level
+        self.baseHealth = 150+10*level
+        self.maxHealth = 150+10*level
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.25, speedChangeRate=10, knockbackCoef=0)
@@ -3465,8 +3368,9 @@ class Pouncer(Enemy):
         self.originalImage = (0,32)
         self.image = (0,32)
 
-        self.health = 200
-        self.maxHealth = 200
+        self.health = 200+10*level
+        self.baseHealth = 200+10*level
+        self.maxHealth = 200+10*level
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.2, speedChangeRate=10, knockbackCoef=1)
@@ -3481,8 +3385,9 @@ class Hatchling(Enemy):
         self.originalImage = (0,80)
         self.image = (0,80)
 
-        self.health = 30
-        self.maxHealth = 30
+        self.health = 30+10*level
+        self.baseHealth = 30+10*level
+        self.maxHealth = 30+10*level
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.9, speedChangeRate=10, knockbackCoef=1)
@@ -3500,8 +3405,9 @@ class Broodmother(Enemy):
         self.originalImage = (0,64)
         self.image = (0,64)
 
-        self.health = 100
-        self.maxHealth = 100
+        self.health = 100+10*level
+        self.baseHealth = 100+10*level
+        self.maxHealth = 100+10*level
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.4, speedChangeRate=10, knockbackCoef=1)
@@ -3518,8 +3424,9 @@ class Tisserand(Enemy):
         self.originalImage = (0,48)
         self.image = (0,48)
 
-        self.health = 70
-        self.maxHealth = 70
+        self.health = 70+10*level
+        self.baseHealth = 70+10*level
+        self.maxHealth = 70+10*level
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1)
@@ -3530,6 +3437,25 @@ class Tisserand(Enemy):
 
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
 
+class Burrower(Enemy):
+    def __init__(self, x ,y, level=0, id=0, spawned=False):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
+        self.name = 'Burrower'
+        self.originalImage = (0,0)
+        self.image = (0,0)
+
+        self.health = 100+10*level
+        self.baseHealth = 100+10*level
+        self.maxHealth = 100+10*level
+
+        self.scaling = 1.5
+        self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1, canWalk=[0,2])
+
+        self.inventory = Inventory()
+        self.inventory.leftHand.addWeapon(BURROWER_CLAW(), level)
+        self.initMeleeAttack(priority=1, freeze=0.75*FPS)
+
+        self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
 
 
 
