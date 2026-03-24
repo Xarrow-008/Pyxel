@@ -945,3 +945,43 @@ class BITE(MeleeWeapon):
         meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class HATCHLING_BITE(MeleeWeapon):
+    def __init__(self):
+        name = "Bite"
+        shortDescription = "Hatchling bite attack"
+        handNumber = 1
+        image = (0,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "none":{"description":"No special effects"}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "thrust"
+
+        attackImage = (0,0)
+        attackWidth = TILE_SIZE
+        attackHeight = TILE_SIZE
+
+        hitBoxWidth = 8
+        range = 1.6*TILE_SIZE
+        maxAngle = 180
+
+        attackSpeed = 20
+
+        damage = 5
+        piercing = 0
+        knockbackCoef = 2
+
+        attackCooldown = 0.2*FPS
+
+        durability = 999
+        baseDurability = 999
+
+        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+
+        super().__init__(baseWeaponInfo, meleeWeaponInfo)

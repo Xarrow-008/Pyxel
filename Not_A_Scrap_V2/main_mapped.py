@@ -234,11 +234,11 @@ class InMission:
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
     def spawnRandomEnemy(self,x,y):
-        EnemyClass = random.choice([Spider, Bulwark, Pouncer])
+        EnemyClass = random.choice([Broodmother])
         self.spawn(EnemyClass,x=x,y=y,level=self.level)
 
-    def spawn(self,EnemyClass, x, y, level=0):
-        self.entities.append(EnemyClass(x=x,y=y,level=level,id=self.nbEnemiesSpawned))
+    def spawn(self,EnemyClass, x, y, level=0, spawned=False):
+        self.entities.append(EnemyClass(x=x,y=y,level=level,id=self.nbEnemiesSpawned, spawned=spawned))
         self.nbEnemiesSpawned += 1
 
     def createInteractables(self):
@@ -535,6 +535,11 @@ class InMission:
                 for bullet in entity.attackList:
                     self.entities.append(bullet)
                 entity.attackList = []
+
+            if hasattr(entity, "spawnedEnemies") and entity.spawnedEnemies != []:
+                for enemy in entity.spawnedEnemies:
+                    self.spawn(enemy, entity.x, entity.y, level=entity.level, spawned=True)
+                entity.spawnedEnemies = []
 
             if hasattr(entity, "spawnedPickups") and entity.spawnedPickups != []:
                 for pickup in entity.spawnedPickups:
@@ -1124,6 +1129,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.spawnedPickups = []
         self.attackList = []
+        self.spawnedEnemies = []
 
     def __str__(self):
         if type(self) == Player:
@@ -1147,6 +1153,10 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         if hasattr(self, "inventory") and self.inventory.recalculateStats:
             self.getNewStats()
+
+        if hasattr(self, "passiveSpawn") and onTick(self.passiveSpawn[0]):
+            for i in range(self.passiveSpawn[1]) :
+                self.spawnedEnemies.append(self.passiveSpawn[2])
 
         self.statusEffects()
 
@@ -1399,6 +1409,11 @@ class Entity: #General Entity class with all the methods describing what entitie
             elif (next_Y_1 != 0 or next_Y_2 != 0) and new_y+self.height>Y*TILE_SIZE and (Y+1)*TILE_SIZE>new_y:
                 self.collidedWithWall = True
                 self.y = (new_Y-pyxel.sgn(vector[1]))*TILE_SIZE
+
+
+    def initSpawner(self, passiveSpawn, deathSpawn):
+        self.passiveSpawn = passiveSpawn
+        self.deathSpawn = deathSpawn
 
 
     def initWalk(self, priority, maxSpeed, speedChangeRate, knockbackCoef): #Gets the parameters of the "walk" action
@@ -1810,7 +1825,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
-        self.inventory.addWeapon(RUSTY_PISTOL(), 0, self)
+        self.inventory.addWeapon(MACE(), 0, self)
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -3057,7 +3072,7 @@ class Inventory:
 
 
 class Enemy(Entity): #Creates an entity that fights the player
-    def __init__(self, x, y, width, height, level=0, id=0):
+    def __init__(self, x, y, width, height, level=0, id=0, spawned=False):
         super().__init__(x=x, y=y, width=width, height=height)
 
         self.originalImage = (32,80)
@@ -3079,13 +3094,14 @@ class Enemy(Entity): #Creates an entity that fights the player
         self.walkMode = 'None'
         self.checked = []
 
+        self.spawned = spawned
+
     def initPath(self):
         self.resetPath()
         
         self.moveTo = [0,0]
         self.moveDirection = [0,0]
         self.direction = [0,0]
-
         
     def resetPath(self):
         self.path = [blockPos(self.x,self.y)]
@@ -3329,34 +3345,39 @@ class Enemy(Entity): #Creates an entity that fights the player
             else:
                 self.dead = True
 
-                if random.randint(1,100) <= self.deathItemSpawn:
-                    if hasattr(self.lastHitBy, "inventory") and self.lastHitBy.inventory.increasedRarity > 0:
-                        pickup = INCREASED_ITEM_TABLE.pickRandom(self.lastHitBy.luck)
-                        self.lastHitBy.inventory.increasedRarity -= 1
+                if not self.spawned:
+                    if random.randint(1,100) <= self.deathItemSpawn:
+                        if hasattr(self.lastHitBy, "inventory") and self.lastHitBy.inventory.increasedRarity > 0:
+                            pickup = INCREASED_ITEM_TABLE.pickRandom(self.lastHitBy.luck)
+                            self.lastHitBy.inventory.increasedRarity -= 1
+                        else:
+                            pickup = ITEM_TABLE.pickRandom(self.lastHitBy.luck)
+                        
+                        self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+
+                    if hasattr(self.lastHitBy, "inventory"):
+                        if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChance:
+                            pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance + self.lastHitBy.luck)
+                            self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
                     else:
-                        pickup = ITEM_TABLE.pickRandom(self.lastHitBy.luck)
-                    
-                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
+                        if random.randint(1,100) <= self.deathFuelSpawn:
+                            pickup = FUEL_TABLE.pickRandom(self.lastHitBy.luck)
+                            self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
-                if hasattr(self.lastHitBy, "inventory"):
-                    if random.randint(1,100) <= self.deathFuelSpawn+self.lastHitBy.inventory.fuelKillChance:
-                        pickup = FUEL_TABLE.pickRandom(self.lastHitBy.inventory.extraFuelKillChance + self.lastHitBy.luck)
+                    if random.randint(1,100) <= self.deathWeaponSpawn:
+                        pickup = WEAPON_TABLE.pickRandom(self.lastHitBy.luck)
                         self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
-                else:
-                    if random.randint(1,100) <= self.deathFuelSpawn:
-                        pickup = FUEL_TABLE.pickRandom(self.lastHitBy.luck)
-                        self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
-
-                if random.randint(1,100) <= self.deathWeaponSpawn:
-                    pickup = WEAPON_TABLE.pickRandom(self.lastHitBy.luck)
-                    self.spawnedPickups.append(Pickup(self.x, self.y, pickup))
 
                 self.statusEffectStacks["linked"] = 0
 
+                if hasattr(self, "deathSpawn"):
+                    for i in range(self.deathSpawn[0]) :
+                        self.spawnedEnemies.append(self.deathSpawn[1])
+
 
 class Dummy(Enemy):
-    def __init__(self, x ,y, level=0,id=0):
-        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
+    def __init__(self, x ,y, level=0,id=0, spawned=False):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Dummy'
         self.originalImage = (32,48)
         self.image = (32,48)
@@ -3367,8 +3388,8 @@ class Dummy(Enemy):
         self.scaling = 1.5
 
 class Spider(Enemy):
-    def __init__(self, x ,y, level=0, id=0):
-        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
+    def __init__(self, x ,y, level=0, id=0, spawned=False):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Spider'
         self.originalImage = (32,80)
         self.image = (32,80)
@@ -3386,8 +3407,8 @@ class Spider(Enemy):
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
 
 class Bulwark(Enemy):
-    def __init__(self, x ,y, level=0,id=0):
-        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
+    def __init__(self, x ,y, level=0,id=0, spawned=False):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Bulwark'
         self.originalImage = (64,80)
         self.image = (64,80)
@@ -3402,8 +3423,8 @@ class Bulwark(Enemy):
         self.initMeleeAttack(priority=1, freeze=1*FPS)
 
 class Pouncer(Enemy):
-    def __init__(self, x ,y, level=0,id=0):
-        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id)
+    def __init__(self, x ,y, level=0,id=0, spawned=False):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Pouncer'
         self.originalImage = (32,96)
         self.image = (32,96)
@@ -3417,6 +3438,42 @@ class Pouncer(Enemy):
 
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
 
+class Hatchling(Enemy):
+    def __init__(self, x ,y, level=0, id=0, spawned=False):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
+        self.name = 'Hatchling'
+        self.originalImage = (32,80)
+        self.image = (32,80)
+
+        self.health = 30
+        self.maxHealth = 30
+
+        self.scaling = 1.5
+        self.initWalk(priority=0, maxSpeed=0.9, speedChangeRate=10, knockbackCoef=1)
+
+        self.inventory = Inventory()
+        self.inventory.leftHand.addWeapon(HATCHLING_BITE(), level)
+        self.initMeleeAttack(priority=1, freeze=0.5*FPS)
+
+        self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+
+class Broodmother(Enemy):
+    def __init__(self, x ,y, level=0,id=0, spawned=False):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
+        self.name = 'Broodmother'
+        self.originalImage = (64,80)
+        self.image = (64,80)
+
+        self.health = 100
+        self.maxHealth = 100
+
+        self.scaling = 1.5
+        self.initWalk(priority=0, maxSpeed=0.4, speedChangeRate=10, knockbackCoef=1)
+        self.inventory = Inventory()
+        self.inventory.leftHand.addWeapon(BITE(), level)
+        self.initMeleeAttack(priority=1, freeze=1*FPS)
+        self.initSpawner(passiveSpawn=[5*FPS, 1, Hatchling], deathSpawn=[3, Hatchling])
+        self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
 
 
 
