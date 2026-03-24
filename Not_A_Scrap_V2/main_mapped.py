@@ -234,7 +234,7 @@ class InMission:
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
     def spawnRandomEnemy(self,x,y):
-        EnemyClass = random.choice([Spider, Bulwark, Pouncer, Broodmother])
+        EnemyClass = random.choice([Tisserand])
         self.spawn(EnemyClass,x=x,y=y,level=self.level)
 
     def spawn(self,EnemyClass, x, y, level=0, spawned=False):
@@ -1572,7 +1572,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
 
-    def initRangedAttack(self, priority):
+    def initRangedAttack(self, priority, freeze=0):
         self.rangedAttackPriority = priority
         self.attackId = 0
         self.isShooting = False
@@ -1587,11 +1587,13 @@ class Entity: #General Entity class with all the methods describing what entitie
 
         self.continuousFiringDuration = 0
 
+        self.isRangedFrozen = False
+        self.rangedAttackFreezeFrame = 0
+        self.rangedAttackFreezeDuration = freeze
+
     def rangedAttack(self, hand, x, y):
         if self.canRangedAttack(hand):
             weapon = getattr(self.inventory, hand).weapon
-
-            self.currentActionPriority = self.rangedAttackPriority
 
             getattr(self.inventory, hand).startFrame = game_frame
 
@@ -1620,10 +1622,11 @@ class Entity: #General Entity class with all the methods describing what entitie
                 gunShotImage = getPlayerBulletImage(self.facing)
 
                 self.addAnimation(pos=[self.x+firePos[0],self.y+firePos[1],False],settings={'u':gunShotImage[0],'v':gunShotImage[1],'length':5,'duration':10,'colkey':3, 'overPlayer':True},lifetime='1 cycle')
+                
+                bulletPos = getPlayerBulletPos(self.facing)
+            else:
+                bulletPos = [self.width/2,self.height/2]
 
-
-
-            bulletPos = getPlayerBulletPos(self.facing)
             for i in range(weapon.bulletCount * math.ceil(1+self.inventory.bulletCountCoef/100)):
                 horizontal = x - (self.x + bulletPos[0])
                 vertical = y - (self.y + bulletPos[1])
@@ -2576,7 +2579,7 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
 
         if type(self.owner)==Player:
             self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=True, playerCollision=False, statusEffects=statusEffects)
-        elif type(self.owner)==Enemy:
+        elif type(self.owner)==Enemy or issubclass(type(self.owner), Enemy):
             self.initCollision(damage=self.damage, piercing=self.piercing, knockbackCoef=self.damageKnockbackCoef, dieOnWall=True, enemyCollision=False, playerCollision=True, statusEffects=statusEffects)
 
     def applyVector(self, vector): #We give a movement vector and get the new coordinates of the entity
@@ -3330,6 +3333,18 @@ class Enemy(Entity): #Creates an entity that fights the player
                 self.currentActionPriority = 0
                 self.meleeAttack("leftHand", self.target[0], self.target[1])
         
+        if hasattr(self, "rangedAttackPriority") :
+            if not self.isRangedFrozen and distance(self.x, self.y, self.target[0], self.target[1]) <= self.inventory.leftHand.weapon.range*0.7 and timer(self.rangedAttackFreezeFrame, self.rangedAttackFreezeDuration, game_frame):
+                self.currentActionPriority = self.rangedAttackPriority
+                self.rangedAttackFreezeFrame = game_frame
+                self.isRangedFrozen = True
+            if self.isRangedFrozen and timer(self.rangedAttackFreezeFrame, self.rangedAttackFreezeDuration, game_frame):
+                self.isRangedFrozen = False
+                self.currentActionPriority = 0
+                self.rangedAttack("leftHand", self.target[0], self.target[1])
+        
+        
+        
 
     def imageGestion(self):
         if self.canDoActions():
@@ -3477,6 +3492,26 @@ class Broodmother(Enemy):
         self.initMeleeAttack(priority=1, freeze=1*FPS)
         self.initSpawner(passiveSpawn=[5*FPS, 1, Hatchling], deathSpawn=[3, Hatchling])
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+
+class Tisserand(Enemy):
+    def __init__(self, x ,y, level=0, id=0, spawned=False):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
+        self.name = 'Tisserand'
+        self.originalImage = (32,80)
+        self.image = (32,80)
+
+        self.health = 70
+        self.maxHealth = 70
+
+        self.scaling = 1.5
+        self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1)
+
+        self.inventory = Inventory()
+        self.inventory.leftHand.addWeapon(WEB(), level)
+        self.initRangedAttack(priority=1, freeze=0.75*FPS)
+
+        self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+
 
 
 

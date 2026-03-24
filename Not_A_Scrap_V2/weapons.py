@@ -985,3 +985,49 @@ class HATCHLING_BITE(MeleeWeapon):
         meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
+
+class WEB(RangedWeapon):
+    def __init__(self):
+        name = "Web"
+        shortDescription = "Web attack"
+        handNumber = 1
+        image = (128,192)
+        width = TILE_SIZE
+        height = TILE_SIZE
+
+        specialEffects = {
+            "extraHitstun":{"description":"Enemies are hitstun for longer", "coef":1.5}
+        }
+
+        baseWeaponInfo = [name, shortDescription, handNumber, image, width, height, specialEffects]
+
+        mode = "automatic"
+
+        bulletImage = (32,64)
+        bulletWidth = 4
+        bulletHeight = 4
+
+        spread = 0
+        movingSpreadIncrease = 0
+        bulletCount = 1
+
+        bulletSpeed = 1.5
+
+        range = 6*TILE_SIZE
+        damage = 15
+        piercing = 0
+        knockbackCoef = 1
+        fallOffCoef = 0 #Positive = damage decreases with distance / Negative = damage increases with distance
+        noFallOffArea = 1
+
+        reloadTime = 1*FPS
+        attackCooldown = 0.25*FPS
+
+        magAmmo = 999
+        maxAmmo = 999
+        reserveAmmo = 999
+
+        
+
+        rangedWeaponInfo = [mode, bulletImage, bulletWidth, bulletHeight, spread, movingSpreadIncrease, bulletCount, bulletSpeed, range, damage, piercing, knockbackCoef, fallOffCoef, noFallOffArea, reloadTime, attackCooldown, magAmmo, maxAmmo, reserveAmmo]
+        super().__init__(baseWeaponInfo, rangedWeaponInfo)
