@@ -304,7 +304,7 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, RUSTY_KNIFE()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, GRENADES()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -3042,8 +3042,6 @@ class Inventory:
 
 
 
-
-
 class Enemy(Entity): #Creates an entity that fights the player
     def __init__(self, x, y, width, height, level=0, id=0):
         super().__init__(x=x, y=y, width=width, height=height)
@@ -3512,6 +3510,12 @@ class AnimSlash(Animation):
     def __init__(self,pos,lifetime='1 cycle'):
         super().__init__(pos=pos,
                         settings={'u':1,'v':7,'length':6,'duration':6,'colkey':3,'overPlayer':True},
+                        lifetime=lifetime)
+
+class AnimExplosion(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':1,'v':4,'length':7,'duration':6,'colkey':3,'overPlayer':True},
                         lifetime=lifetime)
 
 

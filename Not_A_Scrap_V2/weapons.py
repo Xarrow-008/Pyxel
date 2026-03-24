@@ -127,7 +127,7 @@ class RUSTY_KNIFE(MeleeWeapon):
         name = "Rusty Knife"
         shortDescription = "A basic knife"
         handNumber = 1
-        image = (0,192)
+        image = (128,224)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -167,7 +167,7 @@ class PARRYING_DAGGER(MeleeWeapon):
         name = "Parrying Dagger"
         shortDescription = "A defensive melee weapon"
         handNumber = 1
-        image = (0,192)
+        image = (144,224)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -207,7 +207,7 @@ class SYRINGE(MeleeWeapon):
         name = "Syringe"
         shortDescription = "A poisonous melee weapon"
         handNumber = 1
-        image = (0,192)
+        image = (160,224)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -247,7 +247,7 @@ class MACE(MeleeWeapon):
         name = "Mace"
         shortDescription = "A slow, powerful melee weapon"
         handNumber = 1
-        image = (0,192)
+        image = (176,224)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -287,7 +287,7 @@ class STAFF(MeleeWeapon):
         name = "Staff"
         shortDescription = "A long range melee weapon"
         handNumber = 2
-        image = (0,192)
+        image = (192,224)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -327,7 +327,7 @@ class GREATSWORD(MeleeWeapon):
         name = "Greatsword"
         shortDescription = "Powerful melee weapon with circular attacks"
         handNumber = 2
-        image = (0,192)
+        image = (208,224)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -367,7 +367,7 @@ class HALBERD(MeleeWeapon):
         name = "Halberd"
         shortDescription = "Melee weapon to deal with multiple enemies"
         handNumber = 2
-        image = (0,192)
+        image = (224,224)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -407,7 +407,7 @@ class GAUNTLETS(MeleeWeapon):
         name = "Gauntlets"
         shortDescription = "Fast melee weapon to combo enemies"
         handNumber = 2
-        image = (0,192)
+        image = (240,224)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -447,7 +447,7 @@ class RUSTY_PISTOL(RangedWeapon):
         name = "Rusty Pistol"
         shortDescription = "A basic gun"
         handNumber = 1
-        image = (0,112)
+        image = (128,192)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -493,7 +493,7 @@ class SNIPER(RangedWeapon): #just a test, you can erase it if you want
         name = "Sniper"
         shortDescription = "Long-range precision weapon"
         handNumber = 2
-        image = (80,112)
+        image = (208,192)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -539,7 +539,7 @@ class SHOTGUN(RangedWeapon):
         name = "Shotgun"
         shortDescription = "Multi-pellet weapon"
         handNumber = 2
-        image = (64,112)
+        image = (160,192)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -586,7 +586,7 @@ class FLARE_GUN(RangedWeapon):
         name = "Flare Gun"
         shortDescription = "Single-fires fire projectiles"
         handNumber = 1
-        image = (64,112)
+        image = (192,192)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -633,7 +633,7 @@ class FLAMETHROWER(RangedWeapon):
         name = "Flamethrower"
         shortDescription = "Rapidly fires flames"
         handNumber = 2
-        image = (64,112)
+        image = (128,208)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -681,7 +681,7 @@ class GRENADES(RangedWeapon):
         name = "Grenades"
         shortDescription = "Explosive projectiles"
         handNumber = 1
-        image = (64,112)
+        image = (144,208)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -728,7 +728,7 @@ class TAZER(RangedWeapon):
         name = "Tazer"
         shortDescription = "Fires electric projectiles"
         handNumber = 1
-        image = (64,112)
+        image = (240,192)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -775,7 +775,7 @@ class MINIGUN(RangedWeapon):
         name = "Minigun"
         shortDescription = "Increasingly fast weapon"
         handNumber = 2
-        image = (64,112)
+        image = (224,192)
         width = TILE_SIZE
         height = TILE_SIZE
 
