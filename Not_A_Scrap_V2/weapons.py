@@ -1003,7 +1003,7 @@ class WEB(RangedWeapon):
 
         mode = "automatic"
 
-        bulletImage = (32,64)
+        bulletImage = (136,64)
         bulletWidth = 4
         bulletHeight = 4
 
