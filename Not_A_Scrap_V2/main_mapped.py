@@ -304,7 +304,9 @@ class InMission:
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
         if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x, self.player.y, GRENADES()))
+            self.pickups.append(Pickup(self.player.x+10, self.player.y, GAUNTLETS()))
+            self.pickups.append(Pickup(self.player.x+20, self.player.y, GRENADES()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, MACE()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -554,7 +556,7 @@ class InMission:
 
                 if type(entity)==Projectile and entity.owner.inventory.explosionImpactRadius > 0 :
 
-                    entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
+                    entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={'u':1,'v':4,'length':7,'duration':6,'overPlayer':True},lifetime='1 cycle')
 
                     for entity2 in self.entities:
                         if issubclass(type(entity2), Enemy) and distanceObjects(entity, entity2) <= entity.owner.inventory.explosionImpactRadius:
@@ -564,7 +566,7 @@ class InMission:
 
                 if type(entity)==Projectile and "explosionHit" in entity.weapon.specialEffects.keys() :
 
-                    entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
+                    entity.owner.addAnimation(pos=[entity.x, entity.y, False],settings={'u':1,'v':4,'length':7,'duration':6,'overPlayer':True},lifetime='1 cycle')
 
                     for entity2 in self.entities:
                         if issubclass(type(entity2), Enemy) and distanceObjects(entity, entity2) <= entity.weapon.specialEffects["explosionHit"]["radius"]:
@@ -575,7 +577,7 @@ class InMission:
                 
                 if type(Entity)==MeleeAttack and entity.owner.inventory.explosionImpactRadius > 0 :
 
-                    entity.owner.addAnimation(pos=[entity.x2, entity.y2, False],settings={"u":1, "v":4, "width":10, "height":11, "imageVector":(0,0)},lifetime=48) #TODO : probably make this not look like shit
+                    entity.owner.addAnimation(pos=[entity.x2, entity.y2, False],settings={'u':1,'v':4,'length':7,'duration':6,'overPlayer':True},lifetime='1 cycle')
 
                     for entity2 in self.entities:
                         if distance(entity.x2, entity.y2, entity2.x, entity2.y) <= entity.owner.inventory.explosionImpactRadius:
@@ -3605,8 +3607,16 @@ class AnimSlash(Animation):
 class AnimExplosion(Animation):
     def __init__(self,pos,lifetime='1 cycle'):
         super().__init__(pos=pos,
-                        settings={'u':1,'v':4,'length':7,'duration':6,'colkey':3,'overPlayer':True},
+                        settings={'u':1,'v':4,'length':7,'duration':6,'overPlayer':True},
                         lifetime=lifetime)
+
+class AnimRevive(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':0,'v':9,'width':32,'height':32,'length':5,'duration':6,'overPlayer':True},
+                        lifetime=lifetime)
+
+
 
 
 def distance(x1, y1, x2, y2):

@@ -459,7 +459,7 @@ class RUSTY_PISTOL(RangedWeapon):
 
         mode = "automatic"
 
-        bulletImage = (32,64)
+        bulletImage = (224,64)
         bulletWidth = 4
         bulletHeight = 4
 
@@ -505,7 +505,7 @@ class SNIPER(RangedWeapon):
 
         mode = "manual"
 
-        bulletImage = (32,64)
+        bulletImage = (224,64)
         bulletWidth = 4
         bulletHeight = 4
 
@@ -551,7 +551,7 @@ class SHOTGUN(RangedWeapon):
 
         mode = "manual"
 
-        bulletImage = (32,64)
+        bulletImage = (224,64)
         bulletWidth = 4
         bulletHeight = 4
 
@@ -598,7 +598,7 @@ class FLARE_GUN(RangedWeapon):
 
         mode = "automatic"
 
-        bulletImage = (32,64)
+        bulletImage = (230,64)
         bulletWidth = 4
         bulletHeight = 4
 
@@ -646,7 +646,7 @@ class FLAMETHROWER(RangedWeapon):
 
         mode = "automatic"
 
-        bulletImage = (32,64)
+        bulletImage = (230,64)
         bulletWidth = 4
         bulletHeight = 4
 
@@ -693,7 +693,7 @@ class GRENADES(RangedWeapon):
 
         mode = "manual"
 
-        bulletImage = (32,64)
+        bulletImage = (224,64)
         bulletWidth = 4
         bulletHeight = 4
 
@@ -740,7 +740,7 @@ class TAZER(RangedWeapon):
 
         mode = "manual"
 
-        bulletImage = (32,64)
+        bulletImage = (224,64)
         bulletWidth = 4
         bulletHeight = 4
 
@@ -788,7 +788,7 @@ class MINIGUN(RangedWeapon):
 
         mode = "automatic"
 
-        bulletImage = (32,64)
+        bulletImage = (224,64)
         bulletWidth = 4
         bulletHeight = 4
 
