@@ -211,6 +211,10 @@ class InMission:
         self.createOutsideAssets()
         #self.fillBasicEnemies()
 
+        self.timerFrame = game_frame
+        self.timerDuration = 90*FPS
+        self.timerStatus = "Horde"
+
     def placeStairsLeveled(self):
         ship = self.rooms[0]
         x = ship.x + ship.exitsPos['down'][0]*TILE_SIZE
@@ -234,7 +238,7 @@ class InMission:
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
     def spawnRandomEnemy(self,x,y):
-        EnemyClass = random.choice([JuvenileBurrower])
+        EnemyClass = ENEMY_TABLE.pickRandom(0)
         self.spawn(EnemyClass,x=x,y=y,level=self.level)
 
     def spawn(self,EnemyClass, x, y, level=0, spawned=False):
@@ -300,6 +304,8 @@ class InMission:
 
         self.roomsUpdate()
 
+        self.timerUpdate()
+
         if pyxel.btnp(pyxel.KEY_M):
             self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
 
@@ -323,6 +329,27 @@ class InMission:
             self.player.addStatusEffect("fire")
             self.player.addStatusEffect("exposed")
             self.player.addStatusEffect("linked")
+
+    def timerUpdate(self):
+        if self.timerStatus == "Horde" and timer(self.timerFrame, self.timerDuration+self.player.inventory.timerTime, game_frame):
+            self.spawnHorde()
+            self.timerStatus = "Explosion"
+            self.timerFrame = game_frame
+        if self.timerStatus == "Explosion" and timer(self.timerFrame, self.timerDuration+self.player.inventory.timerTime, game_frame):
+            if onTick(0.25*FPS):
+                for i in range(7):
+                    x = random.randint(camera[0], camera[0]+CAM_WIDTH)
+                    y = random.randint(camera[1], camera[1]+CAM_HEIGHT)
+                    anim = AnimExplosion([x,y])
+                    anim.posRelative = False
+                    self.player.anims.append(anim)
+                self.hurt(value=int(self.player.maxHealth*0.10), vector=[0,0], knockback_coef=0, shot=0, damager=self.player, target=self.player, hitStun=False)
+
+    def spawnHorde(self):
+        room = self.rooms[1]
+        pos = random.choice(room.floorTiles)
+        for i in range(self.level+7):
+            self.spawnRandomEnemy(x=room.x+pos[0]*TILE_SIZE,y=room.y+pos[1]*TILE_SIZE)
 
     def roomsUpdate(self):
         room = self.findRoom(self.player.x,self.player.y)
@@ -683,6 +710,9 @@ class InMission:
 
         self.player.draw()
         sized_text(x=camera[0]+CAM_WIDTH-58, y=camera[1]+10, s="Required : "+str(self.requiredFuel()), col=7, size=7, background=True)
+        pyxel.rect(x=camera[0]+CAM_WIDTH-78, y=camera[1]+20, w=76, h=20, col=0)
+        pyxel.rect(x=camera[0]+CAM_WIDTH-76, y=camera[1]+23, w=int((1-(game_frame-self.timerFrame)/(self.timerDuration+self.player.inventory.timerTime))*71), h=4, col=8)
+        sized_text(x=camera[0]+CAM_WIDTH-76, y=camera[1]+29, s=f"Danger : {self.timerStatus}")
         self.player.drawOver()
 
 
@@ -3479,6 +3509,7 @@ class JuvenileBurrower(Enemy):
 
         self.burrowed = True
 
+ENEMY_TABLE = LootTable("enemyTable", [[Spider, 5, 1], [Bulwark, 3, 1], [Broodmother, 3, 1], [Pouncer, 3, 1], [Burrower, 2, 1], [JuvenileBurrower, 2, 1], [Tisserand, 1, 1]])
 
 
 
