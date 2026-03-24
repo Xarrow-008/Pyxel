@@ -234,7 +234,7 @@ class InMission:
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
     def spawnRandomEnemy(self,x,y):
-        EnemyClass = random.choice([Tisserand])
+        EnemyClass = random.choice([JuvenileBurrower])
         self.spawn(EnemyClass,x=x,y=y,level=self.level)
 
     def spawn(self,EnemyClass, x, y, level=0, spawned=False):
@@ -597,7 +597,6 @@ class InMission:
             if entity.heal > 0:
                 self.heal(entity.heal, entity, entity)
                 entity.heal = 0
-                print("a")
 
             if entity.storedFireDamage > 0:
                 self.hurt(entity.storedFireDamage, [0,0], 0, 0, self.player, entity, hitStun=False)
@@ -620,6 +619,9 @@ class InMission:
                     conditionUpdate = True
             elif self.isRoomNearby(room):
                 conditionUpdate = True
+
+            if entity.burrowed and (collisionObjects(entity, self.player) or self.currentRoom.index > self.findRoom(entity.x, entity.y).index):
+                entity.burrowed = False
 
             if conditionUpdate:
                 entity.target = (self.player.x,self.player.y)
@@ -764,7 +766,7 @@ class InMission:
         for entity in self.entities:
             room = self.findRoom(entity.x,entity.y)
             if room != None:
-                if not entity.dead and (self.shipDoorState != 'closed' or room.name == 'ship'):
+                if not entity.dead and (self.shipDoorState != 'closed' or room.name == 'ship') and not entity.burrowed:
                     entity.draw()
 
         for entity in self.entities:
@@ -917,7 +919,7 @@ class InMission:
 
     def calculateNewDamageValue(self, value, damager, target):
         if hasattr(damager, "inventory"):
-            if (damager.inventory.leftHand.level < target.level or damager.inventory.leftHand.weapon.name == "None") and (damager.inventory.rightHand.level < target.level or damager.inventory.rightHand.weapon.name == "None"): #TODO : Make this also trigger if the enemy is a boss
+            if (damager.inventory.leftHand.level < target.level or damager.inventory.leftHand.weapon.name == "None") and (damager.inventory.rightHand.level < target.level or damager.inventory.rightHand.weapon.name == "None"): 
                 value *= 1+(damager.inventory.strongEnemiesDamageBoost)/100
 
             if target.health == target.maxHealth :
@@ -1137,6 +1139,8 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.attackList = []
         self.spawnedEnemies = []
 
+        self.burrowed = False
+
     def __str__(self):
         if type(self) == Player:
             return f"Type : Player, x : {self.x}, y : {self.y}, momentum : {self.momentum}, health : {self.health}"
@@ -1255,7 +1259,7 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.luck = self.baseLuck + self.inventory.extraLuck
 
     def canDoActions(self):
-        return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun")
+        return (hasattr(self, "isHitStun") and not self.isHitStun) or not hasattr(self, "isHitStun") and not self.burrowed
 
 
     def tempHealthDecay(self):
@@ -3245,11 +3249,8 @@ class Enemy(Entity): #Creates an entity that fights the player
                 self.rangedAttack("leftHand", self.target[0], self.target[1])
         
     
-    def isAttacking(self): #TODO eliott change this all to make it so it is true before attacking (maybe even change the name)
-        if hasattr(self,'isSlashing'):
-            return self.isSlashing
-        if hasattr(self,'isDashing'):
-            return self.isDashing
+    def isAttacking(self):
+        return (hasattr(self, "isMeleeFrozen") and self.isMeleeFrozen) or (hasattr(self, "isRangedFrozen") and self.isRangedFrozen)
         
 
     def imageGestion(self):
@@ -3309,7 +3310,6 @@ class Enemy(Entity): #Creates an entity that fights the player
                 if hasattr(self, "deathSpawn"):
                     for i in range(self.deathSpawn[0]) :
                         self.spawnedEnemies.append(self.deathSpawn[1])
-
 
 class Dummy(Enemy):
     def __init__(self, x ,y, level=0,id=0, spawned=False):
@@ -3456,6 +3456,28 @@ class Burrower(Enemy):
         self.initMeleeAttack(priority=1, freeze=0.75*FPS)
 
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+
+class JuvenileBurrower(Enemy):
+    def __init__(self, x ,y, level=0, id=0, spawned=False):
+        super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
+        self.name = 'Juvenile Burrower'
+        self.originalImage = (0,0)
+        self.image = (0,0)
+
+        self.health = 100+10*level
+        self.baseHealth = 100+10*level
+        self.maxHealth = 100+10*level
+
+        self.scaling = 1.5
+        self.initWalk(priority=0, maxSpeed=0.7, speedChangeRate=10, knockbackCoef=1)
+
+        self.inventory = Inventory()
+        self.inventory.leftHand.addWeapon(BURROWER_CLAW(), level)
+        self.initMeleeAttack(priority=1, freeze=0.75*FPS)
+
+        self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
+
+        self.burrowed = True
 
 
 
