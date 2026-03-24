@@ -234,7 +234,7 @@ class InMission:
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
 
     def spawnRandomEnemy(self,x,y):
-        EnemyClass = random.choice([Tisserand])
+        EnemyClass = random.choice([Spider, Bulwark, Pouncer, Broodmother])
         self.spawn(EnemyClass,x=x,y=y,level=self.level)
 
     def spawn(self,EnemyClass, x, y, level=0, spawned=False):
@@ -306,13 +306,15 @@ class InMission:
         if pyxel.btnp(pyxel.KEY_P):
             self.pickups.append(Pickup(self.player.x+10, self.player.y, GAUNTLETS()))
             self.pickups.append(Pickup(self.player.x+20, self.player.y, GRENADES()))
-            self.pickups.append(Pickup(self.player.x, self.player.y, MACE()))
+            self.pickups.append(Pickup(self.player.x, self.player.y, NANOBOT()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
 
         if pyxel.btnp(pyxel.KEY_N):
             self.player.fuel += 1
+            for entity in self.entities:
+                print(entity.name)
 
         if pyxel.btnp(pyxel.KEY_J):
             self.player.anims.append(AnimBoostTop([14,0]))
@@ -2474,6 +2476,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
             if self.inventory.extraLife > 0:
                 self.health = 0
                 self.heal += self.maxHealth
+                self.addAnimation(pos=[-10,-10],settings={'u':0,'v':9,'width':32,'height':32,'length':5,'duration':6,'overPlayer':True,'imageVector':(2,0)},lifetime='1 cycle')
                 self.inventory.extraLife -= 1
 
             else:
@@ -3095,6 +3098,7 @@ class Enemy(Entity): #Creates an entity that fights the player
         self.initPath()
         self.id = id
         self.target = (self.x,self.y)
+        self.secondStep = False
         
         self.initDeath(spawnItem=10, spawnFuel=10, spawnWeapon=10)
         self.walkMode = 'None'
@@ -3343,14 +3347,31 @@ class Enemy(Entity): #Creates an entity that fights the player
                 self.currentActionPriority = 0
                 self.rangedAttack("leftHand", self.target[0], self.target[1])
         
-        
+    
+    def isAttacking(self): #TODO eliott change this all to make it real
+        if hasattr(self,'isSlashing'):
+            return self.isSlashing
+        if hasattr(self,'isDashing'):
+            return self.isDashing
         
 
     def imageGestion(self):
-        if self.canDoActions():
-            self.image = self.originalImage
+        if not self.canDoActions():
+            self.image = [self.originalImage[0]+2*TILE_SIZE, self.originalImage[1]]
         else:
-            self.image = [self.originalImage[0]+TILE_SIZE, self.originalImage[1]]
+
+            if self.isAttacking():
+                self.image = [self.originalImage[0]+3*TILE_SIZE, self.originalImage[1]]
+            else:
+                
+                if self.secondStep:
+                    self.image = self.originalImage
+                else:
+                    self.image = [self.originalImage[0]+TILE_SIZE, self.originalImage[1]]
+
+
+        if onTick(60+self.id*2):
+            self.secondStep = not self.secondStep
 
     def death(self):
         if self.health <= 0 and not self.dead:
@@ -3409,8 +3430,8 @@ class Spider(Enemy):
     def __init__(self, x ,y, level=0, id=0, spawned=False):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Spider'
-        self.originalImage = (32,80)
-        self.image = (32,80)
+        self.originalImage = (0,0)
+        self.image = (0,0)
 
         self.health = 100
         self.maxHealth = 100
@@ -3428,8 +3449,8 @@ class Bulwark(Enemy):
     def __init__(self, x ,y, level=0,id=0, spawned=False):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Bulwark'
-        self.originalImage = (64,80)
-        self.image = (64,80)
+        self.originalImage = (0,16)
+        self.image = (0,16)
 
         self.health = 150
         self.maxHealth = 150
@@ -3444,8 +3465,8 @@ class Pouncer(Enemy):
     def __init__(self, x ,y, level=0,id=0, spawned=False):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Pouncer'
-        self.originalImage = (32,96)
-        self.image = (32,96)
+        self.originalImage = (0,32)
+        self.image = (0,32)
 
         self.health = 200
         self.maxHealth = 200
@@ -3460,8 +3481,8 @@ class Hatchling(Enemy):
     def __init__(self, x ,y, level=0, id=0, spawned=False):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Hatchling'
-        self.originalImage = (32,80)
-        self.image = (32,80)
+        self.originalImage = (0,80)
+        self.image = (0,80)
 
         self.health = 30
         self.maxHealth = 30
@@ -3479,8 +3500,8 @@ class Broodmother(Enemy):
     def __init__(self, x ,y, level=0,id=0, spawned=False):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Broodmother'
-        self.originalImage = (64,80)
-        self.image = (64,80)
+        self.originalImage = (0,64)
+        self.image = (0,64)
 
         self.health = 100
         self.maxHealth = 100
@@ -3497,8 +3518,8 @@ class Tisserand(Enemy):
     def __init__(self, x ,y, level=0, id=0, spawned=False):
         super().__init__(x=x, y=y, width=TILE_SIZE, height=TILE_SIZE,id=id, spawned=spawned)
         self.name = 'Tisserand'
-        self.originalImage = (32,80)
-        self.image = (32,80)
+        self.originalImage = (0,48)
+        self.image = (0,48)
 
         self.health = 70
         self.maxHealth = 70
