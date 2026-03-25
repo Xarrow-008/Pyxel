@@ -154,11 +154,13 @@ class Game:
     def restart(self):
         self.player.__init__(self.playerPos)
         self.level = 0
+        self.player.level = 0
         self.initWorldBuild()
 
     def nextLevel(self):
         self.place.player.fuel += -self.place.requiredFuel()
         self.level += 1
+        self.player.level += 1
         self.player.x, self.player.y = self.playerPos
         self.initWorldBuild()
 
@@ -1599,7 +1601,7 @@ class Entity: #General Entity class with all the methods describing what entitie
                 x = self.x+self.width/2
                 y = self.y+self.height/2
                     
-                attack = MeleeAttack(weapon, x, y, [cos, sin], self, self.attackId) #TODO : change this so that, like the bullets, it starts in front of where the player is facing instead of inside of them
+                attack = MeleeAttack(weapon, x, y, [cos, sin], self, self.attackId)
                 self.attackList.append(attack)
 
     def canMeleeAttack(self, hand):
@@ -1891,7 +1893,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         self.fuel = 0
 
-        self.level = 0 #TODO : Make this increase everytime the player escapes a bunker/ LEO: maybe put this variable in game or sum
+        self.level = 0
 
     def initCharacter(self):
         self.characterName = "Scrapper"
@@ -1992,7 +1994,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.lastShotFrame//self.shootFrameDuration*2, self.image[1] + self.facing[1]))
         
     def reloadDraw(self):
-        show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.reloadImage*2, self.image[1] + self.facing[1] - 2)) #TODO LEO backtrack, delete LastreloadFrame, make it so it works with the weapon reload time, in imageGestion, make anims at like 1/2 of reload time n everything
+        show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.reloadImage*2, self.image[1] + self.facing[1] - 2)) 
 
     def dashDraw(self):
         show(self.x, self.y, (self.image[0] + self.facing[0] + 2, self.image[1] + self.facing[1] + 2))
