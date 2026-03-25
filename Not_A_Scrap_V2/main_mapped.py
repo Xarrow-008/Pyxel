@@ -2309,15 +2309,15 @@ class Player(Entity): #Creates an entity that's controlled by the player
             self.direction[0] = 0
         
         #If the player is almost immobile in a specific direction, we snap their speed to 0
-        if abs(self.momentum[0]) <= 0.01:
+        if abs(self.momentum[0]) <= 0.05:
             self.momentum[0] = 0
-        if abs(self.momentum[1]) <= 0.01:
+        if abs(self.momentum[1]) <= 0.05:
             self.momentum[1] = 0
 
         #If the player is almost at max speed in a specific direction, we snap their speed to max speed
-        if self.maxSpeed-abs(self.momentum[0]) <= 0.01:
+        if self.maxSpeed-abs(self.momentum[0]) <= 0.05:
             self.momentum[0] = self.maxSpeed*pyxel.sgn(self.momentum[0])
-        if self.maxSpeed-abs(self.momentum[1]) <= 0.01:
+        if self.maxSpeed-abs(self.momentum[1]) <= 0.05:
             self.momentum[1] = self.maxSpeed*pyxel.sgn(self.momentum[1])
 
         #If the player is over max speed, we decrease their speed progressively
@@ -3228,9 +3228,9 @@ class Enemy(Entity): #Creates an entity that fights the player
         self.momentum[0] -= self.momentum[0]/self.speedChangeRate
         self.momentum[1] -= self.momentum[1]/self.speedChangeRate
 
-        if abs(self.momentum[0]) <= 0.01:
+        if abs(self.momentum[0]) <= 0.05:
             self.momentum[0] = 0
-        if abs(self.momentum[1]) <= 0.01:
+        if abs(self.momentum[1]) <= 0.05:
             self.momentum[1] = 0
 
         if hasattr(self, "inventory"):
