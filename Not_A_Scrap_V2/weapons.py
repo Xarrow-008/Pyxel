@@ -991,7 +991,7 @@ class WEB(RangedWeapon):
         name = "Web"
         shortDescription = "Web attack"
         handNumber = 1
-        image = (136,64)
+        image = (236,64)
         width = TILE_SIZE
         height = TILE_SIZE
 
@@ -1003,7 +1003,7 @@ class WEB(RangedWeapon):
 
         mode = "automatic"
 
-        bulletImage = (136,64)
+        bulletImage = (236,64)
         bulletWidth = 4
         bulletHeight = 4
 

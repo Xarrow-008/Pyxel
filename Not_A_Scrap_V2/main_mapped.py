@@ -213,7 +213,7 @@ class InMission:
         #self.fillBasicEnemies()
 
         self.timerFrame = game_frame
-        self.timerDuration = 90*FPS
+        self.timerDuration = 200*FPS
         self.timerStatus = "Horde"
 
     def placeStairsLeveled(self):
@@ -312,8 +312,7 @@ class InMission:
 
         if pyxel.btnp(pyxel.KEY_P):
             self.pickups.append(Pickup(self.player.x+10, self.player.y, FLAMETHROWER()))
-            self.pickups.append(Pickup(self.player.x+20, self.player.y, SACK()))
-            self.pickups.append(Pickup(self.player.x, self.player.y, NANOBOT()))
+            self.pickups.append(Pickup(self.player.x+20, self.player.y, RUSTY_PISTOL()))
             
         if pyxel.btnp(pyxel.KEY_O):
             self.hurt(500, [0,0], 1, 0, self.player, self.player)
@@ -3305,7 +3304,7 @@ class Enemy(Entity): #Creates an entity that fights the player
         if (hasattr(self, "burrowed") and self.burrowed):
             self.image = [self.originalImage[0]+4*TILE_SIZE, self.originalImage[1]]
 
-        if self.isInWall():
+        if self.isInWall() and 2 in self.canWalk:
             self.image = [self.originalImage[0]+5*TILE_SIZE, self.originalImage[1]]
 
 
@@ -3657,6 +3656,30 @@ class AnimRevive(Animation):
     def __init__(self,pos,lifetime='1 cycle'):
         super().__init__(pos=pos,
                         settings={'u':0,'v':9,'width':32,'height':32,'length':5,'duration':6,'overPlayer':True},
+                        lifetime=lifetime)
+
+class AnimSlashAcross(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':1,'v':7,'length':6,'duration':6,'overPlayer':True},
+                        lifetime=lifetime)
+                        
+class AnimSlashAround(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':1,'v':8,'length':6,'duration':6,'overPlayer':True},
+                        lifetime=lifetime)
+
+class AnimSlashStraight(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':3,'v':6,'length':6,'duration':6,'overPlayer':True},
+                        lifetime=lifetime)
+                        
+class AnimSlashFront(Animation):
+    def __init__(self,pos,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':3,'v':5,'length':6,'duration':6,'overPlayer':True},
                         lifetime=lifetime)
 
 
