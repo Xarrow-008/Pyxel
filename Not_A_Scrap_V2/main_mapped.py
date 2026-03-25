@@ -1269,8 +1269,6 @@ class Entity: #General Entity class with all the methods describing what entitie
         oldMaxHealth = self.maxHealth
         self.maxHealth = self.baseHealth + self.inventory.flatMaxHealth
         if oldMaxHealth < self.maxHealth:
-            print(oldMaxHealth)
-            print(self.maxHealth)
             self.heal += self.maxHealth-oldMaxHealth
 
         if hasattr(self, "maxSpeed"):
@@ -3008,8 +3006,6 @@ class Inventory:
 
             elif effect["scaling"]=="incremental":
                 setattr(self, effect["stat"], (getattr(self, effect["stat"])+effect["value"]))
-
-            print(effect["stat"], getattr(self, effect["stat"]))
         
         self.recalculateStats = True
 

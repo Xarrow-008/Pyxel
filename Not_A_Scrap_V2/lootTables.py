@@ -43,34 +43,36 @@ class LootTable:
 COMMON_TABLE = LootTable("commonTable", [[x,1,1] for x in ITEM_LIST if x.rarity=="common"])
 RARE_TABLE = LootTable("rareTable", [[x,1,1] for x in ITEM_LIST if x.rarity=="rare"])
 LEGENDARY_TABLE = LootTable("legendaryTable", [[x,1,1] for x in ITEM_LIST if x.rarity=="legendary"])
-ITEM_TABLE = LootTable("itemTable",[[COMMON_TABLE,75,1], [RARE_TABLE,20,2], [LEGENDARY_TABLE,5,3]])
+MYTHICAL_TABLE = LootTable("mythicalTable", [[x,1,1] for x in ITEM_LIST if x.rarity=="mythical"])
+ITEM_TABLE = LootTable("itemTable",[[COMMON_TABLE,75,1], [RARE_TABLE,20,2], [LEGENDARY_TABLE,5,3], [MYTHICAL_TABLE, 2, 4]])
 FUEL_TABLE = LootTable("fuelTable",[[SMALL_FUEL(),75, 1], [MEDIUM_FUEL(),20,2], [BIG_FUEL(),5,3]])
 WEAPON_TABLE = LootTable("weaponTable",[[x, 1, 1] for x in WEAPON_LIST])
 GENERAL_TABLE = LootTable("generalTable",[[ITEM_TABLE,1,1], [FUEL_TABLE,1,1], [WEAPON_TABLE,1,1]])
-INCREASED_ITEM_TABLE = LootTable("increasedItemTable",[[RARE_TABLE,20,2], [LEGENDARY_TABLE,5,3]])
+INCREASED_ITEM_TABLE = LootTable("increasedItemTable",[[RARE_TABLE,20,2], [LEGENDARY_TABLE,5,3], [MYTHICAL_TABLE, 2, 4]])
 INCREASED_GENERAL_TABLE = LootTable("increasedGeneralTable",[[INCREASED_ITEM_TABLE,1,1], [FUEL_TABLE,1,1], [WEAPON_TABLE,1,1]])
 
 COMMON_HEAL_TABLE = LootTable("commonHealTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="common" and x.type=="healing"])
 RARE_HEAL_TABLE = LootTable("rareHealTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="rare" and x.type=="healing"])
 LEGENDARY_HEAL_TABLE = LootTable("legendaryHealTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="legendary" and x.type=="healing"])
-HEAL_TABLE = LootTable("healTable",[[COMMON_HEAL_TABLE, 75, 1], [RARE_HEAL_TABLE, 20, 2], [LEGENDARY_HEAL_TABLE, 5, 3]])
-INCREASED_HEAL_TABLE = LootTable("increasedHealTable",[[RARE_HEAL_TABLE, 20, 2], [LEGENDARY_HEAL_TABLE, 5, 3]])
+MYTHICAL_HEAL_TABLE = LootTable("mythicalHealTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="mythical" and x.type=="healing"])
+HEAL_TABLE = LootTable("healTable",[[COMMON_HEAL_TABLE, 75, 1], [RARE_HEAL_TABLE, 20, 2], [LEGENDARY_HEAL_TABLE, 5, 3], [MYTHICAL_HEAL_TABLE, 2, 4]])
+INCREASED_HEAL_TABLE = LootTable("increasedHealTable",[[RARE_HEAL_TABLE, 20, 2], [LEGENDARY_HEAL_TABLE, 5, 3], [MYTHICAL_HEAL_TABLE, 2, 4]])
 
 COMMON_SUPPORT_TABLE = LootTable("commonHealTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="common" and x.type=="support"])
 RARE_SUPPORT_TABLE = LootTable("rareSupportTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="rare" and x.type=="support"])
 LEGENDARY_SUPPORT_TABLE = LootTable("legendarySupportTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="legendary" and x.type=="support"])
-SUPPORT_TABLE = LootTable("supportTable",[[COMMON_SUPPORT_TABLE, 75, 1], [RARE_SUPPORT_TABLE, 20, 2], [LEGENDARY_SUPPORT_TABLE, 5, 3]])
-INCREASED_SUPPORT_TABLE = LootTable("increasedSupportTable",[[RARE_SUPPORT_TABLE, 20, 2], [LEGENDARY_SUPPORT_TABLE, 5, 3]])
+MYTHICAL_SUPPORT_TABLE = LootTable("mythicalSupportTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="mythical" and x.type=="support"])
+SUPPORT_TABLE = LootTable("supportTable",[[COMMON_SUPPORT_TABLE, 75, 1], [RARE_SUPPORT_TABLE, 20, 2], [LEGENDARY_SUPPORT_TABLE, 5, 3], [MYTHICAL_SUPPORT_TABLE, 2, 4]])
+INCREASED_SUPPORT_TABLE = LootTable("increasedSupportTable",[[RARE_SUPPORT_TABLE, 20, 2], [LEGENDARY_SUPPORT_TABLE, 5, 3], [MYTHICAL_SUPPORT_TABLE, 2, 4]])
 
 COMMON_DAMAGE_TABLE = LootTable("commonDamageTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="common" and x.type=="damage"])
 RARE_DAMAGE_TABLE = LootTable("rareDamageTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="rare" and x.type=="damage"])
 LEGENDARY_DAMAGE_TABLE = LootTable("legendaryDamageTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="legendary" and x.type=="damage"])
-DAMAGE_TABLE = LootTable("damageTable",[[COMMON_DAMAGE_TABLE, 75, 1], [RARE_DAMAGE_TABLE, 20, 2], [LEGENDARY_DAMAGE_TABLE, 5, 3]])
-INCREASED_DAMAGE_TABLE = LootTable("increasedDamageTable",[[RARE_DAMAGE_TABLE, 20, 2], [LEGENDARY_DAMAGE_TABLE, 5, 3]])
+MYTHICAL_DAMAGE_TABLE = LootTable("mythicalDamageTable",[[x,1,1] for x in ITEM_LIST if x.rarity=="mythical" and x.type=="damage"])
+DAMAGE_TABLE = LootTable("damageTable",[[COMMON_DAMAGE_TABLE, 75, 1], [RARE_DAMAGE_TABLE, 20, 2], [LEGENDARY_DAMAGE_TABLE, 5, 3], [MYTHICAL_DAMAGE_TABLE, 2, 4]])
+INCREASED_DAMAGE_TABLE = LootTable("increasedDamageTable",[[RARE_DAMAGE_TABLE, 20, 2], [LEGENDARY_DAMAGE_TABLE, 5, 3], [MYTHICAL_DAMAGE_TABLE, 2, 4]])
 
 def increaseRarity(lootTable):
-    print(lootTable.name)
-    print(GENERAL_TABLE.name)
     if lootTable.name == "generalTable":
         return INCREASED_GENERAL_TABLE
     elif lootTable.name == "itemTable":

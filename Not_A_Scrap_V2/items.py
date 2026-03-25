@@ -498,7 +498,7 @@ class FANG(Item): #Matriarch Boss Item, a fang from its mouth
     def __init__(self):
         self.name = "Monstrous Fang"
         self.image = (160,128)
-        self.rarity = "boss"
+        self.rarity = "mythical"
         self.type = "healing" #also damage, but doesn't matter for boss items
         self.effects = [
             {"stat":"healSharePoisonKill", "scaling":"arithmetic", "initial_term":50, "reason":50}]
@@ -509,7 +509,7 @@ class ERUDITE_TUMOR(Item): #Entropy Boss Item, one of the many tumors that compo
     def __init__(self):
         self.name = "Erudite Tumor"
         self.image = (176,128)
-        self.rarity = "boss"
+        self.rarity = "mythical"
         self.type = "damage"
         self.effects = [
             {"stat":"explosionImpactDamageShare", "scaling":"arithmetic", "initial_term":75, "reason":50},
@@ -521,7 +521,7 @@ class MACHINE_BLOOD(Item): #Vanguard Boss Item, bottle of a highly energetic and
     def __init__(self):
         self.name = "Machine Blood Vial"
         self.image = (192,128)
-        self.rarity = "boss"
+        self.rarity = "mythical"
         self.type = "support"
         self.effects = [
             {"stat":"shipFuelCostDecrease", "scaling":"arithmetic", "initial_term":3, "reason":3},
@@ -533,7 +533,7 @@ class TROPHIES(Item): #Apex Boss Item, heads of various creatures its killed
     def __init__(self):
         self.name = "Hunting Trophies"
         self.image = (160,144)
-        self.rarity = "boss"
+        self.rarity = "mythical"
         self.type = "damage"
         self.effects = [
             {"stat":"killStreakDamageIncrease", "scaling":"arithmetic", "initial_term":5, "reason":5}]
@@ -544,7 +544,7 @@ class LANCE(Item): #Zenith Boss Item, one of its spears
     def __init__(self):
         self.name = "Lance of Hyperion" 
         self.image = (176,144)
-        self.rarity = "boss"
+        self.rarity = "mythical"
         self.type = "damage"
         self.effects = [
             {"stat":"spearBaseDamage", "scaling":"arithmetic", "initial_term":50, "reason":50}]
@@ -555,7 +555,7 @@ class BOOK_BRASIER(Item): #Aegir Boss Item, basically the Celestial equivalent o
     def __init__(self):
         self.name = "Book of the Brasier" 
         self.image = (192,144)
-        self.rarity = "boss"
+        self.rarity = "mythical"
         self.type = "healing"
         self.effects = [
             {"stat":"fireRingEffect", "scaling":"arithmetic", "initial_term":1, "reason":1},
