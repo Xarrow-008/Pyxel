@@ -1,7 +1,6 @@
 import pyxel,os,math,random, csv, utility
 from weapons import*
 from items import*
-from interactables import*
 from furniture import*
 from construct import*
 from copy import deepcopy as copy
@@ -46,6 +45,36 @@ class App:
 
 class Menu:
     def __init__(self):
+        self.state = HeadMenu()
+        self.switch = Switch()
+
+    def update(self):
+        self.state.update()
+
+        self.checkSwitch()
+
+    def draw(self):
+        self.state.draw()
+
+    def checkSwitch(self):
+        if self.state.switch.ready:
+            destination = self.state.switch.to
+            if destination == 'play':
+                self.switch.change('game')
+            elif destination == 'controls':
+                self.state = ControlsMenu()
+            elif destination == 'head menu':
+                self.state = HeadMenu()
+
+            
+
+
+
+
+
+
+class HeadMenu:
+    def __init__(self):
         self.buttons = ButtonList()
         self.switch = Switch()
 
@@ -78,16 +107,76 @@ class Menu:
 
     def checkControls(self):
         if self.buttons.controls.pressed():
-            self.switch = {}
+            self.switch.change('controls')
 
     def quitGame(self):
         if self.buttons.quit.pressed():
             pyxel.quit()
 
+class ControlsMenu:
+    def __init__(self):
+        self.buttons = ButtonList()
+        self.switch = Switch()
+
+        self.placeButtons()
+
+    def placeButtons(self):
+        self.buttons.add(Button('Back',1,10,230,40,20),'back')
+
+
+        for button in self.buttons.list():
+            button.showName = True 
+
+
+    def update(self):
+        self.checkActions()
+
+
+    def draw(self):
+
+        sized_text(10,10,'up : Z',9,size=12)
+        sized_text(10,25,'down : S',9,size=12)
+        sized_text(10,40,'left : Q',9,size=12)
+        sized_text(10,55,'right : D',9,size=12)
+
+        sized_text(10,80,'dash : SPACE',9,size=12)
+        sized_text(10,95,'use left hand weapon : LEFT CLICK',9,size=12,limit=310)
+        sized_text(10,110,'use right hand weapon : RIGHT CLICK',9,size=12,limit=310)
+        sized_text(10,125,'interact : F',9,size=12)
+
+        sized_text(10,150,'inventory : TAB',9,size=12)
+        sized_text(10,165,'left hand : A',9,size=12)
+        sized_text(10,180,'right hand : E',9,size=12)
+        sized_text(10,195,'drop : X + hand',9,size=12)
+        sized_text(10,210,'switch hands : C',9,size=12)
+
+
+
+
+
+
+        self.buttons.back.draw()
+
+
+    def checkActions(self):
+        self.checkBack()
+
+
+    def checkBack(self):
+        if self.buttons.back.pressed():
+            self.switch.change('head menu')
+
+
+
 class Switch:
     ready = False
     to = ''
     arguments = []
+    def change(self,to,args=[]):
+        self.ready = True
+        self.to = to
+        self.arguments = args
+
 
 
 
@@ -95,7 +184,9 @@ class Switch:
 
 
 class ButtonList:
-    attrList = []
+    def __init__(self):
+        self.attrList = []
+        
     def list(self):
         return [getattr(self,attr) for attr in self.attrList] #self.list -> [button1, button2, button3 ...]
 

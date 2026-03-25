@@ -24,7 +24,7 @@ class App:
 
         os.system('cls')
         pyxel.init(CAM_WIDTH,CAM_HEIGHT,fps=FPS)
-        pyxel.load('../notAScrap.pyxres')
+        pyxel.load('notAScrap.pyxres')
         pyxel.colors[1] = getColor('232A4F')
         pyxel.colors[2] = getColor('740152')
         pyxel.colors[14] = getColor('C97777')
@@ -1205,7 +1205,8 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             self.movement()
 
-            self.dash()
+            if hasattr(self, "isDashing"):
+                self.dash()
 
             self.collision()
 
@@ -1469,7 +1470,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.applyVector(vector)
 
 
-    def initDash(self, priority, cooldown, speed, duration, invincibility, damage=0, freeze=0): #Gets the parameters of the "dash" action, and initialises the related variables
+    def initDash(self, priority, cooldown, speed, duration, invincibility, damage=0): #Gets the parameters of the "dash" action, and initialises the related variables
         self.dashPriority = priority
         self.baseDashCooldown = cooldown
         self.dashCooldown = cooldown
@@ -1487,9 +1488,6 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.dashInvincibilityDuration = invincibility
 
         self.dashDamage = damage
-        self.dashFreezeDuration = freeze
-        self.dashFreezeFrame = 0
-        self.isDashFrozen = False
 
     def startDash(self, vector): #Used for dashing/lunging
         if self.canStartDash():
@@ -3245,17 +3243,11 @@ class Enemy(Entity): #Creates an entity that fights the player
         
 
     def dash(self):
-        if hasattr(self, "isDashing") :
-            if not self.isDashFrozen and distance(self.x, self.y, self.target[0], self.target[1]) <= self.dashSpeed*self.dashDuration*0.7 and timer(self.dashFreezeFrame, self.dashFreezeDuration, game_frame) :
-                self.currentActionPriority = self.dashPriority
-                self.dashFreezeFrame = game_frame
-                self.isDashFrozen = True
-            if self.isDashFrozen and timer(self.dashFreezeFrame, self.dashFreezeDuration, game_frame) :
-                self.isDashFrozen = False
-                vector = getVector(self.x, self.target[0], self.y, self.target[1])
-                self.startDash(vector)
-            if self.isDashing:
-                self.dashMovement()            
+        if self.isDashing:
+            self.dashMovement()
+        elif distance(self.x, self.y, self.target[0], self.target[1]) <= self.dashSpeed*self.dashDuration*0.7:
+            vector = getVector(self.x, self.target[0], self.y, self.target[1])
+            self.startDash(vector)
 
     def collision(self):
         pass
@@ -3413,7 +3405,7 @@ class Pouncer(Enemy):
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.2, speedChangeRate=10, knockbackCoef=1)
-        self.initDash(priority=1, cooldown=2*FPS, speed=2, duration=0.5*FPS, invincibility=False, damage=15, freeze=0.5*FPS)
+        self.initDash(priority=1, cooldown=2*FPS, speed=2, duration=0.5*FPS, invincibility=False, damage=15)
 
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
 
