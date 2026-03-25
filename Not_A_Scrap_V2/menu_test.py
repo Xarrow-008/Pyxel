@@ -47,6 +47,9 @@ class Menu:
     def __init__(self):
         self.state = HeadMenu()
         self.switch = Switch()
+        self.stars = []
+
+        self.fillStars()
 
     def update(self):
         self.state.update()
@@ -54,7 +57,26 @@ class Menu:
         self.checkSwitch()
 
     def draw(self):
+        self.backgroundDraw()
         self.state.draw()
+
+    def backgroundDraw(self):
+        for star in self.stars:
+            x,y = star
+            pyxel.pset(x,y,7)
+            if random.randint(0,5000) == 0:
+                pyxel.pset(x,y-1,7)
+                pyxel.pset(x,y+1,7)
+                pyxel.pset(x-1,y,7)
+                pyxel.pset(x+1,y,7)
+
+        draw(220,60,1,144,48,32,32,colkey=11,scale=4)
+
+    def fillStars(self):
+        for i in range(400):
+            x = random.randint(0,CAM_WIDTH)
+            y = random.randint(0,CAM_HEIGHT)
+            self.stars.append((x,y))
 
     def checkSwitch(self):
         if self.state.switch.ready:
@@ -65,12 +87,6 @@ class Menu:
                 self.state = ControlsMenu()
             elif destination == 'head menu':
                 self.state = HeadMenu()
-
-            
-
-
-
-
 
 
 class HeadMenu:
@@ -139,16 +155,16 @@ class ControlsMenu:
         sized_text(10,40,'left : Q',9,size=12)
         sized_text(10,55,'right : D',9,size=12)
 
-        sized_text(10,80,'dash : SPACE',9,size=12)
-        sized_text(10,95,'use left hand weapon : LEFT CLICK',9,size=12,limit=310)
-        sized_text(10,110,'use right hand weapon : RIGHT CLICK',9,size=12,limit=310)
-        sized_text(10,125,'interact : F',9,size=12)
+        sized_text(10,80,'dash : SPACE',6,size=12)
+        sized_text(10,95,'use left hand weapon : LEFT CLICK',6,size=12,limit=310)
+        sized_text(10,110,'use right hand weapon : RIGHT CLICK',6,size=12,limit=310)
+        sized_text(10,125,'interact : F',6,size=12)
 
-        sized_text(10,150,'inventory : TAB',9,size=12)
-        sized_text(10,165,'left hand : A',9,size=12)
-        sized_text(10,180,'right hand : E',9,size=12)
-        sized_text(10,195,'drop : X + hand',9,size=12)
-        sized_text(10,210,'switch hands : C',9,size=12)
+        sized_text(10,150,'inventory : TAB',8,size=12)
+        sized_text(10,165,'left hand : A',8,size=12)
+        sized_text(10,180,'right hand : E',8,size=12)
+        sized_text(10,195,'drop : X + hand',8,size=12)
+        sized_text(10,210,'switch hands : C',8,size=12)
 
 
 
@@ -217,15 +233,18 @@ class Button:
     def draw(self):
         pyxel.rect(self.x,self.y,self.width,self.height,self.color)
         if self.showName:
-            size = len(self.name)
-            width = self.width-2
-            if width > size*4:
-                pyxel.text(self.x + 1 + (width - size*4)/2, self.y + 5, self.name, 9)
-            else:
-                string = self.name
-                for i in range(4*size//width+1):
-                    pyxel.text(self.x + 1, self.y + 5 + 7*i, string[:width//4], 9)
-                    string = string[width//4:]
+            self.drawName()
+
+    def drawName(self):
+        size = len(self.name)
+        width = self.width-2
+        if width > size*4:
+            pyxel.text(self.x + 1 + (width - size*4)/2, self.y + 5, self.name, 9)
+        else:
+            string = self.name
+            for i in range(4*size//width+1):
+                pyxel.text(self.x + 1, self.y + 5 + 7*i, string[:width//4], 9)
+                string = string[width//4:]
 
 
 
