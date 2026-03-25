@@ -55,30 +55,27 @@ class MeleeWeapon(Weapon):
 
         self.mode = meleeWeaponInfo[0]
 
-        self.attackImage = meleeWeaponInfo[1]
-        self.attackWidth = meleeWeaponInfo[2]
-        self.attackHeight = meleeWeaponInfo[3]
+        self.attackAnim = meleeWeaponInfo[1]
 
-        self.hitBoxWidth = meleeWeaponInfo[4]
-        self.range = meleeWeaponInfo[5]
-        self.maxAngle = meleeWeaponInfo[6]
+        self.hitBoxWidth = meleeWeaponInfo[2]
+        self.range = meleeWeaponInfo[3]
+        self.maxAngle = meleeWeaponInfo[4]
 
-        self.attackSpeed = meleeWeaponInfo[7]
+        self.attackSpeed = meleeWeaponInfo[5]
 
-        self.damage = meleeWeaponInfo[8]
-        self.piercing = meleeWeaponInfo[9]
-        self.knockbackCoef = meleeWeaponInfo[10]
+        self.damage = meleeWeaponInfo[6]
+        self.piercing = meleeWeaponInfo[7]
+        self.knockbackCoef = meleeWeaponInfo[8]
 
-        self.attackCooldown = meleeWeaponInfo[11]
+        self.attackCooldown = meleeWeaponInfo[9]
 
-        self.durability = meleeWeaponInfo[12]
-        self.baseDurability = meleeWeaponInfo[13]
+        self.durability = meleeWeaponInfo[10]
+        self.baseDurability = meleeWeaponInfo[11]
 
         self.baseWeaponInfo = baseWeaponInfo
-        #TODO, complete this when we implement melee weapons
 
     def copy(self):
-        return MeleeWeapon(self.baseWeaponInfo, [self.mode, self.attackImage, self.attackWidth, self.attackHeight, self.hitBoxWidth, self.range, self.maxAngle, self.attackSpeed, self.damage, self.piercing, self.knockbackCoef, self.attackCooldown, self.durability, self.baseDurability])
+        return MeleeWeapon(self.baseWeaponInfo, [self.mode, self.attackAnim, self.hitBoxWidth, self.range, self.maxAngle, self.attackSpeed, self.damage, self.piercing, self.knockbackCoef, self.attackCooldown, self.durability, self.baseDurability])
 
 
 
@@ -99,9 +96,7 @@ class NO_WEAPON(MeleeWeapon):
 
         mode = "thrust"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Front"
 
         hitBoxWidth = TILE_SIZE
         range = TILE_SIZE
@@ -118,7 +113,7 @@ class NO_WEAPON(MeleeWeapon):
         durability = 0
         baseDurability = 0
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -139,9 +134,7 @@ class RUSTY_KNIFE(MeleeWeapon):
 
         mode = "cut"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Across"
 
         hitBoxWidth = TILE_SIZE
         range = 1.75*TILE_SIZE
@@ -158,7 +151,7 @@ class RUSTY_KNIFE(MeleeWeapon):
         durability = 120
         baseDurability = 120
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -179,9 +172,7 @@ class PARRYING_DAGGER(MeleeWeapon):
 
         mode = "cut"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Across"
 
         hitBoxWidth = TILE_SIZE
         range = 2*TILE_SIZE
@@ -198,7 +189,7 @@ class PARRYING_DAGGER(MeleeWeapon):
         durability = 120
         baseDurability = 120
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -219,9 +210,7 @@ class SYRINGE(MeleeWeapon):
 
         mode = "thrust"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Straight"
 
         hitBoxWidth = 8
         range = 2*TILE_SIZE
@@ -238,7 +227,7 @@ class SYRINGE(MeleeWeapon):
         durability = 70
         baseDurability = 70
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -259,9 +248,7 @@ class MACE(MeleeWeapon):
 
         mode = "thrust"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Front"
 
         hitBoxWidth = TILE_SIZE+4
         range = 1.5*TILE_SIZE
@@ -278,7 +265,7 @@ class MACE(MeleeWeapon):
         durability = 140
         baseDurability = 140
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -299,9 +286,7 @@ class STAFF(MeleeWeapon):
 
         mode = "thrust"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Straight"
 
         hitBoxWidth = 4
         range = 4*TILE_SIZE
@@ -318,7 +303,7 @@ class STAFF(MeleeWeapon):
         durability = 100
         baseDurability = 100
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -339,9 +324,7 @@ class GREATSWORD(MeleeWeapon):
 
         mode = "cut"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Around"
 
         hitBoxWidth = TILE_SIZE
         range = 2*TILE_SIZE
@@ -358,7 +341,7 @@ class GREATSWORD(MeleeWeapon):
         durability = 160
         baseDurability = 160
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -379,9 +362,7 @@ class HALBERD(MeleeWeapon):
 
         mode = "cut"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Across"
 
         hitBoxWidth = TILE_SIZE
         range = 3*TILE_SIZE
@@ -398,7 +379,7 @@ class HALBERD(MeleeWeapon):
         durability = 130
         baseDurability = 130
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -419,9 +400,7 @@ class GAUNTLETS(MeleeWeapon):
 
         mode = "thrust"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Straight"
 
         hitBoxWidth = TILE_SIZE
         range = 1.75*TILE_SIZE
@@ -438,7 +417,7 @@ class GAUNTLETS(MeleeWeapon):
         durability = 120
         baseDurability = 120
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -883,9 +862,7 @@ class CLAW_WEAPON(MeleeWeapon):
 
         mode = "cut"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Across"
 
         hitBoxWidth = TILE_SIZE
         range = 1.75*TILE_SIZE
@@ -902,7 +879,7 @@ class CLAW_WEAPON(MeleeWeapon):
         durability = 999
         baseDurability = 999
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -923,9 +900,7 @@ class BITE(MeleeWeapon):
 
         mode = "thrust"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Straight"
 
         hitBoxWidth = 12
         range = 1.75*TILE_SIZE
@@ -942,7 +917,7 @@ class BITE(MeleeWeapon):
         durability = 999
         baseDurability = 999
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -963,9 +938,7 @@ class HATCHLING_BITE(MeleeWeapon):
 
         mode = "thrust"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Straight"
 
         hitBoxWidth = 8
         range = 1.6*TILE_SIZE
@@ -982,7 +955,7 @@ class HATCHLING_BITE(MeleeWeapon):
         durability = 999
         baseDurability = 999
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)
 
@@ -1049,9 +1022,7 @@ class BURROWER_CLAW(MeleeWeapon):
 
         mode = "cut"
 
-        attackImage = (0,0)
-        attackWidth = TILE_SIZE
-        attackHeight = TILE_SIZE
+        attackAnim = "Across"
 
         hitBoxWidth = TILE_SIZE
         range = 1.75*TILE_SIZE
@@ -1068,6 +1039,6 @@ class BURROWER_CLAW(MeleeWeapon):
         durability = 999
         baseDurability = 999
 
-        meleeWeaponInfo = [mode, attackImage, attackWidth, attackHeight, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
+        meleeWeaponInfo = [mode, attackAnim, hitBoxWidth, range, maxAngle, attackSpeed, damage, piercing, knockbackCoef, attackCooldown, durability, baseDurability]
 
         super().__init__(baseWeaponInfo, meleeWeaponInfo)

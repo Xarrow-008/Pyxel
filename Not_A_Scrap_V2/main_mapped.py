@@ -323,7 +323,7 @@ class InMission:
                 print(entity.name)
 
         if pyxel.btnp(pyxel.KEY_J):
-            self.player.anims.append(AnimBoostTop([14,0]))
+            self.player.anims.append(AnimSlashAround([1,0], 0))
 
         if pyxel.btnp(pyxel.KEY_L):
             self.player.addStatusEffect("fire")
@@ -639,7 +639,7 @@ class InMission:
                 entity.storedLinkedDamage = 0
 
             room = self.findRoom(entity.x,entity.y)
-            conditionUpdate = type(entity) == Projectile
+            conditionUpdate = (type(entity) == Projectile or type(entity) == MeleeAttack)
 
             if room is None:
                 if distance(self.player.x,self.player.y,entity.x,entity.y) < CAM_WIDTH:
@@ -1183,7 +1183,6 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
     def update(self):
-
         self.getConditions()
 
         self.baseUpdate()
@@ -1198,7 +1197,8 @@ class Entity: #General Entity class with all the methods describing what entitie
             for i in range(self.passiveSpawn[1]) :
                 self.spawnedEnemies.append(self.passiveSpawn[2])
 
-        self.statusEffects()
+        if hasattr(self, "maxHealth"):
+            self.statusEffects()
 
         self.hitstun()
 
@@ -1230,7 +1230,10 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def drawAnims(self):
         for anim in self.anims:
-            anim.draw(self.x,self.y)
+            if type(self)==MeleeAttack and self.weapon.mode == "cut":
+                anim.draw(self.x2, self.y2)
+            else:
+                anim.draw(self.x, self.y)
 
 
     def getConditions(self): #Basically just a bunch of booleans used to check whether or not an item's effect has to be triggered
@@ -1388,7 +1391,6 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def updateAnims(self):
         self.addStatusMarkers()
-
         for anim in self.anims:
             anim.update()
             if anim.is_dead():
@@ -1870,7 +1872,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
-        self.inventory.addWeapon(MACE(), 0, self)
+        self.inventory.addWeapon(RUSTY_KNIFE(), 0, self)
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -1893,6 +1895,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.fuel = 0
 
         self.level = 0
+
+        
 
     def initCharacter(self):
         self.characterName = "Scrapper"
@@ -2566,15 +2570,6 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
         self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0, canWalk=[0,1])
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         self.initialiseNewCollisions()
-        
-
-    def update(self):
-
-        self.movement()
-
-        self.collision()
-        
-        self.death()
 
     def draw(self):
         if type(self.weapon) == LANCE_PROJECTILE:
@@ -2631,12 +2626,16 @@ class MeleeAttack(Entity) :
         self.range = weapon.range * (1+owner.inventory.rangeIncrease/100)
 
         if self.mode == "thrust" : 
-            super().__init__(x=x, y=y, width=weapon.attackWidth, height=weapon.attackHeight)
+            width = weapon.hitBoxWidth*(-vector[1])
+            height = weapon.hitBoxWidth*(vector[0])
+            super().__init__(x=x, y=y, width=width, height=height)
             self.normalVector = [-vector[1], vector[0]]
+            self.angle = (math.acos(vector[0])*pyxel.sgn(vector[1]))*(180/math.pi)
             self.hitBoxWidth = weapon.hitBoxWidth
         else :
             super().__init__(x=self.owner.x+self.owner.width/2, y=self.owner.y+self.owner.height/2, width=0, height=0)
             self.baseAngle = (math.acos(vector[0])*pyxel.sgn(vector[1]))*(180/math.pi) - weapon.maxAngle/2
+            self.angle = self.baseAngle
             self.targetAngle = self.baseAngle + weapon.maxAngle
 
             cos = pyxel.cos(self.baseAngle)
@@ -2656,8 +2655,6 @@ class MeleeAttack(Entity) :
 
         self.shot = shot
 
-        self.image = weapon.attackImage
-
         self.damage = weapon.damage
 
         if weapon.durability < math.ceil(weapon.baseDurability/10) and weapon.baseDurability != 0 :
@@ -2674,10 +2671,14 @@ class MeleeAttack(Entity) :
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         self.initialiseNewCollisions()
 
-    def update(self):
-        self.movement()
-        self.collision()
-        self.death()
+        if weapon.attackAnim == "Across":
+            self.anims.append(AnimSlashAcross([0,0], self.angle))
+        if weapon.attackAnim == "Around":
+            self.anims.append(AnimSlashAround([0,0], self.angle))
+        if weapon.attackAnim == "Straight":
+            self.anims.append(AnimSlashStraight([0,0], self.angle))
+        if weapon.attackAnim == "Front":
+            self.anims.append(AnimSlashFront([0,0], self.angle))
 
     def initialiseNewCollisions(self):
         if "onHitPoison" in self.weapon.specialEffects.keys():
@@ -2720,9 +2721,8 @@ class MeleeAttack(Entity) :
             self.x2 = self.x + self.direction[0]*self.range
             self.y2 = self.y + self.direction[1]*self.range
 
-    def draw(self) : #TODO : replace this with an animation for the melee attack
-        pyxel.line(x1=self.x, y1=self.y, x2=self.x2, y2=self.y2, col=7)
-
+    def draw(self):
+        pass
 class Pickup:
     def __init__(self, x, y, pickup):
         self.x = x
@@ -3532,7 +3532,7 @@ class Animation:
         self.pos = pos
         self.posRelative = True
         self.colkey = 11
-        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7,False), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0),'overPlayer':False}
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7,False), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0),'overPlayer':False, 'rotate':0}
 
         self.apply_settings()
 
@@ -3548,10 +3548,10 @@ class Animation:
             
     def draw(self,x,y):
         if self.posRelative:
-            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey, rotate=self.settings["rotate"])
             sized_text(x + self.pos[0], y + self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         else:
-            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey, rotate=self.settings["rotate"])
             sized_text(self.pos[0], self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         
     def get_img(self):
@@ -3659,27 +3659,27 @@ class AnimRevive(Animation):
                         lifetime=lifetime)
 
 class AnimSlashAcross(Animation):
-    def __init__(self,pos,lifetime='1 cycle'):
+    def __init__(self,pos, angle,lifetime='1 cycle'):
         super().__init__(pos=pos,
-                        settings={'u':1,'v':7,'length':6,'duration':6,'overPlayer':True},
+                        settings={'u':1,'v':7,'length':6,'duration':6,'overPlayer':True, 'rotate':angle},
                         lifetime=lifetime)
                         
 class AnimSlashAround(Animation):
-    def __init__(self,pos,lifetime='1 cycle'):
+    def __init__(self,pos, angle,lifetime='1 cycle'):
         super().__init__(pos=pos,
-                        settings={'u':1,'v':8,'length':6,'duration':6,'overPlayer':True},
+                        settings={'u':1,'v':8,'length':6,'duration':16,'overPlayer':True, 'rotate':angle},
                         lifetime=lifetime)
 
 class AnimSlashStraight(Animation):
-    def __init__(self,pos,lifetime='1 cycle'):
+    def __init__(self,pos, angle,lifetime='1 cycle'):
         super().__init__(pos=pos,
-                        settings={'u':3,'v':6,'length':6,'duration':6,'overPlayer':True},
+                        settings={'u':3,'v':6,'length':6,'duration':6,'overPlayer':True, 'rotate':angle},
                         lifetime=lifetime)
                         
 class AnimSlashFront(Animation):
-    def __init__(self,pos,lifetime='1 cycle'):
+    def __init__(self,pos, angle,lifetime='1 cycle'):
         super().__init__(pos=pos,
-                        settings={'u':3,'v':5,'length':6,'duration':6,'overPlayer':True},
+                        settings={'u':3,'v':5,'length':6,'duration':6,'overPlayer':True, 'rotate':angle},
                         lifetime=lifetime)
 
 
