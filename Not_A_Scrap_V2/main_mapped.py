@@ -2021,21 +2021,21 @@ class Player(Entity): #Creates an entity that's controlled by the player
         global keyBeingHeld
         #Allows the player to switch weapons between backpack and handheld
 
-        if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count) and keyPress("DROP", "btn") and not self.isReloading():
+        if holdKey("LEFT_HAND", 1*FPS, pyxel.frame_count) and keyPress("DROP", "btn") and not self.isReloading():
             self.inventory.dropWeapon("leftHand", self)
             keyBeingHeld = None
-        elif holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count) and keyPress("DROP", "btn") and not self.isReloading():
+        elif holdKey("RIGHT_HAND", 1*FPS, pyxel.frame_count) and keyPress("DROP", "btn") and not self.isReloading():
             self.inventory.dropWeapon("rightHand", self)
             keyBeingHeld = None
 
-        elif holdKey("SWITCH", 3*FPS, pyxel.frame_count) and not self.isReloading():
+        elif holdKey("SWITCH", 1*FPS, pyxel.frame_count) and not self.isReloading():
             self.inventory.switchHands()
             keyBeingHeld = None
 
-        elif holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count) and not self.isReloading():
+        elif holdKey("LEFT_HAND", 1*FPS, pyxel.frame_count) and not self.isReloading():
             self.inventory.switchWeapon("leftHand", self)
             keyBeingHeld = None
-        elif holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count) and not self.isReloading():
+        elif holdKey("RIGHT_HAND", 1*FPS, pyxel.frame_count) and not self.isReloading():
             self.inventory.switchWeapon("rightHand", self)
             keyBeingHeld = None
 
