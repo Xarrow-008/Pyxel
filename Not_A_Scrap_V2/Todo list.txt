@@ -1,1 +1,4 @@
-Make boss items into mythical items
+Get rid of main and rename main_mapped into main
+Put all the files not linked to the dossier technique in the "sources" folder
+move the pyxres into the "sources" folder
+Rename Not_A_Scrap_V2 into Not_A_Scrap
