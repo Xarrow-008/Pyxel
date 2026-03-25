@@ -1848,7 +1848,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.addStatusEffect("killStreak")
 
     def isInWall(self):
-        return (wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)] == 2) or (self.x % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)+1][int(self.y//TILE_SIZE)] == 2) or (self.y % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)+1] == 2)
+        return (wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)] == 2) or (self.x % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)+1][int(self.y//TILE_SIZE)] == 2) or (self.y % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)+1] == 2)or (self.x % TILE_SIZE != 0 and self.y % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)+1][int(self.y//TILE_SIZE)+1] == 2)
 
 class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self, playerPos):
