@@ -24,29 +24,239 @@ class App:
 
         os.system('cls')
         pyxel.init(CAM_WIDTH,CAM_HEIGHT,fps=FPS)
-        pyxel.load('notAScrap.pyxres')
+        pyxel.load('../notAScrap.pyxres')
         pyxel.colors[1] = getColor('232A4F')
         pyxel.colors[2] = getColor('740152')
         pyxel.colors[14] = getColor('C97777')
         
-        self.state = Game()      
+        self.state = Menu()      
 
         pyxel.mouse(True)
         pyxel.run(self.update,self.draw)
 
     def update(self):
         self.state.update()
+
+        self.checkSwitch()
+
+
+    def checkSwitch(self):
+        if self.state.switch.ready:
+            destination = self.state.switch.to
+            if destination == 'game':
+                self.state = Game()
             
     def draw(self):
         pyxel.cls(0)
+
         self.state.draw()    
 
 freeze_start = 0
 freeze_duration = 0
 game_frame = 0
 
+
+class Menu:
+    def __init__(self):
+        self.state = HeadMenu()
+        self.switch = Switch()
+        self.stars = []
+
+        self.fillStars()
+
+    def update(self):
+        self.state.update()
+
+        self.checkSwitch()
+
+    def draw(self):
+        self.backgroundDraw()
+        self.state.draw()
+
+    def backgroundDraw(self):
+        for star in self.stars:
+            x,y = star
+            pyxel.pset(x,y,7)
+            if random.randint(0,5000) == 0:
+                pyxel.pset(x,y-1,7)
+                pyxel.pset(x,y+1,7)
+                pyxel.pset(x-1,y,7)
+                pyxel.pset(x+1,y,7)
+
+        draw(220,60,1,144,48,32,32,colkey=11,scale=4)
+
+    def fillStars(self):
+        for i in range(400):
+            x = random.randint(0,CAM_WIDTH)
+            y = random.randint(0,CAM_HEIGHT)
+            self.stars.append((x,y))
+
+    def checkSwitch(self):
+        if self.state.switch.ready:
+            destination = self.state.switch.to
+            if destination == 'play':
+                self.switch.change('game')
+            elif destination == 'controls':
+                self.state = ControlsMenu()
+            elif destination == 'head menu':
+                self.state = HeadMenu()
+
+
+class HeadMenu:
+    def __init__(self):
+        self.buttons = ButtonList()
+        self.switch = Switch()
+
+        self.placeButtons()
+
+    def placeButtons(self):
+        self.buttons.add(Button('Play',1,10,60,200,30),'play')
+        self.buttons.add(Button('Controls',1,10,100,200,30),'controls')
+        self.buttons.add(Button('Quit',1,10,140,200,30),'quit')
+
+
+        for button in self.buttons.list():
+            button.showName = True 
+
+
+    def update(self):
+
+        self.checkActions()
+
+        self.quitGame()
+
+    def draw(self):
+        for button in self.buttons.list():
+            button.draw()
+
+
+    def checkActions(self):
+        self.checkControls()
+
+        self.checkPlay()
+
+
+    def checkControls(self):
+        if self.buttons.controls.pressed():
+            self.switch.change('controls')
+
+    def checkPlay(self):
+        if self.buttons.play.pressed():
+            self.switch.change('play')
+
+    def quitGame(self):
+        if self.buttons.quit.pressed():
+            pyxel.quit()
+
+class ControlsMenu:
+    def __init__(self):
+        self.buttons = ButtonList()
+        self.switch = Switch()
+
+        self.placeButtons()
+
+    def placeButtons(self):
+        self.buttons.add(Button('Back',1,10,230,40,20),'back')
+
+
+        for button in self.buttons.list():
+            button.showName = True 
+
+
+    def update(self):
+        self.checkActions()
+
+
+    def draw(self):
+
+        sized_text(10,10,'up : Z',9,size=12)
+        sized_text(10,25,'down : S',9,size=12)
+        sized_text(10,40,'left : Q',9,size=12)
+        sized_text(10,55,'right : D',9,size=12)
+
+        sized_text(10,80,'dash : SPACE',6,size=12)
+        sized_text(10,95,'use left hand weapon : LEFT CLICK',6,size=12,limit=310)
+        sized_text(10,110,'use right hand weapon : RIGHT CLICK',6,size=12,limit=310)
+        sized_text(10,125,'interact : F',6,size=12)
+
+        sized_text(10,150,'inventory : TAB',8,size=12)
+        sized_text(10,165,'left hand : A',8,size=12)
+        sized_text(10,180,'right hand : E',8,size=12)
+        sized_text(10,195,'drop : X + hand',8,size=12)
+        sized_text(10,210,'switch hands : C',8,size=12)
+
+
+        self.buttons.back.draw()
+
+
+    def checkActions(self):
+        self.checkBack()
+
+
+    def checkBack(self):
+        if self.buttons.back.pressed():
+            self.switch.change('head menu')
+
+
+
+class Switch:
+    ready = False
+    to = ''
+    arguments = []
+    def change(self,to,args=[]):
+        self.ready = True
+        self.to = to
+        self.arguments = args
+
+class ButtonList:
+    def __init__(self):
+        self.attrList = []
+        
+    def list(self):
+        return [getattr(self,attr) for attr in self.attrList] #self.list -> [button1, button2, button3 ...]
+
+    def add(self, button, name): 
+        setattr(self, name, button) #self.name = button
+        self.attrList.append(name)
+
+class Button:
+    def __init__(self,name,color,x,y,width,height,icon=None):
+        self.name = name
+        self.color = color
+        self.x = x
+        self.y = y
+        self.width = width
+        self.height = height
+        self.icon = icon
+        self.showName = False
+
+    def __str__(self):
+        return self.name + str(self.x) + str(self.y)
+    
+    def pressed(self):
+        return mouseInside(self.x,self.y,self.width,self.height) and pyxel.btnp(pyxel.MOUSE_BUTTON_LEFT)
+    
+    def draw(self):
+        pyxel.rect(self.x,self.y,self.width,self.height,self.color)
+        if self.showName:
+            self.drawName()
+
+    def drawName(self):
+        size = len(self.name)
+        width = self.width-2
+        if width > size*4:
+            pyxel.text(self.x + 1 + (width - size*4)/2, self.y + 5, self.name, 9)
+        else:
+            string = self.name
+            for i in range(4*size//width+1):
+                pyxel.text(self.x + 1, self.y + 5 + 7*i, string[:width//4], 9)
+                string = string[width//4:]
+
+
+
 class Game:
     def __init__(self):
+        self.switch = Switch()
         self.playerPos = (512,512)
         self.player = Player(self.playerPos)
 
@@ -154,11 +364,13 @@ class Game:
     def restart(self):
         self.player.__init__(self.playerPos)
         self.level = 0
+        self.player.level = 0
         self.initWorldBuild()
 
     def nextLevel(self):
         self.place.player.fuel += -self.place.requiredFuel()
         self.level += 1
+        self.player.level += 1
         self.player.x, self.player.y = self.playerPos
         self.initWorldBuild()
 
@@ -175,7 +387,7 @@ class Game:
                     print('lost')
                     self.restart()
             else:
-                print('caca, pas encore de sortie')
+                print('mimimi, pas encore de sortie')
 
 
 
@@ -211,7 +423,7 @@ class InMission:
         #self.fillBasicEnemies()
 
         self.timerFrame = game_frame
-        self.timerDuration = 90*FPS
+        self.timerDuration = 200*FPS
         self.timerStatus = "Horde"
 
     def placeStairsLeveled(self):
@@ -231,7 +443,7 @@ class InMission:
     def fillBasicEnemies(self):
         for room in self.rooms:
             if room.depth >= 2:
-                nbEnemies = random.randint(1,3)
+                nbEnemies = random.randint(1,self.level+1)
                 for enemy in range(nbEnemies):
                     pos = random.choice(room.floorTiles)
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
@@ -305,30 +517,6 @@ class InMission:
 
         self.timerUpdate()
 
-        if pyxel.btnp(pyxel.KEY_M):
-            self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
-
-        if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x+10, self.player.y, FLAMETHROWER()))
-            self.pickups.append(Pickup(self.player.x+20, self.player.y, SACK()))
-            self.pickups.append(Pickup(self.player.x, self.player.y, NANOBOT()))
-            
-        if pyxel.btnp(pyxel.KEY_O):
-            self.hurt(500, [0,0], 1, 0, self.player, self.player)
-
-        if pyxel.btnp(pyxel.KEY_N):
-            self.player.fuel += 1
-            for entity in self.entities:
-                print(entity.name)
-
-        if pyxel.btnp(pyxel.KEY_J):
-            self.player.anims.append(AnimBoostTop([14,0]))
-
-        if pyxel.btnp(pyxel.KEY_L):
-            self.player.addStatusEffect("fire")
-            self.player.addStatusEffect("exposed")
-            self.player.addStatusEffect("linked")
-
     def timerUpdate(self):
         if self.timerStatus == "Horde" and timer(self.timerFrame, self.timerDuration+self.player.inventory.timerTime, game_frame):
             self.spawnHorde()
@@ -399,7 +587,7 @@ class InMission:
 
     def findRoom(self,x,y):
         for room in self.rooms:
-            if pointInside(x, y, room.x-TILE_SIZE+1, room.y-TILE_SIZE, room.width+2*TILE_SIZE-2, room.height+2*TILE_SIZE):
+            if pointInside(x, y, room.x-1, room.y-1, room.width+2, room.height+2):
                 return room
 
         for exit in self.exits:
@@ -560,6 +748,7 @@ class InMission:
         
 
         for entity in self.entities:
+            entity.currentRoom = self.findRoom(entity.x,entity.y)
             
             if hasattr(entity, "attackList") and entity.attackList != []:
                 for bullet in entity.attackList:
@@ -638,7 +827,7 @@ class InMission:
                 entity.storedLinkedDamage = 0
 
             room = self.findRoom(entity.x,entity.y)
-            conditionUpdate = type(entity) == Projectile
+            conditionUpdate = (type(entity) == Projectile or type(entity) == MeleeAttack)
 
             if room is None:
                 if distance(self.player.x,self.player.y,entity.x,entity.y) < CAM_WIDTH:
@@ -646,8 +835,12 @@ class InMission:
             elif self.isRoomNearby(room):
                 conditionUpdate = True
 
-            if entity.burrowed and (collisionObjects(entity, self.player) or self.currentRoom.index > self.findRoom(entity.x, entity.y).index):
+            if entity.burrowed and (collisionObjects(entity, self.player) or (entity.currentRoom != None and self.currentRoom.index > entity.currentRoom.index)): #temporary fix to bug that i think is burrowed and out of rooms
                 entity.burrowed = False
+
+            if entity.isInWall() and timer(entity.lastDigFrame,0.2*FPS,game_frame) and 2 in entity.canWalk:
+                entity.addAnimation(pos=[entity.x, entity.y, False],settings={'u':5,'v':3,'length':4,'duration':6,'colkey':3},lifetime='1 cycle')
+                entity.lastDigFrame = game_frame 
 
             if conditionUpdate:
                 entity.target = (self.player.x,self.player.y)
@@ -719,6 +912,10 @@ class InMission:
         sized_text(x=2+camera[0], y=CAM_HEIGHT-8+camera[1], s=self.infoText[1], col=7, size=6, background=True)
         if self.infoText != ("", "", ""):
             sized_text(x=self.player.x-29, y=self.player.y-9, s=f"{self.infoText[2][0]} [F] to {self.infoText[2][1]}", col=7, size=6, background=True)
+
+        if self.player.health <= 0 and self.player.inventory.extraLife <= 0:
+            sized_text(x=camera[0]+40, y=camera[1]+20, s='You Died', col=7, size=48, background=True)
+
 
     def drawWorld(self):
         if self.levelHeight == 0:
@@ -793,10 +990,12 @@ class InMission:
                 pickup.draw()
 
         for entity in self.entities:
-            room = self.findRoom(entity.x,entity.y)
+            room = entity.currentRoom
             if room != None:
                 if not entity.dead and (self.shipDoorState != 'closed' or room.name == 'ship') and not entity.burrowed:
                     entity.draw()
+            elif 2 in entity.canWalk:
+                entity.draw()
 
         for entity in self.entities:
             if not entity.dead:
@@ -1168,7 +1367,10 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.attackList = []
         self.spawnedEnemies = []
 
+        self.currentRoom = None
+
         self.burrowed = False
+        self.lastDigFrame = 0
 
     def __str__(self):
         if type(self) == Player:
@@ -1182,7 +1384,6 @@ class Entity: #General Entity class with all the methods describing what entitie
 
 
     def update(self):
-
         self.getConditions()
 
         self.baseUpdate()
@@ -1197,7 +1398,8 @@ class Entity: #General Entity class with all the methods describing what entitie
             for i in range(self.passiveSpawn[1]) :
                 self.spawnedEnemies.append(self.passiveSpawn[2])
 
-        self.statusEffects()
+        if hasattr(self, "maxHealth"):
+            self.statusEffects()
 
         self.hitstun()
 
@@ -1205,8 +1407,7 @@ class Entity: #General Entity class with all the methods describing what entitie
 
             self.movement()
 
-            if hasattr(self, "isDashing"):
-                self.dash()
+            self.dash()
 
             self.collision()
 
@@ -1230,7 +1431,10 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def drawAnims(self):
         for anim in self.anims:
-            anim.draw(self.x,self.y)
+            if type(self)==MeleeAttack and self.weapon.mode == "cut":
+                anim.draw(self.x2, self.y2)
+            else:
+                anim.draw(self.x, self.y)
 
 
     def getConditions(self): #Basically just a bunch of booleans used to check whether or not an item's effect has to be triggered
@@ -1388,7 +1592,6 @@ class Entity: #General Entity class with all the methods describing what entitie
 
     def updateAnims(self):
         self.addStatusMarkers()
-
         for anim in self.anims:
             anim.update()
             if anim.is_dead():
@@ -1470,7 +1673,7 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.applyVector(vector)
 
 
-    def initDash(self, priority, cooldown, speed, duration, invincibility, damage=0): #Gets the parameters of the "dash" action, and initialises the related variables
+    def initDash(self, priority, cooldown, speed, duration, invincibility, damage=0, freeze=0): #Gets the parameters of the "dash" action, and initialises the related variables
         self.dashPriority = priority
         self.baseDashCooldown = cooldown
         self.dashCooldown = cooldown
@@ -1488,6 +1691,9 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.dashInvincibilityDuration = invincibility
 
         self.dashDamage = damage
+        self.dashFreezeDuration = freeze
+        self.dashFreezeFrame = 0
+        self.isDashFrozen = False
 
     def startDash(self, vector): #Used for dashing/lunging
         if self.canStartDash():
@@ -1597,7 +1803,7 @@ class Entity: #General Entity class with all the methods describing what entitie
                 x = self.x+self.width/2
                 y = self.y+self.height/2
                     
-                attack = MeleeAttack(weapon, x, y, [cos, sin], self, self.attackId) #TODO : change this so that, like the bullets, it starts in front of where the player is facing instead of inside of them
+                attack = MeleeAttack(weapon, x, y, [cos, sin], self, self.attackId)
                 self.attackList.append(attack)
 
     def canMeleeAttack(self, hand):
@@ -1845,7 +2051,10 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.addStatusEffect("killStreak")
 
     def isInWall(self):
-        return (wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)] == 2) or (self.x % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)+1][int(self.y//TILE_SIZE)] == 2) or (self.y % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)+1] == 2)or (self.x % TILE_SIZE != 0 and self.y % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)+1][int(self.y//TILE_SIZE)+1] == 2)
+        X = round(self.x / TILE_SIZE)
+        Y = round(self.y / TILE_SIZE)
+        return wallsMap[Y][X] == 2 or self.currentRoom == None
+
 
 class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self, playerPos):
@@ -1867,7 +2076,8 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
-        self.inventory.addWeapon(MACE(), 0, self)
+        self.inventory.addWeapon(RUSTY_PISTOL(), 0, self)
+        self.inventory.addWeapon(RUSTY_KNIFE(), 0, self)
         
         self.image = (6,3)
         self.facing = [1,0]
@@ -1889,7 +2099,9 @@ class Player(Entity): #Creates an entity that's controlled by the player
 
         self.fuel = 0
 
-        self.level = 0 #TODO : Make this increase everytime the player escapes a bunker/ LEO: maybe put this variable in game or sum
+        self.level = 0
+
+        
 
     def initCharacter(self):
         self.characterName = "Scrapper"
@@ -1990,7 +2202,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.lastShotFrame//self.shootFrameDuration*2, self.image[1] + self.facing[1]))
         
     def reloadDraw(self):
-        show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.reloadImage*2, self.image[1] + self.facing[1] - 2)) #TODO LEO backtrack, delete LastreloadFrame, make it so it works with the weapon reload time, in imageGestion, make anims at like 1/2 of reload time n everything
+        show(self.x, self.y, (self.image[0] + self.facing[0] + 2 + self.reloadImage*2, self.image[1] + self.facing[1] - 2)) 
 
     def dashDraw(self):
         show(self.x, self.y, (self.image[0] + self.facing[0] + 2, self.image[1] + self.facing[1] + 2))
@@ -2019,21 +2231,21 @@ class Player(Entity): #Creates an entity that's controlled by the player
         global keyBeingHeld
         #Allows the player to switch weapons between backpack and handheld
 
-        if holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count) and keyPress("DROP", "btn") and not self.isReloading():
+        if holdKey("LEFT_HAND", 1*FPS, pyxel.frame_count) and keyPress("DROP", "btn") and not self.isReloading():
             self.inventory.dropWeapon("leftHand", self)
             keyBeingHeld = None
-        elif holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count) and keyPress("DROP", "btn") and not self.isReloading():
+        elif holdKey("RIGHT_HAND", 1*FPS, pyxel.frame_count) and keyPress("DROP", "btn") and not self.isReloading():
             self.inventory.dropWeapon("rightHand", self)
             keyBeingHeld = None
 
-        elif holdKey("SWITCH", 3*FPS, pyxel.frame_count) and not self.isReloading():
+        elif holdKey("SWITCH", 1*FPS, pyxel.frame_count) and not self.isReloading():
             self.inventory.switchHands()
             keyBeingHeld = None
 
-        elif holdKey("LEFT_HAND", 3*FPS, pyxel.frame_count) and not self.isReloading():
+        elif holdKey("LEFT_HAND", 1*FPS, pyxel.frame_count) and not self.isReloading():
             self.inventory.switchWeapon("leftHand", self)
             keyBeingHeld = None
-        elif holdKey("RIGHT_HAND", 3*FPS, pyxel.frame_count) and not self.isReloading():
+        elif holdKey("RIGHT_HAND", 1*FPS, pyxel.frame_count) and not self.isReloading():
             self.inventory.switchWeapon("rightHand", self)
             keyBeingHeld = None
 
@@ -2307,15 +2519,15 @@ class Player(Entity): #Creates an entity that's controlled by the player
             self.direction[0] = 0
         
         #If the player is almost immobile in a specific direction, we snap their speed to 0
-        if abs(self.momentum[0]) <= 0.01:
+        if abs(self.momentum[0]) <= 0.05:
             self.momentum[0] = 0
-        if abs(self.momentum[1]) <= 0.01:
+        if abs(self.momentum[1]) <= 0.05:
             self.momentum[1] = 0
 
         #If the player is almost at max speed in a specific direction, we snap their speed to max speed
-        if self.maxSpeed-abs(self.momentum[0]) <= 0.01:
+        if self.maxSpeed-abs(self.momentum[0]) <= 0.05:
             self.momentum[0] = self.maxSpeed*pyxel.sgn(self.momentum[0])
-        if self.maxSpeed-abs(self.momentum[1]) <= 0.01:
+        if self.maxSpeed-abs(self.momentum[1]) <= 0.05:
             self.momentum[1] = self.maxSpeed*pyxel.sgn(self.momentum[1])
 
         #If the player is over max speed, we decrease their speed progressively
@@ -2563,15 +2775,6 @@ class Projectile(Entity) : #Creates a projectile that can hit other entities
         self.initWalk(priority=0, maxSpeed=weapon.bulletSpeed, speedChangeRate=0, knockbackCoef=0, canWalk=[0,1])
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         self.initialiseNewCollisions()
-        
-
-    def update(self):
-
-        self.movement()
-
-        self.collision()
-        
-        self.death()
 
     def draw(self):
         if type(self.weapon) == LANCE_PROJECTILE:
@@ -2628,12 +2831,16 @@ class MeleeAttack(Entity) :
         self.range = weapon.range * (1+owner.inventory.rangeIncrease/100)
 
         if self.mode == "thrust" : 
-            super().__init__(x=x, y=y, width=weapon.attackWidth, height=weapon.attackHeight)
+            width = weapon.hitBoxWidth*(-vector[1])
+            height = weapon.hitBoxWidth*(vector[0])
+            super().__init__(x=x, y=y, width=width, height=height)
             self.normalVector = [-vector[1], vector[0]]
+            self.angle = (math.acos(vector[0])*pyxel.sgn(vector[1]))*(180/math.pi)
             self.hitBoxWidth = weapon.hitBoxWidth
         else :
             super().__init__(x=self.owner.x+self.owner.width/2, y=self.owner.y+self.owner.height/2, width=0, height=0)
             self.baseAngle = (math.acos(vector[0])*pyxel.sgn(vector[1]))*(180/math.pi) - weapon.maxAngle/2
+            self.angle = self.baseAngle
             self.targetAngle = self.baseAngle + weapon.maxAngle
 
             cos = pyxel.cos(self.baseAngle)
@@ -2653,8 +2860,6 @@ class MeleeAttack(Entity) :
 
         self.shot = shot
 
-        self.image = weapon.attackImage
-
         self.damage = weapon.damage
 
         if weapon.durability < math.ceil(weapon.baseDurability/10) and weapon.baseDurability != 0 :
@@ -2670,11 +2875,6 @@ class MeleeAttack(Entity) :
         self.initWalk(priority=0, maxSpeed=weapon.attackSpeed, speedChangeRate=0, knockbackCoef=0, canWalk=[0,1])
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         self.initialiseNewCollisions()
-
-    def update(self):
-        self.movement()
-        self.collision()
-        self.death()
 
     def initialiseNewCollisions(self):
         if "onHitPoison" in self.weapon.specialEffects.keys():
@@ -2717,9 +2917,8 @@ class MeleeAttack(Entity) :
             self.x2 = self.x + self.direction[0]*self.range
             self.y2 = self.y + self.direction[1]*self.range
 
-    def draw(self) : #TODO : replace this with an animation for the melee attack
+    def draw(self):
         pyxel.line(x1=self.x, y1=self.y, x2=self.x2, y2=self.y2, col=7)
-
 class Pickup:
     def __init__(self, x, y, pickup):
         self.x = x
@@ -3226,9 +3425,9 @@ class Enemy(Entity): #Creates an entity that fights the player
         self.momentum[0] -= self.momentum[0]/self.speedChangeRate
         self.momentum[1] -= self.momentum[1]/self.speedChangeRate
 
-        if abs(self.momentum[0]) <= 0.01:
+        if abs(self.momentum[0]) <= 0.05:
             self.momentum[0] = 0
-        if abs(self.momentum[1]) <= 0.01:
+        if abs(self.momentum[1]) <= 0.05:
             self.momentum[1] = 0
 
         if hasattr(self, "inventory"):
@@ -3243,11 +3442,17 @@ class Enemy(Entity): #Creates an entity that fights the player
         
 
     def dash(self):
-        if self.isDashing:
-            self.dashMovement()
-        elif distance(self.x, self.y, self.target[0], self.target[1]) <= self.dashSpeed*self.dashDuration*0.7:
-            vector = getVector(self.x, self.target[0], self.y, self.target[1])
-            self.startDash(vector)
+        if hasattr(self, "isDashing") :
+            if not self.isDashFrozen and distance(self.x, self.y, self.target[0], self.target[1]) <= self.dashSpeed*self.dashDuration*0.7 and timer(self.dashFreezeFrame, self.dashFreezeDuration, game_frame) :
+                self.currentActionPriority = self.dashPriority
+                self.dashFreezeFrame = game_frame
+                self.isDashFrozen = True
+            if self.isDashFrozen and timer(self.dashFreezeFrame, self.dashFreezeDuration, game_frame) :
+                self.isDashFrozen = False
+                vector = getVector(self.x, self.target[0], self.y, self.target[1])
+                self.startDash(vector)
+            if self.isDashing:
+                self.dashMovement()            
 
     def collision(self):
         pass
@@ -3295,7 +3500,7 @@ class Enemy(Entity): #Creates an entity that fights the player
         if (hasattr(self, "burrowed") and self.burrowed):
             self.image = [self.originalImage[0]+4*TILE_SIZE, self.originalImage[1]]
 
-        if self.isInWall():
+        if self.isInWall() and 2 in self.canWalk:
             self.image = [self.originalImage[0]+5*TILE_SIZE, self.originalImage[1]]
 
 
@@ -3387,7 +3592,7 @@ class Bulwark(Enemy):
         self.maxHealth = 150+10*level
 
         self.scaling = 1.5
-        self.initWalk(priority=0, maxSpeed=0.25, speedChangeRate=10, knockbackCoef=0)
+        self.initWalk(priority=0, maxSpeed=0.55, speedChangeRate=10, knockbackCoef=0) #TODO: problem with their speed, below 0.55 is way too slow and above is way to fast
         self.inventory = Inventory()
         self.inventory.leftHand.addWeapon(BITE(), level)
         self.initMeleeAttack(priority=1, freeze=1*FPS)
@@ -3405,7 +3610,7 @@ class Pouncer(Enemy):
 
         self.scaling = 1.5
         self.initWalk(priority=0, maxSpeed=0.2, speedChangeRate=10, knockbackCoef=1)
-        self.initDash(priority=1, cooldown=2*FPS, speed=2, duration=0.5*FPS, invincibility=False, damage=15)
+        self.initDash(priority=1, cooldown=2*FPS, speed=2, duration=0.5*FPS, invincibility=False, damage=15, freeze=0.5*FPS)
 
         self.initHitstun(duration=0.5*FPS, freezeFrame=0, invincibility=0)
 
@@ -3523,7 +3728,7 @@ class Animation:
         self.pos = pos
         self.posRelative = True
         self.colkey = 11
-        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7,False), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0),'overPlayer':False}
+        self.default_set = {'u':0,'v':0,'width':TILE_SIZE,'height':TILE_SIZE,'imageVector':(1,0), 'text':('',6,7,False), 'length':3,'duration':10, 'colkey':11, 'movementVector':(0,0),'overPlayer':False, 'rotate':0}
 
         self.apply_settings()
 
@@ -3539,10 +3744,10 @@ class Animation:
             
     def draw(self,x,y):
         if self.posRelative:
-            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            draw(x=x + self.pos[0], y=y + self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey, rotate=self.settings["rotate"])
             sized_text(x + self.pos[0], y + self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         else:
-            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey)
+            draw(x=self.pos[0], y=self.pos[1], img=1, u=self.image[0]*TILE_SIZE, v=self.image[1]*TILE_SIZE, w=self.settings["width"], h=self.settings["height"], colkey=self.colkey, rotate=self.settings["rotate"])
             sized_text(self.pos[0], self.pos[1], self.settings["text"][0], size=self.settings["text"][1], col=self.settings["text"][2], background=self.settings["text"][3])
         
     def get_img(self):
@@ -3551,7 +3756,6 @@ class Animation:
         y = self.settings['v'] + self.settings['imageVector'][1]*frame_anim
         self.image = (x,y)
 
-        #print(x,y,flush=True)
 
     def apply_settings(self):
         if type(self.settings) is dict:
@@ -3647,6 +3851,36 @@ class AnimRevive(Animation):
     def __init__(self,pos,lifetime='1 cycle'):
         super().__init__(pos=pos,
                         settings={'u':0,'v':9,'width':32,'height':32,'length':5,'duration':6,'overPlayer':True},
+                        lifetime=lifetime)
+
+class AnimSlashAcross(Animation):
+    def __init__(self,pos, angle,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':1,'v':7,'length':6,'duration':3,'overPlayer':True, 'rotate':angle},
+                        lifetime=lifetime)
+                        
+class AnimSlashAround(Animation):
+    def __init__(self,pos, angle,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':1,'v':8,'length':6,'duration':3,'overPlayer':True, 'rotate':angle},
+                        lifetime=lifetime)
+
+class AnimSlashStraight(Animation):
+    def __init__(self,pos, angle,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':3,'v':6,'length':6,'duration':3,'overPlayer':True, 'rotate':angle},
+                        lifetime=lifetime)
+                        
+class AnimSlashFront(Animation):
+    def __init__(self,pos, angle,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':3,'v':5,'length':6,'duration':3,'overPlayer':True, 'rotate':angle},
+                        lifetime=lifetime)
+
+class AnimDigWall(Animation):
+    def __init__(self,pos,angle,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':5,'v':3,'length':4,'duration':6, 'rotate':angle},
                         lifetime=lifetime)
 
 
