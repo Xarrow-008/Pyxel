@@ -387,7 +387,7 @@ class Game:
                     print('lost')
                     self.restart()
             else:
-                print('caca, pas encore de sortie')
+                print('mimimi, pas encore de sortie')
 
 
 
@@ -443,7 +443,7 @@ class InMission:
     def fillBasicEnemies(self):
         for room in self.rooms:
             if room.depth >= 2:
-                nbEnemies = random.randint(1,3)
+                nbEnemies = random.randint(1,self.level+1)
                 for enemy in range(nbEnemies):
                     pos = random.choice(room.floorTiles)
                     self.spawnRandomEnemy(x=room.x + pos[0]*TILE_SIZE, y=room.y + pos[1]*TILE_SIZE)
@@ -516,29 +516,6 @@ class InMission:
         self.roomsUpdate()
 
         self.timerUpdate()
-
-        if pyxel.btnp(pyxel.KEY_M):
-            self.spawn(Dummy,camera[0] + pyxel.mouse_x, camera[1] + pyxel.mouse_y, 0)
-
-        if pyxel.btnp(pyxel.KEY_P):
-            self.pickups.append(Pickup(self.player.x+10, self.player.y, FLAMETHROWER()))
-            self.pickups.append(Pickup(self.player.x+20, self.player.y, RUSTY_PISTOL()))
-            
-        if pyxel.btnp(pyxel.KEY_O):
-            self.hurt(500, [0,0], 1, 0, self.player, self.player)
-
-        if pyxel.btnp(pyxel.KEY_N):
-            self.player.fuel += 1
-            for entity in self.entities:
-                print(entity.name)
-
-        if pyxel.btnp(pyxel.KEY_J):
-            self.player.anims.append(AnimSlashAround([1,0], 0))
-
-        if pyxel.btnp(pyxel.KEY_L):
-            self.player.addStatusEffect("fire")
-            self.player.addStatusEffect("exposed")
-            self.player.addStatusEffect("linked")
 
     def timerUpdate(self):
         if self.timerStatus == "Horde" and timer(self.timerFrame, self.timerDuration+self.player.inventory.timerTime, game_frame):
@@ -858,10 +835,10 @@ class InMission:
             elif self.isRoomNearby(room):
                 conditionUpdate = True
 
-            if entity.burrowed and (collisionObjects(entity, self.player) or self.currentRoom.index > self.findRoom(entity.x, entity.y).index):
+            if entity.burrowed and (collisionObjects(entity, self.player) or (entity.currentRoom != None and self.currentRoom.index > entity.currentRoom.index)): #temporary fix to bug that i think is burrowed and out of rooms
                 entity.burrowed = False
 
-            if entity.isInWall() and timer(entity.lastDigFrame,0.2*FPS,game_frame):
+            if entity.isInWall() and timer(entity.lastDigFrame,0.2*FPS,game_frame) and 2 in entity.canWalk:
                 entity.addAnimation(pos=[entity.x, entity.y, False],settings={'u':5,'v':3,'length':4,'duration':6,'colkey':3},lifetime='1 cycle')
                 entity.lastDigFrame = game_frame 
 
@@ -935,6 +912,10 @@ class InMission:
         sized_text(x=2+camera[0], y=CAM_HEIGHT-8+camera[1], s=self.infoText[1], col=7, size=6, background=True)
         if self.infoText != ("", "", ""):
             sized_text(x=self.player.x-29, y=self.player.y-9, s=f"{self.infoText[2][0]} [F] to {self.infoText[2][1]}", col=7, size=6, background=True)
+
+        if self.player.health <= 0 and self.player.inventory.extraLife <= 0:
+            sized_text(x=camera[0]+40, y=camera[1]+20, s='You Died', col=7, size=48, background=True)
+
 
     def drawWorld(self):
         if self.levelHeight == 0:
@@ -3611,7 +3592,7 @@ class Bulwark(Enemy):
         self.maxHealth = 150+10*level
 
         self.scaling = 1.5
-        self.initWalk(priority=0, maxSpeed=0.25, speedChangeRate=10, knockbackCoef=0)
+        self.initWalk(priority=0, maxSpeed=0.55, speedChangeRate=10, knockbackCoef=0) #TODO: problem with their speed, below 0.55 is way too slow and above is way to fast
         self.inventory = Inventory()
         self.inventory.leftHand.addWeapon(BITE(), level)
         self.initMeleeAttack(priority=1, freeze=1*FPS)
@@ -3775,7 +3756,6 @@ class Animation:
         y = self.settings['v'] + self.settings['imageVector'][1]*frame_anim
         self.image = (x,y)
 
-        #print(x,y,flush=True)
 
     def apply_settings(self):
         if type(self.settings) is dict:
@@ -3897,7 +3877,7 @@ class AnimSlashFront(Animation):
                         settings={'u':3,'v':5,'length':6,'duration':3,'overPlayer':True, 'rotate':angle},
                         lifetime=lifetime)
 
-class AnimSlashFront(Animation):
+class AnimDigWall(Animation):
     def __init__(self,pos,angle,lifetime='1 cycle'):
         super().__init__(pos=pos,
                         settings={'u':5,'v':3,'length':4,'duration':6, 'rotate':angle},
