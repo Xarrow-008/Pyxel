@@ -610,7 +610,7 @@ class InMission:
 
     def findRoom(self,x,y):
         for room in self.rooms:
-            if pointInside(x, y, room.x-TILE_SIZE+1, room.y-TILE_SIZE, room.width+2*TILE_SIZE-2, room.height+2*TILE_SIZE):
+            if pointInside(x, y, room.x-1, room.y-1, room.width+2, room.height+2):
                 return room
 
         for exit in self.exits:
@@ -771,6 +771,7 @@ class InMission:
         
 
         for entity in self.entities:
+            entity.currentRoom = self.findRoom(entity.x,entity.y)
             
             if hasattr(entity, "attackList") and entity.attackList != []:
                 for bullet in entity.attackList:
@@ -859,6 +860,10 @@ class InMission:
 
             if entity.burrowed and (collisionObjects(entity, self.player) or self.currentRoom.index > self.findRoom(entity.x, entity.y).index):
                 entity.burrowed = False
+
+            if entity.isInWall() and timer(entity.lastDigFrame,0.2*FPS,game_frame):
+                entity.addAnimation(pos=[entity.x, entity.y, False],settings={'u':5,'v':3,'length':4,'duration':6,'colkey':3},lifetime='1 cycle')
+                entity.lastDigFrame = game_frame 
 
             if conditionUpdate:
                 entity.target = (self.player.x,self.player.y)
@@ -1004,10 +1009,12 @@ class InMission:
                 pickup.draw()
 
         for entity in self.entities:
-            room = self.findRoom(entity.x,entity.y)
+            room = entity.currentRoom
             if room != None:
                 if not entity.dead and (self.shipDoorState != 'closed' or room.name == 'ship') and not entity.burrowed:
                     entity.draw()
+            elif 2 in entity.canWalk:
+                entity.draw()
 
         for entity in self.entities:
             if not entity.dead:
@@ -1379,7 +1386,10 @@ class Entity: #General Entity class with all the methods describing what entitie
         self.attackList = []
         self.spawnedEnemies = []
 
+        self.currentRoom = None
+
         self.burrowed = False
+        self.lastDigFrame = 0
 
     def __str__(self):
         if type(self) == Player:
@@ -2060,7 +2070,10 @@ class Entity: #General Entity class with all the methods describing what entitie
             self.addStatusEffect("killStreak")
 
     def isInWall(self):
-        return (wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)] == 2) or (self.x % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)+1][int(self.y//TILE_SIZE)] == 2) or (self.y % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)][int(self.y//TILE_SIZE)+1] == 2)or (self.x % TILE_SIZE != 0 and self.y % TILE_SIZE != 0 and wallsMap[int(self.x//TILE_SIZE)+1][int(self.y//TILE_SIZE)+1] == 2)
+        X = round(self.x / TILE_SIZE)
+        Y = round(self.y / TILE_SIZE)
+        return wallsMap[Y][X] == 2 or self.currentRoom == None
+
 
 class Player(Entity): #Creates an entity that's controlled by the player
     def __init__(self, playerPos):
@@ -2082,6 +2095,7 @@ class Player(Entity): #Creates an entity that's controlled by the player
         self.initHitstun(duration=0*FPS, freezeFrame=1*FPS, invincibility=1*FPS)
 
         self.inventory = Inventory()
+        self.inventory.addWeapon(RUSTY_PISTOL(), 0, self)
         self.inventory.addWeapon(RUSTY_KNIFE(), 0, self)
         
         self.image = (6,3)
@@ -2881,15 +2895,6 @@ class MeleeAttack(Entity) :
         self.initDeath(spawnItem=0, spawnWeapon=0, spawnFuel=0)
         self.initialiseNewCollisions()
 
-        if weapon.attackAnim == "Across":
-            self.anims.append(AnimSlashAcross([0,0], self.angle))
-        if weapon.attackAnim == "Around":
-            self.anims.append(AnimSlashAround([0,0], self.angle))
-        if weapon.attackAnim == "Straight":
-            self.anims.append(AnimSlashStraight([0,0], self.angle))
-        if weapon.attackAnim == "Front":
-            self.anims.append(AnimSlashFront([0,0], self.angle))
-
     def initialiseNewCollisions(self):
         if "onHitPoison" in self.weapon.specialEffects.keys():
             statusEffects = ["poison", self.weapon.specialEffects["onHitPoison"]["stacks"], 1]
@@ -2932,7 +2937,7 @@ class MeleeAttack(Entity) :
             self.y2 = self.y + self.direction[1]*self.range
 
     def draw(self):
-        pass
+        pyxel.line(x1=self.x, y1=self.y, x2=self.x2, y2=self.y2, col=7)
 class Pickup:
     def __init__(self, x, y, pickup):
         self.x = x
@@ -3890,6 +3895,12 @@ class AnimSlashFront(Animation):
     def __init__(self,pos, angle,lifetime='1 cycle'):
         super().__init__(pos=pos,
                         settings={'u':3,'v':5,'length':6,'duration':3,'overPlayer':True, 'rotate':angle},
+                        lifetime=lifetime)
+
+class AnimSlashFront(Animation):
+    def __init__(self,pos,angle,lifetime='1 cycle'):
+        super().__init__(pos=pos,
+                        settings={'u':5,'v':3,'length':4,'duration':6, 'rotate':angle},
                         lifetime=lifetime)
 
 
